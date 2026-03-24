@@ -167,7 +167,8 @@ class Parser:
 
     def return_statement(self):
         value = None
-        if not self.check(TokenType.NEWLINE) and not self.check(TokenType.EOF):
+        self.skip_newlines()
+        if not self.check(TokenType.NEWLINE) and not self.check(TokenType.EOF) and not self.check(TokenType.RIGHT_BRACE):
             value = self.expression()
         
         return ReturnStmt(value)
@@ -210,6 +211,7 @@ class Parser:
         return self.expression_statement()
 
     def expression_statement(self):
+        self.skip_newlines()
         expr = self.expression()
         return ExprStmt(expr)
 
@@ -310,35 +312,37 @@ class Parser:
         expr = self.primary()
         
         while True:
-            if self.match(TokenType.LEFT_PAREN):
-                arguments = []
-                if not self.check(TokenType.RIGHT_PAREN):
-                    while True:
-                        arguments.append(self.expression())
-                        if not self.match(TokenType.COMMA):
-                            break
-                
-                self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
-                expr = CallExpr(expr, arguments)
-            elif self.match(TokenType.LEFT_BRACKET):
-                index = self.expression()
-                self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after index")
-                expr = IndexExpr(expr, index)
-            elif self.match(TokenType.DOT):
-                name = self.consume(TokenType.IDENTIFIER, "Expect property name")
                 if self.match(TokenType.LEFT_PAREN):
                     arguments = []
+                    self.skip_newlines()
                     if not self.check(TokenType.RIGHT_PAREN):
                         while True:
+                            self.skip_newlines()
                             arguments.append(self.expression())
+                            self.skip_newlines()
                             if not self.match(TokenType.COMMA):
                                 break
                     self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
-                    expr = CallExpr(GetExpr(expr, name.lexeme), arguments)
+                    expr = CallExpr(expr, arguments)
+                elif self.match(TokenType.LEFT_BRACKET):
+                    index = self.expression()
+                    self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after index")
+                    expr = IndexExpr(expr, index)
+                elif self.match(TokenType.DOT):
+                    name = self.consume(TokenType.IDENTIFIER, "Expect property name")
+                    if self.match(TokenType.LEFT_PAREN):
+                        arguments = []
+                        if not self.check(TokenType.RIGHT_PAREN):
+                            while True:
+                                arguments.append(self.expression())
+                                if not self.match(TokenType.COMMA):
+                                    break
+                        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
+                        expr = CallExpr(GetExpr(expr, name.lexeme), arguments)
+                    else:
+                        expr = GetExpr(expr, name.lexeme)
                 else:
-                    expr = GetExpr(expr, name.lexeme)
-            else:
-                break
+                    break
         
         return expr
 
@@ -365,7 +369,9 @@ class Parser:
             return SelfExpr()
         
         if self.match(TokenType.LEFT_PAREN):
+            self.skip_newlines()
             expr = self.expression()
+            self.skip_newlines()
             self.consume(TokenType.RIGHT_PAREN, "Expect ')' after expression")
             return expr
         

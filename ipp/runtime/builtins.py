@@ -119,6 +119,8 @@ def ipp_sum(*args):
         return 0
     total = 0
     for arg in args:
+        if hasattr(arg, 'elements'):
+            arg = arg.elements
         if isinstance(arg, (list, tuple)):
             total += sum(arg)
         else:
@@ -299,6 +301,176 @@ def ipp_bool(s):
     return True
 
 
+def ipp_split(s, delimiter=" "):
+    if not isinstance(s, str):
+        raise RuntimeError("split requires a string")
+    return s.split(delimiter)
+
+
+def ipp_join(items, separator=""):
+    if hasattr(items, 'elements'):
+        items = items.elements
+    elif not isinstance(items, (list, tuple)):
+        raise RuntimeError("join requires a list")
+    return separator.join(str(x) for x in items)
+
+
+def ipp_upper(s):
+    if not isinstance(s, str):
+        raise RuntimeError("upper requires a string")
+    return s.upper()
+
+
+def ipp_lower(s):
+    if not isinstance(s, str):
+        raise RuntimeError("lower requires a string")
+    return s.lower()
+
+
+def ipp_strip(s):
+    if not isinstance(s, str):
+        raise RuntimeError("strip requires a string")
+    return s.strip()
+
+
+def ipp_replace(s, old, new):
+    if not isinstance(s, str):
+        raise RuntimeError("replace requires a string")
+    return s.replace(old, new)
+
+
+def ipp_starts_with(s, prefix):
+    if not isinstance(s, str):
+        raise RuntimeError("starts_with requires a string")
+    return s.startswith(prefix)
+
+
+def ipp_ends_with(s, suffix):
+    if not isinstance(s, str):
+        raise RuntimeError("ends_with requires a string")
+    return s.endswith(suffix)
+
+
+def ipp_find(s, sub, start=0):
+    if not isinstance(s, str):
+        raise RuntimeError("find requires a string")
+    idx = s.find(sub, start)
+    return idx if idx >= 0 else -1
+
+
+def ipp_split_lines(s):
+    if not isinstance(s, str):
+        raise RuntimeError("split_lines requires a string")
+    return s.splitlines()
+
+
+def ipp_count(s, sub):
+    if not isinstance(s, str):
+        raise RuntimeError("count requires a string")
+    return s.count(sub)
+
+
+def ipp_contains(s, sub):
+    if not isinstance(s, str):
+        raise RuntimeError("contains requires a string")
+    return sub in s
+
+
+def ipp_startswith(s, prefix):
+    return ipp_starts_with(s, prefix)
+
+
+def ipp_endswith(s, suffix):
+    return ipp_ends_with(s, suffix)
+
+
+def ipp_replace_all(s, old, new):
+    if not isinstance(s, str):
+        raise RuntimeError("replace_all requires a string")
+    return s.replace(old, new)
+
+
+def ipp_substring(s, start, end=None):
+    if not isinstance(s, str):
+        raise RuntimeError("substring requires a string")
+    start = int(start)
+    if end is not None:
+        end = int(end)
+    if end is None:
+        return s[start:]
+    return s[start:end]
+
+
+def ipp_index_of(s, sub, start=0):
+    return ipp_find(s, sub, start)
+
+
+def ipp_char_at(s, index):
+    if not isinstance(s, str):
+        raise RuntimeError("char_at requires a string")
+    index = int(index)
+    if index < 0 or index >= len(s):
+        return ""
+    return s[index]
+
+
+def ipp_ascii(s):
+    if not isinstance(s, str) or len(s) == 0:
+        return 0
+    return ord(s[0])
+
+
+def ipp_from_ascii(code):
+    return chr(int(code))
+
+
+def ipp_json_parse(json_str):
+    import json
+    try:
+        from ipp.interpreter.interpreter import IppList, IppDict
+        data = json.loads(json_str)
+        if isinstance(data, dict):
+            return IppDict(data)
+        elif isinstance(data, list):
+            return IppList(data)
+        return data
+    except Exception as e:
+        raise RuntimeError(f"JSON parse error: {e}")
+
+
+def ipp_json_stringify(obj, indent=None):
+    import json
+    from ipp.interpreter.interpreter import IppList, IppDict
+    def convert(v):
+        if isinstance(v, IppDict):
+            return {k: convert(v.data[k]) for k in v.data}
+        if isinstance(v, IppList):
+            return [convert(e) for e in v.elements]
+        return v
+    try:
+        return json.dumps(convert(obj), indent=indent)
+    except Exception as e:
+        raise RuntimeError(f"JSON stringify error: {e}")
+
+
+def ipp_regex_match(pattern, text):
+    import re
+    return bool(re.match(pattern, text))
+
+
+def ipp_regex_search(pattern, text):
+    import re
+    match = re.search(pattern, text)
+    if match:
+        return match.group()
+    return ""
+
+
+def ipp_regex_replace(pattern, text, replacement):
+    import re
+    return re.sub(pattern, replacement, text)
+
+
 def ipp_read_file(path):
     try:
         with open(path, 'r', encoding='utf-8') as f:
@@ -429,4 +601,29 @@ BUILTINS = {
     "time": ipp_time,
     "sleep": ipp_sleep,
     "clock": ipp_clock,
+    "split": ipp_split,
+    "join": ipp_join,
+    "upper": ipp_upper,
+    "lower": ipp_lower,
+    "strip": ipp_strip,
+    "replace": ipp_replace,
+    "starts_with": ipp_starts_with,
+    "ends_with": ipp_ends_with,
+    "find": ipp_find,
+    "split_lines": ipp_split_lines,
+    "count": ipp_count,
+    "contains": ipp_contains,
+    "startswith": ipp_startswith,
+    "endswith": ipp_endswith,
+    "replace_all": ipp_replace_all,
+    "substring": ipp_substring,
+    "index_of": ipp_index_of,
+    "char_at": ipp_char_at,
+    "ascii": ipp_ascii,
+    "from_ascii": ipp_from_ascii,
+    "json_parse": ipp_json_parse,
+    "json_stringify": ipp_json_stringify,
+    "regex_match": ipp_regex_match,
+    "regex_search": ipp_regex_search,
+    "regex_replace": ipp_regex_replace,
 }

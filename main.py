@@ -41,7 +41,7 @@ def run_file(filepath):
 
 def run_repl():
     """Run the Ipp REPL"""
-    print("Ipp v0.2.0 - Type 'exit()' to quit")
+    print("Ipp v0.3.0 - Type 'help()' for info, 'exit()' to quit")
     print()
     
     buffer = []
@@ -58,6 +58,16 @@ def run_repl():
             if not buffer and line.strip() in ("exit()", "exit", "quit"):
                 break
             
+            if line.strip() == "help()":
+                print("Ipp v0.3.0")
+                print("Commands: exit(), help(), clear()")
+                print("Features: strings, lists, dicts, json, regex, files, math, random")
+                continue
+                
+            if line.strip() == "clear()":
+                buffer = []
+                continue
+                
             if not line.strip() and not buffer:
                 continue
                 
