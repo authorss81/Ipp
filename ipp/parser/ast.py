@@ -1,9 +1,11 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import List, Optional, Any
 
 
 class ASTNode(ABC):
+    line: int = 0
+    
     @abstractmethod
     def accept(self, visitor):
         pass

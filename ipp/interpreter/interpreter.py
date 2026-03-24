@@ -58,6 +58,49 @@ class IppList:
     
     def __repr__(self):
         return f"[{', '.join(repr(e) for e in self.elements)}]"
+    
+    def append(self, item):
+        self.elements.append(item)
+    
+    def pop(self, index=-1):
+        if not self.elements:
+            raise RuntimeError("Cannot pop from empty list")
+        return self.elements.pop(index)
+    
+    def push(self, item):
+        self.elements.append(item)
+    
+    def shift(self):
+        if not self.elements:
+            raise RuntimeError("Cannot shift from empty list")
+        return self.elements.pop(0)
+    
+    def unshift(self, item):
+        self.elements.insert(0, item)
+    
+    def len(self):
+        return len(self.elements)
+    
+    def contains(self, item):
+        return item in self.elements
+    
+    def index_of(self, item):
+        try:
+            return self.elements.index(item)
+        except ValueError:
+            return -1
+    
+    def slice(self, start=0, end=None):
+        return self.elements[start:end]
+    
+    def reverse(self):
+        return list(reversed(self.elements))
+    
+    def join(self, separator=""):
+        return separator.join(str(e) for e in self.elements)
+    
+    def clear(self):
+        self.elements = []
 
 
 class IppDict:
@@ -75,6 +118,25 @@ class IppDict:
     
     def len(self):
         return len(self.data)
+    
+    def keys(self):
+        return list(self.data.keys())
+    
+    def values(self):
+        return list(self.data.values())
+    
+    def items(self):
+        return list(self.data.items())
+    
+    def has(self, key):
+        return key in self.data
+    
+    def delete(self, key):
+        if key in self.data:
+            del self.data[key]
+    
+    def clear(self):
+        self.data = {}
 
 
 class Environment:
@@ -116,15 +178,27 @@ class Interpreter:
         self.return_value = None
         self.break_flag = False
         self.continue_flag = False
+        self.current_line = 0
         
         for name, func in BUILTINS.items():
             self.global_env.define(name, func, constant=False)
 
     def run(self, program: Program):
-        for stmt in program.statements:
-            if self.return_value is not None:
-                break
-            self.execute(stmt)
+        try:
+            for stmt in program.statements:
+                if self.return_value is not None:
+                    break
+                self.execute(stmt)
+        except RuntimeError as e:
+            if "line" not in str(e):
+                raise RuntimeError(f"Error at line {self.current_line}: {e}")
+            raise
+
+    def run_safe(self, program: Program):
+        try:
+            self.run(program)
+        except Exception as e:
+            print(f"Runtime error: {e}")
 
     def execute(self, stmt: ASTNode):
         return stmt.accept(self)

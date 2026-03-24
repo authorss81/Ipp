@@ -11,16 +11,16 @@ class Parser:
     def parse(self) -> Program:
         statements = []
         
-        while not self.is_at_end():
+        while True:
             self.skip_newlines()
-            if self.check(TokenType.EOF):
+            if self.is_at_end():
                 break
             statements.append(self.declaration())
         
         return Program(statements)
 
     def skip_newlines(self):
-        while self.check(TokenType.NEWLINE):
+        while not self.is_at_end() and self.check(TokenType.NEWLINE):
             self.advance()
 
     # Declaration parsing
