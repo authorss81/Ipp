@@ -179,6 +179,7 @@ class Interpreter:
         self.break_flag = False
         self.continue_flag = False
         self.current_line = 0
+        self.call_stack = []
         
         for name, func in BUILTINS.items():
             self.global_env.define(name, func, constant=False)
@@ -190,8 +191,10 @@ class Interpreter:
                     break
                 self.execute(stmt)
         except RuntimeError as e:
-            if "line" not in str(e):
-                raise RuntimeError(f"Error at line {self.current_line}: {e}")
+            error_msg = str(e)
+            if "Error at line" not in error_msg:
+                stack_info = " -> ".join(self.call_stack) if self.call_stack else "main"
+                raise RuntimeError(f"Error at line {self.current_line} in {stack_info}: {e}")
             raise
 
     def run_safe(self, program: Program):

@@ -41,7 +41,7 @@ def run_file(filepath):
 
 def run_repl():
     """Run the Ipp REPL"""
-    print("Ipp v0.1.1 - Type 'exit()' to quit")
+    print("Ipp v0.2.0 - Type 'exit()' to quit")
     print()
     
     buffer = []

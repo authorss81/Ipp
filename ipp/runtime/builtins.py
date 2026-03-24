@@ -299,6 +299,78 @@ def ipp_bool(s):
     return True
 
 
+def ipp_read_file(path):
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except Exception as e:
+        raise RuntimeError(f"Cannot read file: {e}")
+
+
+def ipp_write_file(path, content):
+    try:
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(content)
+        return True
+    except Exception as e:
+        raise RuntimeError(f"Cannot write file: {e}")
+
+
+def ipp_append_file(path, content):
+    try:
+        with open(path, 'a', encoding='utf-8') as f:
+            f.write(content)
+        return True
+    except Exception as e:
+        raise RuntimeError(f"Cannot append to file: {e}")
+
+
+def ipp_file_exists(path):
+    import os
+    return os.path.exists(path)
+
+
+def ipp_delete_file(path):
+    import os
+    try:
+        os.remove(path)
+        return True
+    except Exception as e:
+        raise RuntimeError(f"Cannot delete file: {e}")
+
+
+def ipp_list_dir(path="."):
+    import os
+    try:
+        return os.listdir(path)
+    except Exception as e:
+        raise RuntimeError(f"Cannot list directory: {e}")
+
+
+def ipp_mkdir(path):
+    import os
+    try:
+        os.makedirs(path, exist_ok=True)
+        return True
+    except Exception as e:
+        raise RuntimeError(f"Cannot create directory: {e}")
+
+
+def ipp_time():
+    import time
+    return time.time()
+
+
+def ipp_sleep(seconds):
+    import time
+    time.sleep(seconds)
+
+
+def ipp_clock():
+    import time
+    return time.perf_counter()
+
+
 BUILTINS = {
     "print": ipp_print,
     "len": ipp_len,
@@ -347,4 +419,14 @@ BUILTINS = {
     "values": ipp_values,
     "items": ipp_items,
     "has_key": ipp_has_key,
+    "read_file": ipp_read_file,
+    "write_file": ipp_write_file,
+    "append_file": ipp_append_file,
+    "file_exists": ipp_file_exists,
+    "delete_file": ipp_delete_file,
+    "list_dir": ipp_list_dir,
+    "mkdir": ipp_mkdir,
+    "time": ipp_time,
+    "sleep": ipp_sleep,
+    "clock": ipp_clock,
 }
