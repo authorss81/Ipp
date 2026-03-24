@@ -56,6 +56,18 @@ class IppList:
     def __init__(self, elements: List[Any]):
         self.elements = elements
     
+    def __iter__(self):
+        return iter(self.elements)
+    
+    def __len__(self):
+        return len(self.elements)
+    
+    def __getitem__(self, index):
+        return self.elements[index]
+    
+    def __setitem__(self, index, value):
+        self.elements[index] = value
+    
     def __repr__(self):
         return f"[{', '.join(repr(e) for e in self.elements)}]"
     
@@ -362,6 +374,10 @@ class Interpreter:
         obj = node.object.accept(self)
         if isinstance(obj, IppInstance):
             return obj.get(node.name)
+        if isinstance(obj, IppList):
+            return getattr(obj, node.name)
+        if isinstance(obj, IppDict):
+            return getattr(obj, node.name)
         raise RuntimeError(f"Only instances have properties, got {type(obj)}")
 
     def visit_set_expr(self, node: SetExpr):

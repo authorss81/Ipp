@@ -99,12 +99,16 @@ class Parser:
         
         parameters = []
         if not self.check(TokenType.RIGHT_PAREN):
+            self.skip_newlines()
             while True:
                 parameters.append(self.consume(TokenType.IDENTIFIER, "Expect parameter name").lexeme)
                 if not self.match(TokenType.COMMA):
                     break
+                self.skip_newlines()
         
+        self.skip_newlines()
         self.consume(TokenType.RIGHT_PAREN, "Expect ')' after parameters")
+        self.skip_newlines()
         self.consume(TokenType.LEFT_BRACE, "Expect '{' before function body")
         
         body = self.block()
@@ -387,11 +391,14 @@ class Parser:
         elements = []
         
         if not self.check(TokenType.RIGHT_BRACKET):
+            self.skip_newlines()
             while True:
                 elements.append(self.expression())
                 if not self.match(TokenType.COMMA):
                     break
+                self.skip_newlines()
         
+        self.skip_newlines()
         self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after list elements")
         return ListLiteral(elements)
 
@@ -399,6 +406,7 @@ class Parser:
         entries = []
         
         if not self.check(TokenType.RIGHT_BRACE):
+            self.skip_newlines()
             while True:
                 key = self.expression()
                 self.consume(TokenType.COLON, "Expect ':' after key in dict")
@@ -407,7 +415,9 @@ class Parser:
                 
                 if not self.match(TokenType.COMMA):
                     break
+                self.skip_newlines()
         
+        self.skip_newlines()
         self.consume(TokenType.RIGHT_BRACE, "Expect '}' after dict entries")
         return DictLiteral(entries)
 

@@ -15,6 +15,10 @@ def ipp_print(*args):
                 output.append(str(int(arg)))
             else:
                 output.append(str(arg))
+        elif hasattr(arg, 'elements'):
+            output.append(str(arg.elements))
+        elif hasattr(arg, 'data'):
+            output.append(str(arg))
         elif isinstance(arg, (list, tuple)):
             output.append(str(arg))
         elif hasattr(arg, '__dict__'):
@@ -30,6 +34,8 @@ def ipp_len(obj):
         return len(obj)
     if hasattr(obj, 'elements'):
         return len(obj.elements)
+    if hasattr(obj, 'data'):
+        return len(obj.data)
     if hasattr(obj, '__len__'):
         return len(obj)
     raise RuntimeError(f"Cannot get length of {type(obj)}")
@@ -48,7 +54,11 @@ def ipp_type(obj):
         return "string"
     if isinstance(obj, (list, tuple)):
         return "list"
+    if hasattr(obj, 'elements'):
+        return "list"
     if isinstance(obj, dict):
+        return "dict"
+    if hasattr(obj, 'data'):
         return "dict"
     if callable(obj):
         return "function"
