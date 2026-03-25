@@ -5,17 +5,19 @@ Ipp - A simple, beginner-friendly scripting language for game development
 
 import sys
 import os
+import shutil
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from ipp.lexer.lexer import tokenize
 from ipp.parser.parser import parse
-from ipp.interpreter.interpreter import interpret
+from ipp.interpreter.interpreter import Interpreter
+
+REPL_VERSION = "v0.5.0"
 
 
 def run_file(filepath):
     """Run an Ipp source file"""
-    import os
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             source = f.read()
@@ -29,9 +31,11 @@ def run_file(filepath):
     try:
         tokens = tokenize(source)
         ast = parse(tokens)
-        result = interpret(ast, os.path.abspath(filepath))
-        if result is not None:
-            print(result)
+        interpreter = Interpreter()
+        interpreter.current_file = os.path.abspath(filepath)
+        interpreter.run(ast)
+        if interpreter.return_value is not None:
+            print(interpreter.return_value)
     except Exception as e:
         print(f"Error: {e}")
         return 1
@@ -61,12 +65,35 @@ def check_file(filepath):
         return 1
 
 
+def check_brace_balance(source):
+    """Check if braces/brackets/parentheses are balanced"""
+    stack = []
+    for char in source:
+        if char in '([{':
+            stack.append(char)
+        elif char in ')]}':
+            if not stack:
+                return False
+            opening = stack.pop()
+            expected = {'(': ')', '[': ']', '{': '}'}[opening]
+            if char != expected:
+                return False
+    return len(stack) == 0
+
+
 def run_repl():
-    """Run the Ipp REPL"""
-    print("Ipp v0.5.0 - Type 'help()' for info, 'exit()' to quit")
+    """Run the Ipp REPL with stylish Gemini-like UI"""
+    width = min(shutil.get_terminal_size().columns or 60, 60)
+    
+    print("=" * width)
+    print(f"  Ipp {REPL_VERSION} -- game scripting language")
+    print("=" * width)
+    print()
+    print("  Type help() for commands, exit() to quit")
     print()
     
     buffer = []
+    interpreter = Interpreter()  # Persistent interpreter for REPL
     
     while True:
         try:
@@ -78,51 +105,74 @@ def run_repl():
             line = input(prompt)
             
             if not buffer and line.strip() in ("exit()", "exit", "quit"):
+                print("Goodbye!")
                 break
             
-            if line.strip() == "help()":
-                print("Ipp v0.5.0")
-                print("Commands: exit(), help(), clear()")
-                print("Features: strings, lists, dicts, json, regex, files, math, random, vectors")
+            if not buffer and line.strip() == "help()":
+                width = min(shutil.get_terminal_size().columns or 60, 60)
+                print("-" * width)
+                print("  Commands:")
+                print("    exit()          - Exit the REPL")
+                print("    clear()         - Clear buffer")
+                print("    help()          - Show this help")
+                print()
+                print("  Features:")
+                print("    Variables       - var, let")
+                print("    Control Flow    - if/elif/else, for, while, match")
+                print("    Functions       - func, closures")
+                print("    Classes         - class, init, inheritance")
+                print("    Operators       - +, -, *, /, //, %, ^, &, |, ^, <<, >>")
+                print("    Ternary         - condition ? true : false")
+                print("    Error Handling  - try/catch/finally")
+                print("    Modules         - import")
+                print("    Lists/Dicts     - [...], {...}")
+                print("    Vectors         - Vector2, Vector3")
+                print("    REPL            - Multiline support")
+                print("-" * width)
                 continue
-                
+            
             if line.strip() == "clear()":
                 buffer = []
+                print("Buffer cleared.")
                 continue
-                
+            
             if not line.strip() and not buffer:
                 continue
-                
-            buffer.append(line)
             
+            buffer.append(line)
             source = "\n".join(buffer)
+            
+            if not check_brace_balance(source):
+                continue
             
             try:
                 tokens = tokenize(source)
                 ast = parse(tokens)
-                result = interpret(ast)
+                interpreter.run(ast)
                 buffer = []
-                if result is not None:
-                    print(result)
+                if interpreter.return_value is not None:
+                    print(interpreter.return_value)
+                interpreter.return_value = None  # Reset return value
             except Exception as e:
                 error_msg = str(e)
                 if "Expect" in error_msg or "Parse error" in error_msg:
                     continue
                 else:
                     buffer = []
-                    print(f"Error: {e}")
+                    print(f"[Error] {e}")
                     
         except KeyboardInterrupt:
             print()
             if buffer:
                 buffer = []
+                print("^C Buffer cleared.")
             else:
                 break
         except EOFError:
             break
         except Exception as e:
             buffer = []
-            print(f"Error: {e}")
+            print(f"[Error] {e}")
 
 
 def print_help():
@@ -149,7 +199,7 @@ Examples:
 
 def print_version():
     """Print version information"""
-    print("Ipp v0.5.0")
+    print(f"Ipp {REPL_VERSION}")
     print("A beginner-friendly scripting language for game development")
 
 
@@ -180,7 +230,6 @@ def main():
             run_repl()
             return 0
     elif cmd and not cmd.startswith("-"):
-        # Treat as file to run
         return run_file(cmd)
     else:
         print_help()
