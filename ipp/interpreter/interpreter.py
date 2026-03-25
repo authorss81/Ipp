@@ -792,6 +792,46 @@ class Interpreter:
         
         self.environment = saved_env
 
+    def visit_do_while_stmt(self, node: DoWhileStmt):
+        saved_env = self.environment
+        
+        while True:
+            for stmt in node.body:
+                if self.break_flag:
+                    self.break_flag = False
+                    self.environment = saved_env
+                    return
+                if self.continue_flag:
+                    self.continue_flag = False
+                stmt.accept(self)
+                if self.return_value is not None:
+                    self.environment = saved_env
+                    return
+            
+            if node.condition.accept(self):
+                break
+        
+        self.environment = saved_env
+
+    def visit_throw_stmt(self, node: ThrowStmt):
+        value = node.expression.accept(self)
+        raise RuntimeError(str(value))
+
+    def visit_with_stmt(self, node: WithStmt):
+        saved_env = self.environment
+        self.environment = Environment(self.environment)
+        
+        try:
+            value = node.initializer.accept(self)
+            self.environment.define(node.variable, value, constant=False)
+            
+            for stmt in node.body:
+                stmt.accept(self)
+                if self.return_value is not None:
+                    break
+        finally:
+            self.environment = saved_env
+
     def visit_return_stmt(self, node: ReturnStmt):
         if node.value:
             self.return_value = node.value.accept(self)

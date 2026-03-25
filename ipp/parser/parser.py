@@ -205,6 +205,14 @@ class Parser:
         
         return WhileStmt(condition, body)
 
+    def do_while_statement(self):
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' after 'repeat'")
+        body = self.block()
+        self.consume(TokenType.UNTIL, "Expect 'until' after do-while body")
+        condition = self.expression()
+        
+        return DoWhileStmt(body, condition)
+
     def match_statement(self):
         subject = self.expression()
         
@@ -250,6 +258,15 @@ class Parser:
         
         return TryStmt(try_body, catch_var, catch_body, finally_body)
 
+    def with_statement(self):
+        var_name = self.consume(TokenType.IDENTIFIER, "Expect variable name after 'with'")
+        self.consume(TokenType.EQUAL, "Expect '=' after variable")
+        initializer = self.expression()
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' after with initializer")
+        body = self.block()
+        
+        return WithStmt(var_name.lexeme, initializer, body)
+
     def return_statement(self):
         value = None
         self.skip_newlines()
@@ -286,6 +303,8 @@ class Parser:
             return self.for_statement()
         if self.match(TokenType.WHILE):
             return self.while_statement()
+        if self.match(TokenType.REPEAT):
+            return self.do_while_statement()
         if self.match(TokenType.MATCH):
             return self.match_statement()
         if self.match(TokenType.TRY):
@@ -293,9 +312,17 @@ class Parser:
         if self.match(TokenType.RETURN):
             return self.return_statement()
         if self.match(TokenType.BREAK):
-            return BreakStmt()
+            label = None
+            if self.check(TokenType.IDENTIFIER):
+                label = self.advance().lexeme
+            return BreakStmt(label)
         if self.match(TokenType.CONTINUE):
             return ContinueStmt()
+        if self.match(TokenType.THROW):
+            expr = self.expression()
+            return ThrowStmt(expr)
+        if self.match(TokenType.WITH):
+            return self.with_statement()
         
         return self.expression_statement()
 

@@ -17,7 +17,7 @@
 | v0.6.1 | ✅ DONE | Integer type, type annotations, ** power, fixed XOR |
 | v0.7.0 | ✅ DONE | List/Dict Comprehensions |
 | **v0.8.0** | ✅ DONE | Advanced Operators + Tuples |
-| **v0.9.0** | **PENDING** | Control Flow + Exceptions |
+| **v0.9.0** | ✅ DONE | Control Flow + Exceptions |
 | **v0.10.0** | **PENDING** | Functions + OOP Enhancements |
 | **v0.11.0** | **PENDING | Standard Library Expansion |
 | **v0.12.0** | **PENDING** | Module System + Package Manager |
@@ -64,7 +64,7 @@ set_type_check(true)
 
 ---
 
-## v0.9.0 - Control Flow + Exceptions (PENDING)
+## v0.9.0 - Control Flow + Exceptions ✅ DONE
 
 **Goal**: Complete control flow and custom exceptions
 

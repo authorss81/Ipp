@@ -300,6 +300,50 @@ class WhileStmt(ASTNode):
 
 
 @dataclass
+class DoWhileStmt(ASTNode):
+    body: List[ASTNode]
+    condition: ASTNode
+    
+    def accept(self, visitor):
+        return visitor.visit_do_while_stmt(self)
+
+
+@dataclass
+class LabeledStmt(ASTNode):
+    label: str
+    statement: ASTNode
+    
+    def accept(self, visitor):
+        return visitor.visit_labeled_stmt(self)
+
+
+@dataclass
+class BreakStmt(ASTNode):
+    label: Optional[str] = None
+    
+    def accept(self, visitor):
+        return visitor.visit_break_stmt(self)
+
+
+@dataclass
+class ThrowStmt(ASTNode):
+    expression: ASTNode
+    
+    def accept(self, visitor):
+        return visitor.visit_throw_stmt(self)
+
+
+@dataclass
+class WithStmt(ASTNode):
+    variable: str
+    initializer: ASTNode
+    body: List[ASTNode]
+    
+    def accept(self, visitor):
+        return visitor.visit_with_stmt(self)
+
+
+@dataclass
 class MatchStmt(ASTNode):
     subject: ASTNode
     cases: List[tuple[Optional[ASTNode], List[ASTNode]]]
@@ -334,12 +378,6 @@ class ReturnStmt(ASTNode):
     
     def accept(self, visitor):
         return visitor.visit_return_stmt(self)
-
-
-@dataclass
-class BreakStmt(ASTNode):
-    def accept(self, visitor):
-        return visitor.visit_break_stmt(self)
 
 
 @dataclass

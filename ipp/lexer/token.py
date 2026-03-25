@@ -41,6 +41,11 @@ class TokenType(Enum):
     FLOAT = auto()
     BOOL = auto()
     VOID = auto()
+    REPEAT = auto()
+    UNTIL = auto()
+    THROW = auto()
+    WITH = auto()
+    COLONCOLON = auto()
 
     # Operators
     PLUS = auto()
@@ -139,4 +144,8 @@ KEYWORDS = {
     "string": TokenType.STRING,
     "bool": TokenType.BOOL,
     "void": TokenType.VOID,
+    "repeat": TokenType.REPEAT,
+    "until": TokenType.UNTIL,
+    "throw": TokenType.THROW,
+    "with": TokenType.WITH,
 }
