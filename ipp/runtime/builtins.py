@@ -298,6 +298,9 @@ def ipp_str(s):
         return "nil"
     if isinstance(s, bool):
         return "true" if s else "false"
+    from ..interpreter.interpreter import IppInstance
+    if isinstance(s, IppInstance):
+        return s.__str__()
     return str(s)
 
 

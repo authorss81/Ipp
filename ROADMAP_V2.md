@@ -18,7 +18,7 @@
 | v0.7.0 | ✅ DONE | List/Dict Comprehensions |
 | **v0.8.0** | ✅ DONE | Advanced Operators + Tuples |
 | **v0.9.0** | ✅ DONE | Control Flow + Exceptions |
-| **v0.10.0** | **PENDING** | Functions + OOP Enhancements |
+| **v0.10.0** | ✅ DONE | Functions + OOP Enhancements |
 | **v0.11.0** | **PENDING | Standard Library Expansion |
 | **v0.12.0** | **PENDING** | Module System + Package Manager |
 | **v0.13.0** | **PENDING** | Tooling + REPL Improvements |
@@ -110,7 +110,7 @@ with open("file.txt") as f {
 
 ---
 
-## v0.10.0 - Functions + OOP Enhancements (PENDING)
+## v0.10.0 - Functions + OOP Enhancements ✅ DONE
 
 **Goal**: Enhanced functions and OOP
 

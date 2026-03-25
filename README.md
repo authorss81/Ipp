@@ -1,7 +1,7 @@
 # Ipp Language
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.9.0-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.10.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
  </p>
@@ -29,6 +29,7 @@ Ipp is a simple, beginner-friendly scripting language designed exclusively for h
 - **Do-While Loop** - `repeat { } until condition` (v0.9.0)
 - **Throw/RAISE** - `throw "error"` (v0.9.0)
 - **With Statement** - `with f = open("file") { }` (v0.9.0)
+- **Custom __str__** - `func __str__() { }` (v0.10.0)
 - **Game Dev Focused** - Built for game scripting
 
 ## Installation

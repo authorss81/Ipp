@@ -46,6 +46,7 @@ class TokenType(Enum):
     THROW = auto()
     WITH = auto()
     COLONCOLON = auto()
+    STATIC = auto()
 
     # Operators
     PLUS = auto()
@@ -148,4 +149,5 @@ KEYWORDS = {
     "until": TokenType.UNTIL,
     "throw": TokenType.THROW,
     "with": TokenType.WITH,
+    "static": TokenType.STATIC,
 }

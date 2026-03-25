@@ -34,6 +34,9 @@ class IppInstance:
     def __repr__(self):
         return f"<{self.ipp_class.name} instance>"
     
+    def __str__(self):
+        return f"<{self.ipp_class.name} instance>"
+    
     def get(self, name: str):
         if name in self.fields:
             return self.fields[name]
@@ -389,6 +392,7 @@ class Interpreter:
     def call_function(self, func: IppFunction, args: List[Any]):
         new_env = Environment(func.closure)
         
+        instance = args[0] if args and isinstance(args[0], IppInstance) else None
         for param, arg in zip(func.parameters, args):
             new_env.define(param, arg)
         
@@ -398,7 +402,10 @@ class Interpreter:
         
         self.environment = new_env
         self.return_value = None
-        self.this_instance = args[0] if args and isinstance(args[0], IppInstance) else None
+        self.this_instance = instance
+        
+        if instance:
+            new_env.define("this", instance, constant=False)
         
         for stmt in func.body:
             stmt.accept(self)
