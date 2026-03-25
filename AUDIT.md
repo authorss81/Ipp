@@ -1,7 +1,7 @@
 # Ipp Language Audit
 
 ## Executive Summary
-This document provides a comprehensive audit of Ipp v0.4.0, comparing it against world-class game scripting languages including Lua, Python, JavaScript, GDScript, and AngelScript. The audit covers language features, standard library, performance, tooling, and ecosystem.
+This document provides a comprehensive audit of Ipp v0.6.0, comparing it against world-class game scripting languages including Lua, Python, JavaScript, GDScript, and AngelScript. The audit covers language features, standard library, performance, tooling, and ecosystem.
 
 ## Overall Scores (0-10)
 
@@ -679,7 +679,7 @@ Despite gaps, Ipp has some strengths:
 
 ## Summary
 
-**Current State**: Alpha (v0.4.0)
+**Current State**: Alpha (v0.6.0)
 - 44/100 overall score
 - Missing critical features for production
 - No tooling, no ecosystem, slow
