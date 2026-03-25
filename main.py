@@ -13,7 +13,35 @@ from ipp.lexer.lexer import tokenize
 from ipp.parser.parser import parse
 from ipp.interpreter.interpreter import Interpreter
 
-REPL_VERSION = "v0.5.0"
+REPL_VERSION = "0.5.1"
+
+try:
+    from termcolor import colored
+    HAS_COLOR = True
+except ImportError:
+    HAS_COLOR = False
+    def colored(text, color=None, attrs=None):
+        return text
+
+
+def c(text, color=None, attrs=None):
+    """Color helper"""
+    if HAS_COLOR and color:
+        return colored(text, color, attrs=attrs or [])
+    return text
+
+
+def get_terminal_width():
+    """Get terminal width"""
+    return min(shutil.get_terminal_size().columns or 60, 60)
+
+
+IPP_LOGO = """
+   ___ ___ _  _ ___ ___ ___ 
+  / __|_ _| \\| |   \\| __|
+ | (_ || || .` | |) | _| 
+  \\___|___|_|\\_|___/|_|   
+"""
 
 
 def run_file(filepath):
@@ -82,58 +110,58 @@ def check_brace_balance(source):
 
 
 def run_repl():
-    """Run the Ipp REPL with stylish Gemini-like UI"""
-    width = min(shutil.get_terminal_size().columns or 60, 60)
+    """Run the Ipp REPL"""
+    width = get_terminal_width()
     
-    print("=" * width)
-    print(f"  Ipp {REPL_VERSION} -- game scripting language")
-    print("=" * width)
+    print(c(IPP_LOGO, "cyan"))
+    print(c(f"  Ipp {REPL_VERSION}", "cyan", ["bold"]) + c(" - game scripting language", "white"))
+    print(c("=" * width, "cyan"))
     print()
-    print("  Type help() for commands, exit() to quit")
+    print(c("  Type ", "white") + c("help()", "yellow") + c(" for commands, ", "white") + c("exit()", "red") + c(" to quit", "white"))
     print()
     
     buffer = []
-    interpreter = Interpreter()  # Persistent interpreter for REPL
+    interpreter = Interpreter()
     
     while True:
         try:
             if buffer:
-                prompt = "... "
+                prompt = c("...", "yellow") + " "
             else:
-                prompt = "ipp> "
+                prompt = c(">>>", "green", ["bold"]) + " "
             
             line = input(prompt)
             
             if not buffer and line.strip() in ("exit()", "exit", "quit"):
-                print("Goodbye!")
+                print(c("Goodbye!", "green"))
                 break
             
             if not buffer and line.strip() == "help()":
-                width = min(shutil.get_terminal_size().columns or 60, 60)
-                print("-" * width)
-                print("  Commands:")
-                print("    exit()          - Exit the REPL")
-                print("    clear()         - Clear buffer")
-                print("    help()          - Show this help")
+                width = get_terminal_width()
+                print(c("-" * width, "cyan"))
+                print(c("  Commands:", "white", ["bold"]))
+                print(c("    exit()          ", "yellow") + c("- Exit the REPL", "white"))
+                print(c("    clear()         ", "yellow") + c("- Clear buffer", "white"))
+                print(c("    help()          ", "yellow") + c("- Show this help", "white"))
                 print()
-                print("  Features:")
-                print("    Variables       - var, let")
-                print("    Control Flow    - if/elif/else, for, while, match")
-                print("    Functions       - func, closures")
-                print("    Classes         - class, init, inheritance")
-                print("    Operators       - +, -, *, /, //, %, ^, &, |, ^, <<, >>")
-                print("    Ternary         - condition ? true : false")
-                print("    Error Handling  - try/catch/finally")
-                print("    Modules         - import")
-                print("    Lists/Dicts     - [...], {...}")
-                print("    Vectors         - Vector2, Vector3")
-                print("    REPL            - Multiline support")
-                print("-" * width)
+                print(c("  Features:", "white", ["bold"]))
+                print(c("    Variables       ", "green") + c("- var, let", "white"))
+                print(c("    Control Flow    ", "green") + c("- if/elif/else, for, while, match", "white"))
+                print(c("    Functions       ", "green") + c("- func, closures", "white"))
+                print(c("    Classes         ", "green") + c("- class, init, inheritance", "white"))
+                print(c("    Operators       ", "green") + c("- +, -, *, /, //, %, ^, &, |, ^, <<, >>", "white"))
+                print(c("    Ternary         ", "green") + c("- condition ? true : false", "white"))
+                print(c("    Error Handling  ", "green") + c("- try/catch/finally", "white"))
+                print(c("    Modules         ", "green") + c("- import", "white"))
+                print(c("    Lists/Dicts     ", "green") + c("- [...], {...}", "white"))
+                print(c("    Vectors         ", "green") + c("- Vector2, Vector3", "white"))
+                print(c("    REPL            ", "green") + c("- Multiline support", "white"))
+                print(c("-" * width, "cyan"))
                 continue
             
             if line.strip() == "clear()":
                 buffer = []
-                print("Buffer cleared.")
+                print(c("Buffer cleared.", "yellow"))
                 continue
             
             if not line.strip() and not buffer:
@@ -151,50 +179,44 @@ def run_repl():
                 interpreter.run(ast)
                 buffer = []
                 if interpreter.return_value is not None:
-                    print(interpreter.return_value)
-                interpreter.return_value = None  # Reset return value
+                    print(c(interpreter.return_value, "white"))
+                interpreter.return_value = None
             except Exception as e:
                 error_msg = str(e)
                 if "Expect" in error_msg or "Parse error" in error_msg:
                     continue
                 else:
                     buffer = []
-                    print(f"[Error] {e}")
+                    print(c(f"[Error] {e}", "red"))
                     
         except KeyboardInterrupt:
             print()
             if buffer:
                 buffer = []
-                print("^C Buffer cleared.")
+                print(c("^C Buffer cleared.", "yellow"))
             else:
                 break
         except EOFError:
             break
         except Exception as e:
             buffer = []
-            print(f"[Error] {e}")
+            print(c(f"[Error] {e}", "red"))
 
 
 def print_help():
     """Print help message"""
-    print("""Ipp - A simple scripting language for game development
-
-Usage: ipp [command] [options]
-
-Commands:
-  run <file>      Run an Ipp script file
-  check <file>   Check syntax without running
-  repl           Start the interactive REPL
-
-Options:
-  -h, --help     Show this help message
-  -v, --version  Show version information
-
-Examples:
-  ipp hello.ipp          Run a script
-  ipp run game.ipp      Run a game script
-  ipp check script.ipp  Check syntax
-  ipp                    Start REPL""")
+    print("Ipp - A simple scripting language for game development")
+    print()
+    print("Usage: ipp [command] [options]")
+    print()
+    print("Commands:")
+    print("  run <file>      Run an Ipp script file")
+    print("  check <file>   Check syntax without running")
+    print("  repl           Start the interactive REPL")
+    print()
+    print("Options:")
+    print("  -h, --help     Show this help message")
+    print("  -v, --version  Show version information")
 
 
 def print_version():
