@@ -7,7 +7,7 @@
 - v0.3.1 - Multiline + IppList fixes ✅ DONE
 - v0.4.0 - CLI + Color/Rect + Module fixes ✅ DONE
 - v0.5.0 - Syntax & Expression Fixes ✅ DONE
-- v0.6.0 - Type System ⏳ PLANNED
+- v0.6.0 - Type System + Enums ⏳ IN PROGRESS
 
 ---
 

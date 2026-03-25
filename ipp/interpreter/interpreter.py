@@ -46,6 +46,37 @@ class IppInstance:
         self.fields[name] = value
 
 
+class IppEnum:
+    def __init__(self, name: str, values: List[str]):
+        self.name = name
+        self.values = {}
+        for i, v in enumerate(values):
+            self.values[v] = IppEnumValue(name, v, i)
+    
+    def __repr__(self):
+        return f"<enum {self.name}>"
+    
+    def get(self, name: str):
+        if name in self.values:
+            return self.values[name]
+        raise RuntimeError(f"Enum {self.name} has no value {name}")
+
+
+class IppEnumValue:
+    def __init__(self, enum_name: str, name: str, index: int):
+        self.enum_name = enum_name
+        self.name = name
+        self.index = index
+    
+    def __repr__(self):
+        return f"{self.enum_name}.{self.name}"
+    
+    def __eq__(self, other):
+        if isinstance(other, IppEnumValue):
+            return self.enum_name == other.enum_name and self.name == other.name
+        return False
+
+
 class BoundMethod:
     def __init__(self, instance: 'IppInstance', method: IppFunction):
         self.instance = instance
@@ -402,6 +433,8 @@ class Interpreter:
         obj = node.object.accept(self)
         if isinstance(obj, IppInstance):
             return obj.get(node.name)
+        if isinstance(obj, IppEnum):
+            return obj.get(node.name)
         if isinstance(obj, IppList):
             return getattr(obj, node.name)
         if isinstance(obj, IppDict):
@@ -470,6 +503,11 @@ class Interpreter:
         
         ipp_class = IppClass(node.name, methods)
         self.environment.define(node.name, ipp_class, constant=False)
+        return None
+
+    def visit_enum_decl(self, node: EnumDecl):
+        enum_class = IppEnum(node.name, node.values)
+        self.environment.define(node.name, enum_class, constant=True)
         return None
 
     def visit_self_expr(self, node: SelfExpr):

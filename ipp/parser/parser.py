@@ -33,6 +33,8 @@ class Parser:
             return self.function_declaration()
         if self.match(TokenType.CLASS):
             return self.class_declaration()
+        if self.match(TokenType.ENUM):
+            return self.enum_declaration()
         if self.match(TokenType.IMPORT):
             return self.import_declaration()
         
@@ -58,6 +60,27 @@ class Parser:
         self.consume(TokenType.RIGHT_BRACE, "Expect '}' after class body")
         
         return ClassDecl(name.lexeme, methods)
+
+    def enum_declaration(self):
+        name_token = self.consume(TokenType.IDENTIFIER, "Expect enum name")
+        name = name_token.lexeme
+        
+        values = []
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' before enum body")
+        self.skip_newlines()
+        
+        while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
+            value_name = self.consume(TokenType.IDENTIFIER, "Expect enum value name")
+            values.append(value_name.lexeme)
+            self.skip_newlines()
+            if self.match(TokenType.COMMA):
+                self.skip_newlines()
+            elif not self.check(TokenType.RIGHT_BRACE):
+                break
+        
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after enum body")
+        
+        return EnumDecl(name, values)
 
     def import_declaration(self):
         module_path_token = self.consume(TokenType.STRING, "Expect module path")

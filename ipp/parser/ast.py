@@ -254,6 +254,15 @@ class TryStmt(ASTNode):
 
 
 @dataclass
+class EnumDecl(ASTNode):
+    name: str
+    values: List[str]
+    
+    def accept(self, visitor):
+        return visitor.visit_enum_decl(self)
+
+
+@dataclass
 class ReturnStmt(ASTNode):
     value: Optional[ASTNode]
     

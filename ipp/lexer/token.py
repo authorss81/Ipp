@@ -36,6 +36,7 @@ class TokenType(Enum):
     TRY = auto()
     CATCH = auto()
     FINALLY = auto()
+    ENUM = auto()
 
     # Operators
     PLUS = auto()
@@ -121,4 +122,5 @@ KEYWORDS = {
     "try": TokenType.TRY,
     "catch": TokenType.CATCH,
     "finally": TokenType.FINALLY,
+    "enum": TokenType.ENUM,
 }

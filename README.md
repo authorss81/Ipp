@@ -1,7 +1,7 @@
 # Ipp Language
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.5.2-blue.svg" alt="Version">
+  <img src="https://img.shields.io/badge/version-0.6.0-blue.svg" alt="Version">
   <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 </p>
@@ -18,6 +18,7 @@ Ipp is a simple, beginner-friendly scripting language designed exclusively for h
 - **REPL** - Interactive programming
 - **Pattern Matching** - match...case statements
 - **Error Handling** - try...catch...finally
+- **Enums** - Type-safe enumerated values
 - **Game Dev Focused** - Built for game scripting
 
 ## Installation
@@ -144,6 +145,29 @@ try {
     var data = load_level("default")
 } finally {
     cleanup()
+}
+
+# Enums
+enum Direction {
+    UP, DOWN, LEFT, RIGHT
+}
+var dir = Direction.UP
+```
+
+### Enums
+
+```ipp
+enum Direction {
+    UP, DOWN, LEFT, RIGHT
+}
+
+var dir = Direction.UP
+print(dir)           # Direction.UP
+print(dir == Direction.UP)  # true
+
+match direction {
+    Direction.UP => print("going up")
+    Direction.DOWN => print("going down")
 }
 ```
 
