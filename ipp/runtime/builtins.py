@@ -787,6 +787,135 @@ def ipp_clock():
     return time.perf_counter()
 
 
+# Game Dev Math Functions
+
+def ipp_lerp(a, b, t):
+    """Linear interpolation between a and b"""
+    return a + (b - a) * t
+
+
+def ipp_clamp(value, min_val, max_val):
+    """Clamp value between min and max"""
+    return max(min_val, min(max_val, value))
+
+
+def ipp_map_range(value, in_min, in_max, out_min, out_max):
+    """Map value from one range to another"""
+    return (value - in_min) * (out_max - out_min) / (in_max - in_min) + out_min
+
+
+def ipp_distance(x1, y1, x2, y2):
+    """Distance between two points"""
+    return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
+
+
+def ipp_distance_3d(x1, y1, z1, x2, y2, z2):
+    """Distance between two 3D points"""
+    return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2 + (z2 - z1) ** 2)
+
+
+def ipp_normalize(x, y):
+    """Normalize 2D vector"""
+    mag = math.sqrt(x * x + y * y)
+    if mag == 0:
+        return (0, 0)
+    return (x / mag, y / mag)
+
+
+def ipp_normalize_3d(x, y, z):
+    """Normalize 3D vector"""
+    mag = math.sqrt(x * x + y * y + z * z)
+    if mag == 0:
+        return (0, 0, 0)
+    return (x / mag, y / mag, z / mag)
+
+
+def ipp_dot(x1, y1, x2, y2):
+    """Dot product of 2D vectors"""
+    return x1 * x2 + y1 * y2
+
+
+def ipp_dot_3d(x1, y1, z1, x2, y2, z2):
+    """Dot product of 3D vectors"""
+    return x1 * x2 + y1 * y2 + z1 * z2
+
+
+def ipp_cross(x1, y1, x2, y2):
+    """Cross product of 2D vectors (returns z component)"""
+    return x1 * y2 - y1 * x2
+
+
+def ipp_sign(value):
+    """Returns -1, 0, or 1 based on sign"""
+    if value < 0:
+        return -1
+    elif value > 0:
+        return 1
+    return 0
+
+
+def ipp_smoothstep(edge0, edge1, x):
+    """Smoothstep interpolation"""
+    t = ipp_clamp((x - edge0) / (edge1 - edge0), 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+def ipp_move_towards(current, target, max_delta):
+    """Move current towards target by max_delta"""
+    diff = target - current
+    if abs(diff) <= max_delta:
+        return target
+    return current + math.sign(diff) * max_delta
+
+
+def ipp_angle(x1, y1, x2, y2):
+    """Angle between two points in radians"""
+    return math.atan2(y2 - y1, x2 - x1)
+
+
+def ipp_rotate_x(x, y, angle):
+    """Rotate point around origin by angle (radians)"""
+    cos_a = math.cos(angle)
+    sin_a = math.sin(angle)
+    return x * cos_a - y * sin_a, x * sin_a + y * cos_a
+
+
+def ipp_deg_to_rad(degrees):
+    """Convert degrees to radians"""
+    return degrees * math.pi / 180
+
+
+def ipp_rad_to_deg(radians):
+    """Convert radians to degrees"""
+    return radians * 180 / math.pi
+
+
+def ipp_fac(n):
+    """Factorial"""
+    return math.factorial(n)
+
+
+def ipp_gcd(a, b):
+    """Greatest common divisor"""
+    return math.gcd(int(a), int(b))
+
+
+def ipp_lcm(a, b):
+    """Least common multiple"""
+    return abs(int(a) * int(b)) // ipp_gcd(a, b)
+
+
+def ipp_hypot(x, y):
+    """Hypotenuse"""
+    return math.hypot(x, y)
+
+
+def ipp_floor_div(a, b):
+    """Floor division"""
+    return int(a) // int(b)
+
+
+
 BUILTINS = {
     "print": ipp_print,
     "len": ipp_len,
@@ -874,4 +1003,28 @@ BUILTINS = {
     "vec3": ipp_vec3,
     "color": ipp_color,
     "rect": ipp_rect,
+    
+    # Game Dev Math
+    "lerp": ipp_lerp,
+    "clamp": ipp_clamp,
+    "map_range": ipp_map_range,
+    "distance": ipp_distance,
+    "distance_3d": ipp_distance_3d,
+    "normalize": ipp_normalize,
+    "normalize_3d": ipp_normalize_3d,
+    "dot": ipp_dot,
+    "dot_3d": ipp_dot_3d,
+    "cross": ipp_cross,
+    "sign": ipp_sign,
+    "smoothstep": ipp_smoothstep,
+    "move_towards": ipp_move_towards,
+    "angle": ipp_angle,
+    "rotate": ipp_rotate_x,
+    "deg_to_rad": ipp_deg_to_rad,
+    "rad_to_deg": ipp_rad_to_deg,
+    "factorial": ipp_fac,
+    "gcd": ipp_gcd,
+    "lcm": ipp_lcm,
+    "hypot": ipp_hypot,
+    "floor_div": ipp_floor_div,
 }

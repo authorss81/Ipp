@@ -451,7 +451,8 @@ class Interpreter:
         value = None
         if node.initializer:
             value = node.initializer.accept(self)
-        self.environment.define(node.name, value, constant=True)
+        # let is now mutable like var (for beginner-friendliness)
+        self.environment.define(node.name, value, constant=False)
 
     def visit_function_decl(self, node: FunctionDecl):
         closure = Environment(self.environment)
