@@ -1273,6 +1273,484 @@ def ipp_complex(real=0, imag=0):
     return Complex(real, imag)
 
 
+# XML parsing/generation
+import xml.etree.ElementTree as ET
+
+
+def ipp_xml_parse(xml_string):
+    """Parse XML string to dict-like structure"""
+    from ipp.interpreter.interpreter import IppDict, IppList
+    try:
+        root = ET.fromstring(xml_string)
+        return IppDict(_xml_element_to_dict(root))
+    except Exception as e:
+        raise RuntimeError(f"XML parse error: {e}")
+
+
+def _xml_element_to_dict(element):
+    """Convert XML element to dict"""
+    result = {}
+    if element.attrib:
+        result["@attributes"] = dict(element.attrib)
+    if element.text and element.text.strip():
+        if len(element) == 0:
+            return element.text
+        result["#text"] = element.text
+    for child in element:
+        child_data = _xml_element_to_dict(child)
+        if child.tag in result:
+            if not isinstance(result[child.tag], list):
+                result[child.tag] = [result[child.tag]]
+            result[child.tag].append(child_data)
+        else:
+            result[child.tag] = child_data
+    return result
+
+
+def ipp_xml_to_string(obj, pretty=False):
+    """Convert dict to XML string"""
+    try:
+        indent = "  " if pretty else ""
+        return ET.tostring(_dict_to_xml_element(obj), encoding='unicode')
+    except Exception as e:
+        raise RuntimeError(f"XML stringify error: {e}")
+
+
+def _dict_to_xml_element(data):
+    """Convert dict to XML element"""
+    if isinstance(data, str):
+        return ET.Element("item", text=data)
+    if not isinstance(data, dict):
+        return ET.Element("item", text=str(data))
+    
+    tag = data.get("@tag", "root")
+    attrib = data.get("@attributes", {})
+    text = data.get("#text", "")
+    
+    element = ET.Element(tag, attrib if isinstance(attrib, dict) else {})
+    if text:
+        element.text = str(text)
+    
+    for key, value in data.items():
+        if key not in ("@tag", "@attributes", "#text"):
+            if isinstance(value, list):
+                for item in value:
+                    element.append(_dict_to_xml_element({key: item} if isinstance(item, dict) else item))
+            else:
+                element.append(_dict_to_xml_element(value))
+    return element
+
+
+# TOML parsing
+def ipp_toml_parse(toml_string):
+    """Parse TOML string to dict"""
+    try:
+        import tomllib
+    except ImportError:
+        try:
+            import tomli as tomllib
+        except ImportError:
+            raise RuntimeError("toml library not installed (pip install tomli)")
+    try:
+        import io
+        data = tomllib.loads(toml_string)
+        return _python_to_ipp(data)
+    except Exception as e:
+        raise RuntimeError(f"TOML parse error: {e}")
+
+
+def _python_to_ipp(obj):
+    """Convert Python objects to Ipp objects"""
+    from ipp.interpreter.interpreter import IppDict, IppList
+    if isinstance(obj, dict):
+        return IppDict({k: _python_to_ipp(v) for k, v in obj.items()})
+    if isinstance(obj, list):
+        return IppList([_python_to_ipp(x) for x in obj])
+    return obj
+
+
+def ipp_toml_to_string(obj):
+    """Convert dict to TOML string"""
+    try:
+        import tomllib
+    except ImportError:
+        try:
+            import tomli_w
+        except ImportError:
+            raise RuntimeError("toml library not installed (pip install tomli tomli-w)")
+    try:
+        import io
+        output = io.StringIO()
+        obj = _ipp_to_python(obj)
+        for key, value in obj.items():
+            output.write(f"{key} = {_python_value_toml(value)}\n")
+        return output.getvalue()
+    except Exception as e:
+        raise RuntimeError(f"TOML stringify error: {e}")
+
+
+def _ipp_to_python(obj):
+    """Convert Ipp objects to Python"""
+    from ipp.interpreter.interpreter import IppDict, IppList
+    if isinstance(obj, IppDict):
+        return {k: _ipp_to_python(v) for k, v in obj.data.items()}
+    if isinstance(obj, IppList):
+        return [_ipp_to_python(x) for x in obj.elements]
+    return obj
+
+
+def _python_value_toml(value):
+    """Format Python value as TOML"""
+    if isinstance(value, str):
+        return f'"{value}"'
+    if isinstance(value, (int, float, bool)):
+        return str(value).lower() if isinstance(value, bool) else str(value)
+    if isinstance(value, list):
+        return "[" + ", ".join(_python_value_toml(x) for x in value) + "]"
+    return str(value)
+
+
+# YAML parsing
+def ipp_yaml_parse(yaml_string):
+    """Parse YAML string to dict"""
+    try:
+        import yaml
+    except ImportError:
+        raise RuntimeError("yaml library not installed (pip install pyyaml)")
+    try:
+        data = yaml.safe_load(yaml_string)
+        return _python_to_ipp(data) if data else IppDict({})
+    except Exception as e:
+        raise RuntimeError(f"YAML parse error: {e}")
+
+
+def ipp_yaml_to_string(obj, indent=2):
+    """Convert dict to YAML string"""
+    try:
+        import yaml
+    except ImportError:
+        raise RuntimeError("yaml library not installed (pip install pyyaml)")
+    try:
+        obj = _ipp_to_python(obj)
+        return yaml.dump(obj, default_flow_style=False, indent=indent)
+    except Exception as e:
+        raise RuntimeError(f"YAML stringify error: {e}")
+
+
+# UUID generation
+import uuid as uuid_module
+
+
+def ipp_uuid4():
+    """Generate random UUID"""
+    return str(uuid_module.uuid4())
+
+
+def ipp_uuid1():
+    """Generate UUID from host ID and time"""
+    return str(uuid_module.uuid1())
+
+
+def ipp_uuid_nil():
+    """Generate nil UUID"""
+    return str(uuid_module.UUID(int=0))
+
+
+# URL utilities
+import urllib.parse as urlparse
+
+
+def ipp_url_parse(url_string):
+    """Parse URL to components"""
+    from ipp.interpreter.interpreter import IppDict
+    parsed = urlparse.urlparse(url_string)
+    return IppDict({
+        "scheme": parsed.scheme,
+        "netloc": parsed.netloc,
+        "path": parsed.path,
+        "params": parsed.params,
+        "query": parsed.query,
+        "fragment": parsed.fragment
+    })
+
+
+def ipp_url_build(scheme="", netloc="", path="", params="", query="", fragment=""):
+    """Build URL from components"""
+    return urlparse.urlunparse((scheme, netloc, path, params, query, fragment))
+
+
+def ipp_url_encode(query, safe=""):
+    """URL encode a string"""
+    return urlparse.quote(query, safe=safe)
+
+
+def ipp_url_decode(query):
+    """URL decode a string"""
+    return urlparse.unquote(query)
+
+
+def ipp_url_query_parse(query_string):
+    """Parse query string to dict"""
+    from ipp.interpreter.interpreter import IppDict
+    parsed = urlparse.parse_qs(query_string)
+    return IppDict({k: v[0] if len(v) == 1 else v for k, v in parsed.items()})
+
+
+def ipp_url_query_build(params):
+    """Build query string from dict"""
+    if hasattr(params, 'data'):
+        params = params.data
+    return urlparse.urlencode(params)
+
+
+# HTTP utilities
+def ipp_http_get(url, headers=None):
+    """Make HTTP GET request"""
+    try:
+        import urllib.request
+    except ImportError:
+        raise RuntimeError("urllib not available")
+    try:
+        req = urllib.request.Request(url)
+        if headers:
+            for k, v in headers.items() if hasattr(headers, 'items') else headers:
+                req.add_header(k, v)
+        with urllib.request.urlopen(req) as response:
+            return IppDict({
+                "status": response.getcode(),
+                "headers": dict(response.headers),
+                "body": response.read().decode('utf-8')
+            })
+    except Exception as e:
+        raise RuntimeError(f"HTTP GET error: {e}")
+
+
+def ipp_http_post(url, data=None, headers=None):
+    """Make HTTP POST request"""
+    try:
+        import urllib.request
+    except ImportError:
+        raise RuntimeError("urllib not available")
+    try:
+        req = urllib.request.Request(url, data=data.encode('utf-8') if data else None, method='POST')
+        if headers:
+            for k, v in headers.items() if hasattr(headers, 'items') else headers:
+                req.add_header(k, v)
+        if data:
+            req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+        with urllib.request.urlopen(req) as response:
+            return IppDict({
+                "status": response.getcode(),
+                "headers": dict(response.headers),
+                "body": response.read().decode('utf-8')
+            })
+    except Exception as e:
+        raise RuntimeError(f"HTTP POST error: {e}")
+
+
+# Compression utilities
+import gzip
+import zipfile
+import io
+
+
+def ipp_gzip_compress(data):
+    """Compress data using gzip"""
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    compressed = gzip.compress(data)
+    import base64
+    return base64.b64encode(compressed).decode('utf-8')
+
+
+def ipp_gzip_decompress(data):
+    """Decompress gzip data"""
+    import base64
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    decompressed = gzip.decompress(base64.b64decode(data))
+    return decompressed.decode('utf-8')
+
+
+def ipp_zip_create(files):
+    """Create ZIP archive from dict of filename->content"""
+    import base64
+    output = io.BytesIO()
+    with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zf:
+        if hasattr(files, 'data'):
+            files = files.data
+        for name, content in files.items():
+            if isinstance(content, str):
+                content = content.encode('utf-8')
+            zf.writestr(name, content)
+    return base64.b64encode(output.getvalue()).decode('utf-8')
+
+
+def ipp_zip_extract(data):
+    """Extract ZIP archive to dict"""
+    import base64
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    input_data = io.BytesIO(base64.b64decode(data))
+    result = {}
+    with zipfile.ZipFile(input_data, 'r') as zf:
+        for name in zf.namelist():
+            result[name] = zf.read(name).decode('utf-8')
+    from ipp.interpreter.interpreter import IppDict
+    return IppDict(result)
+
+
+# Logging utilities
+class Logger:
+    def __init__(self, name="ipp", level="INFO"):
+        import logging
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(getattr(logging, level.upper(), logging.INFO))
+        if not self.logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+            self.logger.addHandler(handler)
+    
+    def debug(self, msg):
+        self.logger.debug(msg)
+    
+    def info(self, msg):
+        self.logger.info(msg)
+    
+    def warning(self, msg):
+        self.logger.warning(msg)
+    
+    def error(self, msg):
+        self.logger.error(msg)
+
+
+def ipp_log(name="ipp", level="INFO"):
+    """Create logger"""
+    return Logger(name, level)
+
+
+# Collections utilities
+class Deque:
+    def __init__(self, items=None):
+        from ipp.interpreter.interpreter import IppList
+        self._items = list(items.elements) if hasattr(items, 'elements') else list(items) if items else []
+    
+    def push_front(self, item):
+        self._items.insert(0, item)
+    
+    def push_back(self, item):
+        self._items.append(item)
+    
+    def pop_front(self):
+        if not self._items:
+            raise RuntimeError("Deque is empty")
+        return self._items.pop(0)
+    
+    def pop_back(self):
+        if not self._items:
+            raise RuntimeError("Deque is empty")
+        return self._items.pop()
+    
+    def front(self):
+        return self._items[0] if self._items else None
+    
+    def back(self):
+        return self._items[-1] if self._items else None
+    
+    def len(self):
+        return len(self._items)
+    
+    def is_empty(self):
+        return len(self._items) == 0
+    
+    def __str__(self):
+        return f"Deque({self._items})"
+
+
+def ipp_deque(items=None):
+    """Create deque"""
+    return Deque(items)
+
+
+def ipp_ordict():
+    """Create ordered dict (preserves insertion order)"""
+    from ipp.interpreter.interpreter import IppDict
+    return IppDict({})
+
+
+# Argument parsing
+def ipp_argparse(args=None, description=""):
+    """Simple argument parser"""
+    import argparse
+    parser = argparse.ArgumentParser(description=description)
+    return parser
+
+
+def ipp_args_add(parser, *args, **kwargs):
+    """Add argument to parser"""
+    parser.add_argument(*args, **kwargs)
+
+
+def ipp_args_parse(parser, args=None):
+    """Parse arguments"""
+    from ipp.interpreter.interpreter import IppDict
+    try:
+        ns = parser.parse_args(args)
+        return IppDict(vars(ns))
+    except SystemExit:
+        return IppDict({})
+
+
+# Threading utilities
+import threading
+import time as time_module
+
+
+class IppThread:
+    def __init__(self, target, *args):
+        self._target = target
+        self._args = args
+        self._thread = None
+        self._result = None
+        self._error = None
+    
+    def start(self):
+        def wrapper():
+            try:
+                self._result = self._target(*self._args)
+            except Exception as e:
+                self._error = e
+        self._thread = threading.Thread(target=wrapper)
+        self._thread.start()
+    
+    def join(self):
+        if self._thread:
+            self._thread.join()
+        if self._error:
+            raise self._error
+        return self._result
+    
+    def is_alive(self):
+        return self._thread and self._thread.is_alive()
+
+
+def ipp_thread(target, *args):
+    """Create and start thread"""
+    thread = IppThread(target, *args)
+    thread.start()
+    return thread
+
+
+def ipp_thread_sleep(seconds):
+    """Sleep for seconds"""
+    time_module.sleep(seconds)
+
+
+def ipp_thread_current():
+    """Get current thread name"""
+    return threading.current_thread().name
+
+
 
 BUILTINS = {
     "print": ipp_print,
@@ -1413,4 +1891,36 @@ BUILTINS = {
     "os_cwd": ipp_os_cwd,
     "os_chdir": ipp_os_chdir,
     "complex": ipp_complex,
+    
+    # v0.11.2 Additional Libraries
+    "xml_parse": ipp_xml_parse,
+    "xml_to_string": ipp_xml_to_string,
+    "toml_parse": ipp_toml_parse,
+    "toml_to_string": ipp_toml_to_string,
+    "yaml_parse": ipp_yaml_parse,
+    "yaml_to_string": ipp_yaml_to_string,
+    "uuid4": ipp_uuid4,
+    "uuid1": ipp_uuid1,
+    "uuid_nil": ipp_uuid_nil,
+    "url_parse": ipp_url_parse,
+    "url_build": ipp_url_build,
+    "url_encode": ipp_url_encode,
+    "url_decode": ipp_url_decode,
+    "url_query_parse": ipp_url_query_parse,
+    "url_query_build": ipp_url_query_build,
+    "http_get": ipp_http_get,
+    "http_post": ipp_http_post,
+    "gzip_compress": ipp_gzip_compress,
+    "gzip_decompress": ipp_gzip_decompress,
+    "zip_create": ipp_zip_create,
+    "zip_extract": ipp_zip_extract,
+    "log": ipp_log,
+    "deque": ipp_deque,
+    "ordict": ipp_ordict,
+    "argparse": ipp_argparse,
+    "args_add": ipp_args_add,
+    "args_parse": ipp_args_parse,
+    "thread": ipp_thread,
+    "thread_sleep": ipp_thread_sleep,
+    "thread_current": ipp_thread_current,
 }

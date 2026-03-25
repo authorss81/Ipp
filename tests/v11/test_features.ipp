@@ -102,3 +102,56 @@ var conj = c1.conjugate()
 print(conj)
 
 print("\nv0.11.0 tests complete!")
+
+# ====== v0.11.2 Additional Libraries ======
+print("\n=== Testing v0.11.2 Additional Libraries ===")
+
+# ====== XML Tests ======
+print("\n--- XML Tests ---")
+
+var xml_str = "<root><item name='test'>value</item></root>"
+var xml_parsed = xml_parse(xml_str)
+print(xml_parsed)
+
+# ====== UUID Tests ======
+print("\n--- UUID Tests ---")
+
+var uuid1_val = uuid4()
+print(uuid1_val)
+
+var uuid_nil_val = uuid_nil()
+print(uuid_nil_val)
+
+# ====== URL Tests ======
+print("\n--- URL Tests ---")
+
+var url = "https://example.com/path?query=value#fragment"
+var parsed_url = url_parse(url)
+print(parsed_url["scheme"])
+print(parsed_url["netloc"])
+print(parsed_url["path"])
+
+var encoded = url_encode("hello world")
+print(encoded)
+
+var decoded = url_decode(encoded)
+print(decoded)
+
+# ====== Collections Tests ======
+print("\n--- Collections Tests ---")
+
+var dq = deque([1, 2, 3])
+print(dq)
+dq.push_back(4)
+print(dq)
+print(dq.front())
+print(dq.back())
+print(dq.len())
+
+# ====== Logging Tests ======
+print("\n--- Logging Tests ---")
+
+var logger = log("test", "INFO")
+logger.info("Test log message")
+
+print("\nv0.11.2 tests complete!")
