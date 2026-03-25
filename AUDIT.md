@@ -568,7 +568,7 @@ See [ROADMAP_V2.md](ROADMAP_V2.md) for detailed version-by-version plan.
 | v0.9.0 | Control Flow + Exceptions | ✅ DONE |
 | v0.10.0 | Functions + OOP Enhancements | ✅ DONE |
 | v0.11.0 | Standard Library Expansion | ✅ DONE |
-| v0.12.0 | Module System + Package Manager | ⏳ PENDING |
+| v0.12.0 | Module System + Tooling | ✅ DONE |
 | v0.13.0 | Tooling + REPL Improvements | ⏳ PENDING |
 | v1.0.0 | Performance (Bytecode VM) | ⏳ PENDING |
 | v2.0.0 | Game Features | ⏳ PENDING |
