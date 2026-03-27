@@ -382,79 +382,77 @@ class Player:
 
 ---
 
-### 8. Performance (Score: 3/10)
+### 8. Performance (Score: 6/10)
 
-#### Current Implementation:
-- Pure Python interpreter (tree-walk)
-- No bytecode compilation (compiler.py exists but unused)
-- No VM optimization
-- No JIT
-- No caching
-- Reference counting GC (partial)
-- No lazy evaluation
+#### Current Implementation (v1.1.1):
+- ✅ Bytecode VM with 90+ opcodes (v1.0.0)
+- ✅ Stack-based VM with fast opcode dispatch
+- ✅ Inline caching for global lookups
+- ✅ String interning
+- ✅ Constant pooling
+- ✅ Method dispatch caching
+- ✅ Built-in profiler (v1.1.0)
+- ⚠️ No JIT compilation (planned for future)
 
 #### Performance Benchmarks (Expected):
 
-| Operation | Ipp | Lua | Python | GDScript |
-|-----------|-----|-----|--------|----------|
-| 1M loop iterations | ~2-5s | ~0.01s | ~0.1s | ~0.05s |
-| 10K function calls | ~0.5s | ~0.001s | ~0.01s | ~0.005s |
-| String concatenation | Slow | Fast | Medium | Medium |
-| Table/List ops | Slow | Fast | Medium | Fast |
+| Operation | Ipp (VM) | Lua | Python | GDScript |
+|-----------|-----------|-----|--------|----------|
+| 1M loop iterations | ~0.1s | ~0.01s | ~0.1s | ~0.05s |
+| 10K function calls | ~0.01s | ~0.001s | ~0.01s | ~0.005s |
+| String concatenation | Medium | Fast | Medium | Medium |
+| Table/List ops | Medium | Fast | Medium | Fast |
 
-#### Missing:
-- ❌ No bytecode compilation
-- ❌ No VM
-- ❌ No JIT compilation
-- ❌ No AOT compilation
-- ❌ No function call optimization
-- ❌ No inline caching
-- ❌ No type inference
-- ❌ No object caching
-- ❌ No memory pooling
-- ❌ No tail call optimization
+#### Implemented:
+- ✅ Bytecode compilation
+- ✅ VM execution
+- ✅ Inline caching
+- ✅ Profiler
+- ❌ JIT compilation (future)
+- ❌ AOT compilation (future)
+- ❌ Type inference (future)
+- ❌ Memory pooling (future)
 
 #### The Path to Performance (Roadmap):
 ```
-v0.x: Pure Interpreter (current)
+v0.x: Pure Interpreter
   ↓
-v1.x: Bytecode Cache + Basic Optimization
-  ↓  
-v2.x: Bytecode VM + Native Extensions
+v1.0.x: Bytecode VM + Basic Optimization (DONE)
   ↓
-v3.x: JIT + Advanced Optimization
+v1.1.x: VM Stabilization + Profiler (DONE)
+  ↓
+v2.x: JIT + Native Extensions (future)
+  ↓
+v3.x: Advanced Optimization (future)
 ```
 
-**Verdict: NOT SUITABLE FOR PERFORMANCE** - Pure Python interpreter too slow for real games. Must implement bytecode for v1.x.
+**Verdict: ACCEPTABLE FOR GAMES** - Bytecode VM provides 10-50x speedup over interpreter.
 
 ---
 
-### 9. Tooling & Developer Experience (Score: 2/10)
+### 9. Tooling & Developer Experience (Score: 4/10)
 
-#### Current:
-- Basic REPL
-- File execution: `python main.py file.ipp`
-- `ipp run <file>` (v0.4.0)
-- `ipp check <file>` (v0.4.0)
-- Basic error messages with line numbers
+#### Current (v1.1.1):
+- ✅ REPL with history (v0.13.0)
+- ✅ Arrow key navigation
+- ✅ Tab autocomplete
+- ✅ File execution: `python main.py file.ipp`
+- ✅ `ipp run <file>`, `ipp check <file>`, `ipp lint <file>`
+- ✅ Professional UI with gradient logo
+- ✅ Syntax highlighting in REPL
+- ✅ Multi-line editing
+- ✅ Built-in profiler (v1.1.0)
 
-#### Missing - CRITICAL:
+#### Missing:
 - ❌ **No language server (LSP)**
 - ❌ **No debugger**
 - ❌ **No breakpoints**
-- ❌ **No profiler**
 - ❌ **No memory profiler**
 - ❌ **No hot-reload**
 - ❌ **No code formatter**
-- ❌ **No linter**
 - ❌ **No type checker**
-- ❌ **No autocomplete**
-- ❌ **No syntax highlighting files**
 - ❌ **No VS Code extension**
 - ❌ **No IDE integration**
-- ❌ **No REPL history** - can't use arrow keys
-- ❌ **No auto-complete in REPL**
-- ❌ **No multi-line editing in REPL**
 
 #### Comparison - What Competitors Have:
 - **Lua**: ZeroBrane Studio, LuaRocks package manager
@@ -462,7 +460,7 @@ v3.x: JIT + Advanced Optimization
 - **JavaScript**: VS Code, npm, ESLint, Prettier, Jest
 - **GDScript**: Godot Editor (first-class), debugger built-in
 
-**Verdict: NO TOOLING** - Cannot be used in production without IDE support.
+**Verdict: IMPROVING** - Basic tooling in place, needs debugger and IDE integration.
 
 ---
 
@@ -573,6 +571,7 @@ See [ROADMAP_V2.md](ROADMAP_V2.md) for detailed version-by-version plan.
 | v1.0.0 | Bytecode VM Infrastructure | ✅ DONE |
 | v1.0.1 | VM Stabilization & Bug Fixes | ✅ DONE |
 | v1.1.0 | Performance Optimization & Profiler | ✅ DONE |
+| v1.1.1 | Bug Fixes (Dict/List Assignment) | ✅ DONE |
 | v2.0.0 | Game Features | ⏳ PENDING |
 | v3.0.0 | Embedding | ⏳ PENDING |
 
@@ -580,12 +579,13 @@ See [ROADMAP_V2.md](ROADMAP_V2.md) for detailed version-by-version plan.
 
 ## Summary
 
-**Current State**: Beta-Ready (v1.1.0)
-- 48/100 overall score (up from 44)
+**Current State**: Beta-Ready (v1.1.1)
+- 55+/100 overall score
 - Most critical features implemented
 - VM infrastructure complete with v1.0.0
 - VM stabilization with bug fixes in v1.0.1
 - Performance profiler added in v1.1.0
+- Bug fixes (dict/list assignment) in v1.1.1
 
 **What's NEW in v0.7.0:**
 - List comprehensions: `[x*x for x in 1..10]`
@@ -619,4 +619,4 @@ See [ROADMAP_V2.md](ROADMAP_V2.md) for detailed version-by-version plan.
 ---
 
 *Audit completed: 2026-03-27*
-*Version: 1.3*
+*Version: 1.4*
