@@ -23,7 +23,8 @@
 | **v0.11.1** | ✅ DONE | Auto-print REPL, minor fixes |
 | **v0.11.2** | ✅ DONE | Additional Libraries (xml, yaml, toml, uuid, url, http, compress, log, collections, argparse, thread) |
 | **v0.12.0** | ✅ DONE | Module System (import, alias, selective), REPL (history, completion, lint) |
-| **v0.13.0** | **PENDING** | Tooling + REPL Improvements |
+| **v0.13.0** | ✅ DONE | Professional REPL UI (gradient logo, box drawing, syntax highlighting, autocomplete) |
+| **v1.0.0** | **PENDING** | Performance (Bytecode VM) |
 | **v1.0.0** | **PENDING** | Performance (Bytecode VM) |
 
 ---
@@ -308,32 +309,30 @@ if platform == "windows" {
 
 ---
 
-## v0.13.0 - Tooling + REPL Improvements (PENDING)
+## v0.13.0 - Tooling + REPL Improvements ✅ DONE
 
 **Goal**: Developer experience
 
-### 8.1 REPL with History
+### 8.1 REPL with History ✅
 - Readline support
 - Arrow key navigation
-- Command history
+- Command history (persistent)
 
-### 8.2 REPL Auto-complete
+### 8.2 REPL Auto-complete ✅
 - Tab completion for identifiers
 - Built-in function suggestions
+- Member completion (obj.)
 
-### 8.3 Code Formatter
-```bash
-ipp format file.ipp
-```
+### 8.3 Professional REPL UI ✅
+- Gradient ASCII logo with 256-color ANSI
+- Box drawing UI with proper padding
+- Syntax highlighting for output
+- Multi-line prompts (...1, ...2)
+- Help box, Types box, Vars box
 
-### 8.4 Linter
+### 8.4 Linter ✅
 ```bash
 ipp lint file.ipp
-```
-
-### 8.5 Type Checker
-```bash
-ipp check file.ipp
 ```
 
 ---

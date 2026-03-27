@@ -569,7 +569,7 @@ See [ROADMAP_V2.md](ROADMAP_V2.md) for detailed version-by-version plan.
 | v0.10.0 | Functions + OOP Enhancements | ✅ DONE |
 | v0.11.0 | Standard Library Expansion | ✅ DONE |
 | v0.12.0 | Module System + Tooling | ✅ DONE |
-| v0.13.0 | Tooling + REPL Improvements | ⏳ PENDING |
+| v0.13.0 | Professional REPL UI | ✅ DONE |
 | v1.0.0 | Performance (Bytecode VM) | ⏳ PENDING |
 | v2.0.0 | Game Features | ⏳ PENDING |
 | v3.0.0 | Embedding | ⏳ PENDING |
