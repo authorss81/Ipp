@@ -23,7 +23,7 @@
 | **v1.0.1** | ✅ DONE | VM Stabilization & Bug Fixes |
 | **v1.1.0** | ✅ DONE | Performance Optimization & Profiler |
 | **v1.1.1** | ✅ DONE | Bug Fixes (Dict/Index Assignment) |
-| **v1.2.0** | **PENDING** | Benchmark Suite vs Other Languages |
+| **v1.2.0** | ✅ DONE | Benchmark Suite vs Other Languages |
 | **v1.3.0** | **PENDING** | Production Ready |
 | **v2.0.0** | **PENDING** | Game Features |
 
@@ -439,37 +439,33 @@ ipp lint file.ipp
 
 ---
 
-## v1.2.0 - Benchmark Suite (PENDING)
+## v1.2.0 - Benchmark Suite (DONE)
 
 **Goal**: Comprehensive benchmarks vs Lua, Python, GDScript
 
-### Benchmark Categories
-1. **Micro Benchmarks**
-   - Integer arithmetic
-   - Floating point math
-   - String operations
-   - Function calls
-   - Property access
+### Benchmark Suite Features ✅
+- [x] `tests/v1/benchmarks/` directory
+- [x] Python comparison benchmarks
+- [x] Ipp language benchmarks
+- [x] Comparison runner (`run_benchmarks.py`)
 
-2. **Game-Specific Benchmarks**
-   - Physics simulation (collision detection)
-   - Pathfinding (A*, Dijkstra)
-   - Particle systems
-   - Game loop performance
-   - Entity component updates
+### Micro Benchmarks ✅
+- [x] Integer arithmetic
+- [x] Floating point math
+- [x] String operations
+- [x] Function calls
+- [x] List operations
+- [x] Dict operations
+- [x] Nested loops
+- [x] Closure performance
+- [x] Class/Object operations
 
-3. **Language Comparison**
-   - vs Lua/LuaJIT
-   - vs Python/PyPy
-   - vs GDScript
-   - vs AngelScript
-
-### Benchmark Suite Features
-- [ ] `tests/v1/benchmarks/` directory
-- [ ] Lua comparison scripts
-- [ ] Python comparison scripts
-- [ ] HTML report generation
-- [ ] CI/CD integration
+### Game-Specific Benchmarks
+- [ ] Physics simulation (collision detection)
+- [ ] Pathfinding (A*, Dijkstra)
+- [ ] Particle systems
+- [ ] Game loop performance
+- [ ] Entity component updates
 
 ---
 

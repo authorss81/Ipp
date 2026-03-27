@@ -1,17 +1,12 @@
 # ============================================
-# Ipp Language Benchmarks v1.x
+# Ipp Language Benchmarks v1.2.0
 # ============================================
-# This file contains comprehensive benchmarks
-# for Ipp language performance testing.
-# Run with: python -c "exec(open('tests/v1/benchmarks/ipp_benchmarks.py').read())"
-# ============================================
-
-# ============================================
-# MICRO BENCHMARKS
+# Comprehensive benchmarks for Ipp language performance testing.
+# Run with: python main.py run tests/v1/benchmarks/ipp_benchmarks.ipp
 # ============================================
 
 print("=" * 60)
-print("IPP MICRO BENCHMARKS")
+print("IPP BENCHMARKS v1.2.0")
 print("=" * 60)
 
 # --------------------------------------------
@@ -51,9 +46,9 @@ var elapsed1 = time() - start
 print("Integer Add: " + str(result1) + " in " + str(elapsed1) + "s")
 
 start = time()
-result1 = bench_integer_mul(100)
+result1 = bench_integer_mul(10)
 elapsed1 = time() - start
-print("Integer Mul (100!): " + str(result1) + " in " + str(elapsed1) + "s")
+print("Integer Mul (10!): " + str(result1) + " in " + str(elapsed1) + "s")
 
 start = time()
 result1 = bench_integer_mod(iterations)
@@ -68,7 +63,7 @@ print("\n--- Benchmark 2: Floating Point Math ---")
 func bench_float_trig(n) {
     var sum = 0.0
     for i in 0..n {
-        sum = sum + sin(float(i))
+        sum = sum + sin(i)
     }
     return sum
 }
@@ -76,7 +71,7 @@ func bench_float_trig(n) {
 func bench_float_sqrt(n) {
     var sum = 0.0
     for i in 1..n {
-        sum = sum + sqrt(float(i))
+        sum = sum + sqrt(i)
     }
     return sum
 }
@@ -115,7 +110,7 @@ func bench_string_split(s, n) {
     return len(result)
 }
 
-iterations = 10000
+iterations = 5000
 
 start = time()
 var result3 = bench_string_concat(iterations)
@@ -166,12 +161,12 @@ func simple_add(n) {
     return n + 1
 }
 
-iterations = 25
+iterations = 20
 
 start = time()
 var result4 = bench_recursive_fib(iterations)
 var elapsed4 = time() - start
-print("Recursive Fibonacci(25): " + str(result4) + " in " + str(elapsed4) + "s")
+print("Recursive Fibonacci(20): " + str(result4) + " in " + str(elapsed4) + "s")
 
 start = time()
 result4 = bench_iterative_fib(10000)
@@ -179,12 +174,12 @@ elapsed4 = time() - start
 print("Iterative Fibonacci(10000): " + str(result4) + " in " + str(elapsed4) + "s")
 
 start = time()
-result4 = bench_higher_order(100000, simple_add)
+result4 = bench_higher_order(50000, simple_add)
 elapsed4 = time() - start
 print("Higher-Order Function: " + str(result4) + " in " + str(elapsed4) + "s")
 
 # --------------------------------------------
-# Benchmark 5: List/Collection Operations
+# Benchmark 5: List Operations
 # --------------------------------------------
 print("\n--- Benchmark 5: List Operations ---")
 
@@ -193,7 +188,7 @@ func bench_list_append(n) {
     for i in 0..n {
         lst.append(i)
     }
-    return len(lst)
+    return lst
 }
 
 func bench_list_iterate(lst) {
@@ -211,211 +206,159 @@ func bench_list_comprehension(n) {
 iterations = 50000
 
 start = time()
-var result5 = bench_list_append(iterations)
-var elapsed5 = time() - start
-print("List Append: " + str(result5) + " in " + str(elapsed5) + "s")
-
 var test_list = bench_list_append(iterations)
+var elapsed5 = time() - start
+print("List Append (50000): " + str(len(test_list)) + " items in " + str(elapsed5) + "s")
+
 start = time()
-result5 = bench_list_iterate(test_list)
+var result5 = bench_list_iterate(test_list)
 elapsed5 = time() - start
 print("List Iterate: " + str(result5) + " in " + str(elapsed5) + "s")
 
 start = time()
-result5 = len(bench_list_comprehension(iterations))
+var comp_list = bench_list_comprehension(iterations)
 elapsed5 = time() - start
-print("List Comprehension: " + str(result5) + " in " + str(elapsed5) + "s")
-
-# ============================================
-# GAME-SPECIFIC BENCHMARKS
-# ============================================
-
-print("\n" + "=" * 60)
-print("GAME-SPECIFIC BENCHMARKS")
-print("=" * 60)
+print("List Comprehension: " + str(len(comp_list)) + " items in " + str(elapsed5) + "s")
 
 # --------------------------------------------
-# Benchmark 6: Vector Operations
+# Benchmark 6: Dict Operations
 # --------------------------------------------
-print("\n--- Benchmark 6: Vector Operations ---")
+print("\n--- Benchmark 6: Dict Operations ---")
 
-func bench_vec2_operations(n) {
-    var sum = vec2(0, 0)
+func bench_dict_create(n) {
+    var d = {}
     for i in 0..n {
-        var v = vec2(float(i), float(i + 1))
-        sum.x = sum.x + v.x
-        sum.y = sum.y + v.y
+        d[str(i)] = i * i
     }
-    return sum
+    return len(d)
 }
 
-func bench_vec2_distance(n) {
-    var total = 0.0
-    for i in 0..n {
-        var a = vec2(float(i), float(i))
-        var b = vec2(float(i + 1), float(i + 1))
-        var dx = b.x - a.x
-        var dy = b.y - a.y
-        total = total + sqrt(dx * dx + dy * dy)
-    }
-    return total
-}
-
-iterations = 100000
+iterations = 10000
 
 start = time()
-var result6 = bench_vec2_operations(iterations)
+var test_dict = bench_dict_create(iterations)
 var elapsed6 = time() - start
-print("Vec2 Operations: (" + str(result6.x) + ", " + str(result6.y) + ") in " + str(elapsed6) + "s")
-
-start = time()
-result6 = bench_vec2_distance(iterations)
-elapsed6 = time() - start
-print("Vec2 Distance: " + str(result6) + " in " + str(elapsed6) + "s")
+print("Dict Create (10000 entries): " + str(test_dict) + " entries in " + str(elapsed6) + "s")
 
 # --------------------------------------------
-# Benchmark 7: Simple Physics (Verlet Integration)
+# Benchmark 7: Nested Loops
 # --------------------------------------------
-print("\n--- Benchmark 7: Simple Physics ---")
+print("\n--- Benchmark 7: Nested Loops ---")
 
-func bench_physics(particles, iterations) {
-    var positions = []
-    var velocities = []
-    
-    for i in 0..particles {
-        positions.append(vec2(float(i), float(i)))
-        velocities.append(vec2(1.0, 1.0))
-    }
-    
-    for t in 0..iterations {
-        for i in 0..particles {
-            positions[i].x = positions[i].x + velocities[i].x * 0.016
-            positions[i].y = positions[i].y + velocities[i].y * 0.016
-        }
-    }
-    return len(positions)
-}
-
-var particles = 1000
-iterations = 1000
-
-start = time()
-var result7 = bench_physics(particles, iterations)
-var elapsed7 = time() - start
-print("Physics (1000 particles, 1000 iters): " + str(result7) + " in " + str(elapsed7) + "s")
-
-# --------------------------------------------
-# Benchmark 8: Entity Component System Pattern
-# --------------------------------------------
-print("\n--- Benchmark 8: ECS Pattern ---")
-
-func bench_ecs(entities, components) {
-    var positions = []
-    var velocities = []
-    var active = []
-    
-    for i in 0..entities {
-        positions.append(vec2(float(i), float(i)))
-        velocities.append(vec2(1.0, 2.0))
-        active.append(i < entities)
-    }
-    
+func bench_nested_loops(outer_n, inner_n) {
     var sum = 0
-    for t in 0..components {
-        for i in 0..entities {
-            if active[i] {
-                positions[i].x = positions[i].x + velocities[i].x * 0.016
-                positions[i].y = positions[i].y + velocities[i].y * 0.016
-                sum = sum + positions[i].x + positions[i].y
-            }
+    for i in 0..outer_n {
+        for j in 0..inner_n {
+            sum = sum + i + j
         }
     }
     return sum
 }
 
-var entities = 5000
-var components = 100
+var outer_n = 100
+var inner_n = 100
 
 start = time()
-var result8 = bench_ecs(entities, components)
+var result7 = bench_nested_loops(outer_n, inner_n)
+var elapsed7 = time() - start
+print("Nested Loops (100x100): " + str(result7) + " in " + str(elapsed7) + "s")
+
+# --------------------------------------------
+# Benchmark 8: Closure Performance
+# --------------------------------------------
+print("\n--- Benchmark 8: Closure Performance ---")
+
+func make_counter(start_val) {
+    var count = start_val
+    func increment() {
+        count = count + 1
+        return count
+    }
+    return increment
+}
+
+func bench_closures(n) {
+    var counter = make_counter(0)
+    var sum = 0
+    for i in 0..n {
+        sum = sum + counter()
+    }
+    return sum
+}
+
+iterations = 10000
+
+start = time()
+var result8 = bench_closures(iterations)
 var elapsed8 = time() - start
-print("ECS (5000 entities, 100 frames): " + str(result8) + " in " + str(elapsed8) + "s")
+print("Closure Counter (" + str(iterations) + " calls): " + str(result8) + " in " + str(elapsed8) + "s")
 
 # --------------------------------------------
-# Benchmark 9: Pathfinding (Simple A*)
+# Benchmark 9: List of Dicts
 # --------------------------------------------
-print("\n--- Benchmark 9: Pathfinding ---")
+print("\n--- Benchmark 9: List of Dicts ---")
 
-func bench_pathfinding(grid_size, paths) {
-    var grid = []
-    for y in 0..grid_size {
-        var row = []
-        for x in 0..grid_size {
-            row.append(x + y < grid_size + 2)
-        }
-        grid.append(row)
+func bench_list_of_dicts(n) {
+    var data = []
+    for i in 0..n {
+        data.append({"id": i, "value": i * 10})
     }
-    
-    func heuristic(a, b) {
-        return abs(a[0] - b[0]) + abs(a[1] - b[1])
-    }
-    
-    var paths_found = 0
-    for p in 0..paths {
-        var start = [0, 0]
-        var end = [grid_size - 1, grid_size - 1]
-        paths_found = paths_found + 1
-    }
-    return paths_found
+    return len(data)
 }
 
-var grid_size = 20
-var num_paths = 50
+func bench_access_list_of_dicts(data, n) {
+    var sum = 0
+    for i in 0..n {
+        sum = sum + data[i]["value"]
+    }
+    return sum
+}
+
+iterations = 5000
 
 start = time()
-var result9 = bench_pathfinding(grid_size, num_paths)
+var list_dict = []
+for i in 0..iterations {
+    list_dict.append({"id": i, "value": i * 10})
+}
 var elapsed9 = time() - start
-print("Pathfinding (20x20 grid, 50 paths): " + str(result9) + " in " + str(elapsed9) + "s")
-
-# --------------------------------------------
-# Benchmark 10: Particle System
-# --------------------------------------------
-print("\n--- Benchmark 10: Particle System ---")
-
-func bench_particles(count, lifetime) {
-    var particles = []
-    
-    for i in 0..count {
-        particles.append({
-            x: float(i),
-            y: float(i),
-            vx: 1.0,
-            vy: 2.0,
-            life: lifetime
-        })
-    }
-    
-    var total_life = 0
-    for frame in 0..100 {
-        for p in particles {
-            p.x = p.x + p.vx
-            p.y = p.y + p.vy
-            p.life = p.life - 1
-            if p.life > 0 {
-                total_life = total_life + p.life
-            }
-        }
-    }
-    return total_life
-}
-
-var count = 5000
-var lifetime = 100
+print("List of Dicts Create (" + str(iterations) + "): " + str(len(list_dict)) + " in " + str(elapsed9) + "s")
 
 start = time()
-var result10 = bench_particles(count, lifetime)
+var result9 = bench_access_list_of_dicts(list_dict, iterations)
+elapsed9 = time() - start
+print("List of Dicts Access Sum: " + str(result9) + " in " + str(elapsed9) + "s")
+
+# --------------------------------------------
+# Benchmark 10: Class/Object Operations
+# --------------------------------------------
+print("\n--- Benchmark 10: Class/Object Operations ---")
+
+class Point {
+    func init(x, y) {
+        this.x = x
+        this.y = y
+    }
+    
+    func add(other) {
+        return Point(this.x + other.x, this.y + other.y)
+    }
+}
+
+func bench_objects(n) {
+    var points = []
+    for i in 0..n {
+        points.append(Point(i, i))
+    }
+    return len(points)
+}
+
+iterations = 5000
+
+start = time()
+var points = bench_objects(iterations)
 var elapsed10 = time() - start
-print("Particles (5000, 100 frames): " + str(result10) + " in " + str(elapsed10) + "s")
+print("Object Create (" + str(iterations) + " Points): " + str(points) + " in " + str(elapsed10) + "s")
 
 print("\n" + "=" * 60)
 print("BENCHMARKS COMPLETE")

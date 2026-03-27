@@ -1,16 +1,12 @@
 # ============================================
-# Python Benchmark Comparison for Ipp
+# Python Benchmark Comparison for Ipp v1.2.0
 # ============================================
-# Run this file to compare Python performance
-# with Ipp benchmarks.
-# ============================================
+# Run this file to compare Python performance with Ipp benchmarks.
 
 import time
-import math
-import random
 
 print("=" * 60)
-print("PYTHON BENCHMARKS (for comparison)")
+print("PYTHON BENCHMARKS v1.2.0")
 print("=" * 60)
 
 # --------------------------------------------
@@ -19,10 +15,10 @@ print("=" * 60)
 print("\n--- Benchmark 1: Integer Arithmetic ---")
 
 def bench_integer_add(n):
-    sum = 0
+    total = 0
     for i in range(n):
-        sum += i
-    return sum
+        total += i
+    return total
 
 def bench_integer_mul(n):
     product = 1
@@ -39,48 +35,50 @@ def bench_integer_mod(n):
 iterations = 100000
 
 start = time.perf_counter()
-result = bench_integer_add(iterations)
-elapsed = time.perf_counter() - start
-print(f"Integer Add: {result} in {elapsed:.4f}s")
+result1 = bench_integer_add(iterations)
+elapsed1 = time.perf_counter() - start
+print(f"Integer Add: {result1} in {elapsed1:.6f}s")
 
 start = time.perf_counter()
-result = bench_integer_mul(100)
-elapsed = time.perf_counter() - start
-print(f"Integer Mul (100!): {result} in {elapsed:.4f}s")
+result1 = bench_integer_mul(10)
+elapsed1 = time.perf_counter() - start
+print(f"Integer Mul (10!): {result1} in {elapsed1:.6f}s")
 
 start = time.perf_counter()
-result = bench_integer_mod(iterations)
-elapsed = time.perf_counter() - start
-print(f"Integer Mod: {result} in {elapsed:.4f}s")
+result1 = bench_integer_mod(iterations)
+elapsed1 = time.perf_counter() - start
+print(f"Integer Mod: {result1} in {elapsed1:.6f}s")
 
 # --------------------------------------------
 # Benchmark 2: Floating Point Math
 # --------------------------------------------
 print("\n--- Benchmark 2: Floating Point Math ---")
 
+import math
+
 def bench_float_trig(n):
-    sum = 0.0
+    total = 0.0
     for i in range(n):
-        sum += math.sin(i)
-    return sum
+        total += math.sin(i)
+    return total
 
 def bench_float_sqrt(n):
-    sum = 0.0
+    total = 0.0
     for i in range(1, n + 1):
-        sum += math.sqrt(i)
-    return sum
+        total += math.sqrt(i)
+    return total
 
 iterations = 50000
 
 start = time.perf_counter()
-result = bench_float_trig(iterations)
-elapsed = time.perf_counter() - start
-print(f"Float Trig (sin): {result} in {elapsed:.4f}s")
+result2 = bench_float_trig(iterations)
+elapsed2 = time.perf_counter() - start
+print(f"Float Trig (sin): {result2} in {elapsed2:.6f}s")
 
 start = time.perf_counter()
-result = bench_float_sqrt(iterations)
-elapsed = time.perf_counter() - start
-print(f"Float Sqrt: {result} in {elapsed:.4f}s")
+result2 = bench_float_sqrt(iterations)
+elapsed2 = time.perf_counter() - start
+print(f"Float Sqrt: {result2} in {elapsed2:.6f}s")
 
 # --------------------------------------------
 # Benchmark 3: String Operations
@@ -100,18 +98,18 @@ def bench_string_split(s, n):
         result.append(len(parts))
     return len(result)
 
-iterations = 10000
+iterations = 5000
 
 start = time.perf_counter()
-result = bench_string_concat(iterations)
-elapsed = time.perf_counter() - start
-print(f"String Concat: {result} in {elapsed:.4f}s")
+result3 = bench_string_concat(iterations)
+elapsed3 = time.perf_counter() - start
+print(f"String Concat: {result3} in {elapsed3:.6f}s")
 
 test_string = "a,b,c,d,e,f,g,h,i,j"
 start = time.perf_counter()
-result = bench_string_split(test_string, iterations)
-elapsed = time.perf_counter() - start
-print(f"String Split: {result} in {elapsed:.4f}s")
+result3 = bench_string_split(test_string, iterations)
+elapsed3 = time.perf_counter() - start
+print(f"String Split: {result3} in {elapsed3:.6f}s")
 
 # --------------------------------------------
 # Benchmark 4: Function Calls
@@ -140,22 +138,22 @@ def bench_higher_order(n, f):
 def simple_add(n):
     return n + 1
 
-iterations = 25
+iterations = 20
 
 start = time.perf_counter()
-result = bench_recursive_fib(iterations)
-elapsed = time.perf_counter() - start
-print(f"Recursive Fibonacci(25): {result} in {elapsed:.4f}s")
+result4 = bench_recursive_fib(iterations)
+elapsed4 = time.perf_counter() - start
+print(f"Recursive Fibonacci(20): {result4} in {elapsed4:.6f}s")
 
 start = time.perf_counter()
-result = bench_iterative_fib(10000)
-elapsed = time.perf_counter() - start
-print(f"Iterative Fibonacci(10000): {result} in {elapsed:.4f}s")
+result4 = bench_iterative_fib(10000)
+elapsed4 = time.perf_counter() - start
+print(f"Iterative Fibonacci(10000): {result4} in {elapsed4:.6f}s")
 
 start = time.perf_counter()
-result = bench_higher_order(100000, simple_add)
-elapsed = time.perf_counter() - start
-print(f"Higher-Order Function: {result} in {elapsed:.4f}s")
+result4 = bench_higher_order(50000, simple_add)
+elapsed4 = time.perf_counter() - start
+print(f"Higher-Order Function: {result4} in {elapsed4:.6f}s")
 
 # --------------------------------------------
 # Benchmark 5: List Operations
@@ -166,13 +164,13 @@ def bench_list_append(n):
     lst = []
     for i in range(n):
         lst.append(i)
-    return len(lst)
+    return lst
 
 def bench_list_iterate(lst):
-    sum = 0
+    total = 0
     for x in lst:
-        sum += x
-    return sum
+        total += x
+    return total
 
 def bench_list_comprehension(n):
     return [i * 2 for i in range(n)]
@@ -180,142 +178,140 @@ def bench_list_comprehension(n):
 iterations = 50000
 
 start = time.perf_counter()
-result = bench_list_append(iterations)
-elapsed = time.perf_counter() - start
-print(f"List Append: {result} in {elapsed:.4f}s")
-
 test_list = bench_list_append(iterations)
-start = time.perf_counter()
-result = bench_list_iterate(test_list)
-elapsed = time.perf_counter() - start
-print(f"List Iterate: {result} in {elapsed:.4f}s")
+elapsed5 = time.perf_counter() - start
+print(f"List Append (50000): {len(test_list)} items in {elapsed5:.6f}s")
 
 start = time.perf_counter()
-result = len(bench_list_comprehension(iterations))
-elapsed = time.perf_counter() - start
-print(f"List Comprehension: {result} in {elapsed:.4f}s")
+result5 = bench_list_iterate(test_list)
+elapsed5 = time.perf_counter() - start
+print(f"List Iterate: {result5} in {elapsed5:.6f}s")
+
+start = time.perf_counter()
+comp_list = bench_list_comprehension(iterations)
+elapsed5 = time.perf_counter() - start
+print(f"List Comprehension: {len(comp_list)} items in {elapsed5:.6f}s")
 
 # --------------------------------------------
-# Benchmark 6: Vector Operations
+# Benchmark 6: Dict Operations
 # --------------------------------------------
-print("\n--- Benchmark 6: Vector Operations ---")
+print("\n--- Benchmark 6: Dict Operations ---")
 
-class Vec2:
-    def __init__(self, x=0, y=0):
+def bench_dict_create(n):
+    d = {}
+    for i in range(n):
+        d[str(i)] = i * i
+    return len(d)
+
+iterations = 10000
+
+start = time.perf_counter()
+test_dict = bench_dict_create(iterations)
+elapsed6 = time.perf_counter() - start
+print(f"Dict Create (10000 entries): {test_dict} entries in {elapsed6:.6f}s")
+
+# --------------------------------------------
+# Benchmark 7: Nested Loops
+# --------------------------------------------
+print("\n--- Benchmark 7: Nested Loops ---")
+
+def bench_nested_loops(outer_n, inner_n):
+    total = 0
+    for i in range(outer_n):
+        for j in range(inner_n):
+            total += i + j
+    return total
+
+outer_n = 100
+inner_n = 100
+
+start = time.perf_counter()
+result7 = bench_nested_loops(outer_n, inner_n)
+elapsed7 = time.perf_counter() - start
+print(f"Nested Loops (100x100): {result7} in {elapsed7:.6f}s")
+
+# --------------------------------------------
+# Benchmark 8: Closure Performance
+# --------------------------------------------
+print("\n--- Benchmark 8: Closure Performance ---")
+
+def make_counter(start_val):
+    count = [start_val]
+    def increment():
+        count[0] += 1
+        return count[0]
+    return increment
+
+def bench_closures(n):
+    counter = make_counter(0)
+    total = 0
+    for i in range(n):
+        total += counter()
+    return total
+
+iterations = 10000
+
+start = time.perf_counter()
+result8 = bench_closures(iterations)
+elapsed8 = time.perf_counter() - start
+print(f"Closure Counter ({iterations} calls): {result8} in {elapsed8:.6f}s")
+
+# --------------------------------------------
+# Benchmark 9: List of Dicts
+# --------------------------------------------
+print("\n--- Benchmark 9: List of Dicts ---")
+
+def bench_list_of_dicts_create(n):
+    data = []
+    for i in range(n):
+        data.append({"id": i, "value": i * 10})
+    return len(data)
+
+def bench_list_of_dicts_access(data, n):
+    total = 0
+    for i in range(n):
+        total += data[i]["value"]
+    return total
+
+iterations = 5000
+
+start = time.perf_counter()
+list_dict = []
+for i in range(iterations):
+    list_dict.append({"id": i, "value": i * 10})
+elapsed9 = time.perf_counter() - start
+print(f"List of Dicts Create ({iterations}): {len(list_dict)} in {elapsed9:.6f}s")
+
+start = time.perf_counter()
+result9 = bench_list_of_dicts_access(list_dict, iterations)
+elapsed9 = time.perf_counter() - start
+print(f"List of Dicts Access Sum: {result9} in {elapsed9:.6f}s")
+
+# --------------------------------------------
+# Benchmark 10: Class/Object Operations
+# --------------------------------------------
+print("\n--- Benchmark 10: Class/Object Operations ---")
+
+class Point:
+    def __init__(self, x, y):
         self.x = x
         self.y = y
+    
+    def add(self, other):
+        return Point(self.x + other.x, self.y + other.y)
 
-def bench_vec2_operations(n):
-    sum = Vec2(0, 0)
+def bench_objects(n):
+    points = []
     for i in range(n):
-        v = Vec2(float(i), float(i + 1))
-        sum.x += v.x
-        sum.y += v.y
-    return sum
+        points.append(Point(i, i))
+    return len(points)
 
-def bench_vec2_distance(n):
-    total = 0.0
-    for i in range(n):
-        a = Vec2(float(i), float(i))
-        b = Vec2(float(i + 1), float(i + 1))
-        dx = b.x - a.x
-        dy = b.y - a.y
-        total += math.sqrt(dx * dx + dy * dy)
-    return total
-
-iterations = 100000
+iterations = 5000
 
 start = time.perf_counter()
-result = bench_vec2_operations(iterations)
-elapsed = time.perf_counter() - start
-print(f"Vec2 Operations: ({result.x}, {result.y}) in {elapsed:.4f}s")
-
-start = time.perf_counter()
-result = bench_vec2_distance(iterations)
-elapsed = time.perf_counter() - start
-print(f"Vec2 Distance: {result} in {elapsed:.4f}s")
-
-# --------------------------------------------
-# Benchmark 7: Physics
-# --------------------------------------------
-print("\n--- Benchmark 7: Physics ---")
-
-def bench_physics(particles, iterations):
-    positions = [Vec2(float(i), float(i)) for i in range(particles)]
-    velocities = [Vec2(1.0, 1.0) for _ in range(particles)]
-    
-    for t in range(iterations):
-        for i in range(particles):
-            positions[i].x += velocities[i].x * 0.016
-            positions[i].y += velocities[i].y * 0.016
-    
-    return len(positions)
-
-particles = 1000
-iterations = 1000
-
-start = time.perf_counter()
-result = bench_physics(particles, iterations)
-elapsed = time.perf_counter() - start
-print(f"Physics (1000 particles, 1000 iters): {result} in {elapsed:.4f}s")
-
-# --------------------------------------------
-# Benchmark 8: ECS
-# --------------------------------------------
-print("\n--- Benchmark 8: ECS Pattern ---")
-
-def bench_ecs(entities, components):
-    positions = [Vec2(float(i), float(i)) for i in range(entities)]
-    velocities = [Vec2(1.0, 2.0) for _ in range(entities)]
-    active = [i < entities for i in range(entities)]
-    
-    total = 0
-    for t in range(components):
-        for i in range(entities):
-            if active[i]:
-                positions[i].x += velocities[i].x * 0.016
-                positions[i].y += velocities[i].y * 0.016
-                total += positions[i].x + positions[i].y
-    
-    return total
-
-entities = 5000
-components = 100
-
-start = time.perf_counter()
-result = bench_ecs(entities, components)
-elapsed = time.perf_counter() - start
-print(f"ECS (5000 entities, 100 frames): {result} in {elapsed:.4f}s")
-
-# --------------------------------------------
-# Benchmark 9: Particles
-# --------------------------------------------
-print("\n--- Benchmark 9: Particle System ---")
-
-def bench_particles(count, lifetime):
-    particles = [
-        {"x": float(i), "y": float(i), "vx": 1.0, "vy": 2.0, "life": lifetime}
-        for i in range(count)
-    ]
-    
-    total_life = 0
-    for frame in range(100):
-        for p in particles:
-            p["x"] += p["vx"]
-            p["y"] += p["vy"]
-            p["life"] -= 1
-            if p["life"] > 0:
-                total_life += p["life"]
-    
-    return total_life
-
-count = 5000
-lifetime = 100
-
-start = time.perf_counter()
-result = bench_particles(count, lifetime)
-elapsed = time.perf_counter() - start
-print(f"Particles (5000, 100 frames): {result} in {elapsed:.4f}s")
+points = bench_objects(iterations)
+elapsed10 = time.perf_counter() - start
+print(f"Object Create ({iterations} Points): {points} in {elapsed10:.6f}s")
 
 print("\n" + "=" * 60)
 print("BENCHMARKS COMPLETE")

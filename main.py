@@ -17,7 +17,7 @@ from ipp.lexer.lexer import tokenize
 from ipp.parser.parser import parse
 from ipp.interpreter.interpreter import Interpreter
 
-REPL_VERSION = "1.1.1"
+REPL_VERSION = "1.2.0"
 
 try:
     from termcolor import colored
