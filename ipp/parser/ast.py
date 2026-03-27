@@ -113,6 +113,16 @@ class IndexExpr(ASTNode):
 
 
 @dataclass
+class IndexSetExpr(ASTNode):
+    object: ASTNode
+    index: ASTNode
+    value: ASTNode
+    
+    def accept(self, visitor):
+        return visitor.visit_index_set_expr(self)
+
+
+@dataclass
 class GetExpr(ASTNode):
     object: ASTNode
     name: str

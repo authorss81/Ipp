@@ -22,6 +22,7 @@
 | **v1.0.0** | ✅ DONE | Bytecode VM Infrastructure |
 | **v1.0.1** | ✅ DONE | VM Stabilization & Bug Fixes |
 | **v1.1.0** | ✅ DONE | Performance Optimization & Profiler |
+| **v1.1.1** | ✅ DONE | Bug Fixes (Dict/Index Assignment) |
 | **v1.2.0** | **PENDING** | Benchmark Suite vs Other Languages |
 | **v1.3.0** | **PENDING** | Production Ready |
 | **v2.0.0** | **PENDING** | Game Features |
@@ -414,6 +415,27 @@ ipp lint file.ipp
 - [ ] Native code generation (future)
 - [ ] Dynamic recompilation (future)
 - [ ] Inline caching optimization (future)
+
+---
+
+## v1.1.1 - Bug Fixes (DONE)
+
+**Goal**: Fix critical bugs discovered after v1.1.0
+
+### Bug Fixes ✅
+- [x] Fixed dict string key assignment (`d["key"] = value`)
+- [x] Fixed list index assignment (`list[i] = value`)
+- [x] Added IndexSetExpr to AST
+- [x] Added visit_index_set_expr to interpreter
+
+### Parser Fixes ✅
+- [x] Parser now handles `obj[index] = value` syntax
+- [x] Added IndexSetExpr AST node type
+
+### Testing ✅
+- [x] Dict string key tests pass
+- [x] List index assignment tests pass
+- [x] All regression tests pass
 
 ---
 

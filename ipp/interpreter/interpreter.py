@@ -466,7 +466,25 @@ class Interpreter:
             raise RuntimeError("String index must be integer")
         
         raise RuntimeError(f"Cannot index {type(obj)}")
-
+    
+    def visit_index_set_expr(self, node: IndexSetExpr):
+        obj = node.object.accept(self)
+        index = node.index.accept(self)
+        value = node.value.accept(self)
+        
+        if isinstance(obj, IppList):
+            if isinstance(index, float) and index.is_integer():
+                index = int(index)
+            if isinstance(index, int):
+                obj.elements[index] = value
+                return value
+            raise RuntimeError("List index must be integer")
+        if isinstance(obj, IppDict):
+            obj.set(index, value)
+            return value
+        
+        raise RuntimeError(f"Cannot set index on {type(obj)}")
+    
     def visit_get_expr(self, node: GetExpr):
         obj = node.object.accept(self)
         if isinstance(obj, IppInstance):

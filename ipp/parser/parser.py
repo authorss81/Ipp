@@ -357,6 +357,9 @@ class Parser:
             if isinstance(left, GetExpr):
                 value = self.assignment()
                 return SetExpr(left.object, left.name, value)
+            if isinstance(left, IndexExpr):
+                value = self.assignment()
+                return IndexSetExpr(left.object, left.index, value)
         
         return left
 
