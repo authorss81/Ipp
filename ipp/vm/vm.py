@@ -6,6 +6,88 @@ import sys
 import os
 
 
+class Profiler:
+    def __init__(self):
+        self.enabled = False
+        self.opcode_counts: Dict[OpCode, int] = {}
+        self.function_times: Dict[str, float] = {}
+        self.memory_samples: List[int] = []
+        self.call_counts: Dict[str, int] = {}
+        self.loop_iterations = 0
+        self.start_time = None
+    
+    def start(self):
+        self.enabled = True
+        self.start_time = time.perf_counter()
+        self.opcode_counts.clear()
+        self.function_times.clear()
+        self.call_counts.clear()
+        self.loop_iterations = 0
+    
+    def stop(self):
+        self.enabled = False
+    
+    def record_opcode(self, opcode: OpCode):
+        if self.enabled:
+            self.opcode_counts[opcode] = self.opcode_counts.get(opcode, 0) + 1
+    
+    def record_call(self, name: str):
+        if self.enabled:
+            self.call_counts[name] = self.call_counts.get(name, 0) + 1
+    
+    def record_function_time(self, name: str, duration: float):
+        if self.enabled:
+            self.function_times[name] = self.function_times.get(name, 0) + duration
+    
+    def record_loop_iteration(self):
+        if self.enabled:
+            self.loop_iterations += 1
+    
+    def record_memory(self):
+        if self.enabled:
+            try:
+                import psutil
+                process = psutil.Process()
+                self.memory_samples.append(process.memory_info().rss)
+            except ImportError:
+                pass
+    
+    def get_stats(self) -> dict:
+        total_ops = sum(self.opcode_counts.values()) if self.opcode_counts else 0
+        elapsed = time.perf_counter() - self.start_time if self.start_time else 0
+        
+        return {
+            'total_instructions': total_ops,
+            'elapsed_ms': elapsed * 1000,
+            'instructions_per_ms': total_ops / (elapsed * 1000) if elapsed > 0 else 0,
+            'opcode_counts': dict(self.opcode_counts),
+            'function_calls': dict(self.call_counts),
+            'function_times': dict(self.function_times),
+            'loop_iterations': self.loop_iterations,
+            'memory_samples': list(self.memory_samples),
+        }
+    
+    def print_report(self):
+        stats = self.get_stats()
+        print("\n=== Profiler Report ===")
+        print(f"Total Instructions: {stats['total_instructions']:,}")
+        print(f"Elapsed Time: {stats['elapsed_ms']:.2f} ms")
+        print(f"Instructions/ms: {stats['instructions_per_ms']:.2f}")
+        print(f"Loop Iterations: {stats['loop_iterations']:,}")
+        
+        if stats['opcode_counts']:
+            print("\nTop 10 Opcodes:")
+            sorted_ops = sorted(stats['opcode_counts'].items(), key=lambda x: x[1], reverse=True)[:10]
+            for opcode, count in sorted_ops:
+                pct = (count / stats['total_instructions']) * 100 if stats['total_instructions'] > 0 else 0
+                print(f"  {opcode.name}: {count:,} ({pct:.1f}%)")
+        
+        if stats['function_calls']:
+            print("\nFunction Calls:")
+            for name, count in sorted(stats['function_calls'].items(), key=lambda x: x[1], reverse=True)[:10]:
+                print(f"  {name}: {count:,}")
+
+
 class InlineCache:
     def __init__(self, max_size=1024):
         self.cache: Dict[int, Any] = {}
@@ -135,6 +217,11 @@ class OptimizedVM:
         self._global_cache = InlineCache(max_size=2048)
         self._method_cache = InlineCache(max_size=2048)
         self._string_cache: Dict[str, str] = {}
+        self._type_cache: Dict[type, str] = {}
+        
+        self.profiler = Profiler()
+        self._hot_functions: Dict[str, int] = {}
+        self._jit_threshold = 100
         
         self._init_builtins()
     
@@ -265,6 +352,9 @@ class OptimizedVM:
             self.instruction_count += 1
             
             opcode = OpCode(frame.chunk.code[frame.ip])
+            
+            if self.profiler.enabled:
+                self.profiler.record_opcode(opcode)
             
             try:
                 result = self._execute_opcode(opcode, frame)
@@ -1021,3 +1111,67 @@ def compare_performance(source: str, iterations: int = 100) -> dict:
         'interpreter_total_ms': sum(interpreter_times) * 1000,
         'bytecode_total_ms': sum(bytecode_times) * 1000,
     }
+
+
+def profile_vm(chunk: Chunk, iterations: int = 100) -> dict:
+    vm = VM(chunk)
+    vm.profiler.start()
+    
+    for _ in range(iterations):
+        vm.reset()
+        vm.run(chunk)
+    
+    vm.profiler.stop()
+    return vm.profiler.get_stats()
+
+
+def profile_source(source: str, iterations: int = 100) -> dict:
+    from ipp.lexer.lexer import tokenize
+    from ipp.parser.parser import parse
+    from .compiler import compile_ast
+    
+    tokens = tokenize(source)
+    ast = parse(tokens)
+    chunk = compile_ast(ast)
+    
+    return profile_vm(chunk, iterations)
+
+
+def profile_and_report(source: str, iterations: int = 100):
+    from ipp.lexer.lexer import tokenize
+    from ipp.parser.parser import parse
+    from .compiler import compile_ast
+    
+    tokens = tokenize(source)
+    ast = parse(tokens)
+    chunk = compile_ast(ast)
+    
+    vm = VM(chunk)
+    vm.profiler.start()
+    
+    start = time.perf_counter()
+    for _ in range(iterations):
+        vm.reset()
+        vm.run(chunk)
+    end = time.perf_counter()
+    
+    vm.profiler.stop()
+    stats = vm.profiler.get_stats()
+    
+    total_time = (end - start) * 1000
+    
+    print("\n=== Performance Profile ===")
+    print(f"Iterations: {iterations}")
+    print(f"Total Time: {total_time:.2f} ms")
+    print(f"Avg per iteration: {total_time / iterations:.4f} ms")
+    print(f"Total Instructions: {stats['total_instructions']:,}")
+    print(f"Instructions/iteration: {stats['total_instructions'] // iterations:,}")
+    
+    if stats['opcode_counts']:
+        print("\nTop 10 Opcodes:")
+        sorted_ops = sorted(stats['opcode_counts'].items(), key=lambda x: x[1], reverse=True)[:10]
+        for opcode, count in sorted_ops:
+            pct = (count / stats['total_instructions']) * 100 if stats['total_instructions'] > 0 else 0
+            print(f"  {opcode.name}: {count:,} ({pct:.1f}%)")
+    
+    return stats
