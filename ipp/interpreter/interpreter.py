@@ -119,9 +119,13 @@ class IppList:
         return len(self.elements)
     
     def __getitem__(self, index):
+        if isinstance(index, float) and index.is_integer():
+            index = int(index)
         return self.elements[index]
     
     def __setitem__(self, index, value):
+        if isinstance(index, float) and index.is_integer():
+            index = int(index)
         self.elements[index] = value
     
     def __repr__(self):
@@ -447,12 +451,16 @@ class Interpreter:
         index = node.index.accept(self)
         
         if isinstance(obj, IppList):
+            if isinstance(index, int):
+                return obj.elements[index]
             if isinstance(index, float) and index.is_integer():
                 return obj.elements[int(index)]
             raise RuntimeError("List index must be integer")
         if isinstance(obj, IppDict):
             return obj.get(index)
         if isinstance(obj, str):
+            if isinstance(index, int):
+                return obj[index]
             if isinstance(index, float) and index.is_integer():
                 return obj[int(index)]
             raise RuntimeError("String index must be integer")

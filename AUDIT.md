@@ -571,6 +571,7 @@ See [ROADMAP_V2.md](ROADMAP_V2.md) for detailed version-by-version plan.
 | v0.12.0 | Module System + Tooling | ✅ DONE |
 | v0.13.0 | Professional REPL UI | ✅ DONE |
 | v1.0.0 | Bytecode VM Infrastructure | ✅ DONE |
+| v1.0.1 | VM Stabilization & Bug Fixes | ✅ DONE |
 | v2.0.0 | Game Features | ⏳ PENDING |
 | v3.0.0 | Embedding | ⏳ PENDING |
 
@@ -578,10 +579,11 @@ See [ROADMAP_V2.md](ROADMAP_V2.md) for detailed version-by-version plan.
 
 ## Summary
 
-**Current State**: Beta-Ready (v0.7.0)
+**Current State**: Beta-Ready (v1.0.1)
 - 48/100 overall score (up from 44)
 - Most critical features implemented
-- Incremental releases planned: v0.8.0 → v0.13.0 before v1.0.0
+- VM infrastructure complete with v1.0.0
+- VM stabilization with bug fixes in v1.0.1
 
 **What's NEW in v0.7.0:**
 - List comprehensions: `[x*x for x in 1..10]`
@@ -614,5 +616,5 @@ See [ROADMAP_V2.md](ROADMAP_V2.md) for detailed version-by-version plan.
 
 ---
 
-*Audit completed: 2026-03-25*
-*Version: 1.1*
+*Audit completed: 2026-03-27*
+*Version: 1.2*

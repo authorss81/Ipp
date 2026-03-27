@@ -35,19 +35,19 @@ class Compiler:
     def pop_scope(self):
         while self.locals and self.locals[-1].depth >= self.depth:
             self.locals.pop()
-        self.scopes.pop()
-        self.depth -= 1
+        if self.scopes:
+            self.scopes.pop()
+        self.depth = max(0, self.depth - 1)
     
     def define_local(self, name: str):
-        self.locals.append(Local(name, self.depth))
-        if name in self.scopes[-1]:
-            self.scopes[-1][name] = len(self.locals) - 1
-        else:
+        if name not in [l.name for l in self.locals if l.depth == self.depth]:
+            self.locals.append(Local(name, self.depth))
+        if self.scopes:
             self.scopes[-1][name] = len(self.locals) - 1
     
     def resolve_local(self, name: str) -> Optional[int]:
         for i in range(len(self.locals) - 1, -1, -1):
-            if self.locals[i].name == name:
+            if self.locals[i].name == name and self.locals[i].depth < self.depth:
                 return len(self.locals) - 1 - i
         return None
     
@@ -116,15 +116,15 @@ class Compiler:
         self.define_local(node.name)
     
     def compile_function(self, node: FunctionDecl):
-        self.define_local(node.name)
-        
         func_chunk = Chunk()
         old_chunk = self.chunk
         old_locals = list(self.locals)
         old_depth = self.depth
+        old_scopes = list(self.scopes)
         
         self.chunk = func_chunk
         self.locals = []
+        self.scopes = [{}]
         self.depth = 1
         
         for param in node.parameters:
@@ -142,6 +142,7 @@ class Compiler:
         
         self.locals = old_locals
         self.depth = old_depth
+        self.scopes = old_scopes
     
     def compile_class(self, node: ClassDecl):
         self.chunk.write(OpCode.CLASS, self.current_line)
@@ -158,6 +159,14 @@ class Compiler:
                 self.compile_function(method)
         
         self.chunk.write(OpCode.END_METHOD, self.current_line)
+        
+        idx = self.resolve_local(node.name)
+        if idx is not None:
+            self.chunk.write(OpCode.SET_LOCAL, self.current_line)
+            self.chunk.write(idx, self.current_line)
+        else:
+            self.chunk.write(OpCode.DEFINE_GLOBAL, self.current_line)
+            self.chunk.add_constant(node.name, self.current_line)
         
         self.define_local(node.name)
     
@@ -180,8 +189,9 @@ class Compiler:
         for stmt in node.then_branch:
             self.compile_stmt(stmt)
         
+        end_jumps = []
+        
         if node.elif_branches:
-            end_jumps = []
             for cond, body in node.elif_branches[:-1]:
                 else_jump = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
                 end_jumps.append(else_jump)
@@ -203,11 +213,8 @@ class Compiler:
                 self.compile_stmt(stmt)
             
             end_jump = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
-            self.chunk.patch_jump(jump_false)
             end_jumps.append(end_jump)
-            
-            for ej in end_jumps:
-                self.chunk.patch_jump(ej)
+            self.chunk.patch_jump(jump_false)
         
         if node.else_branch:
             self.chunk.patch_jump(jump_false)
@@ -215,28 +222,47 @@ class Compiler:
                 self.compile_stmt(stmt)
         else:
             self.chunk.patch_jump(jump_false)
+        
+        for ej in end_jumps:
+            self.chunk.patch_jump(ej)
     
     def compile_for(self, node: ForStmt):
         self.push_scope()
         
         if node.variable:
             self.define_local(node.variable)
+            var_idx = self.resolve_local(node.variable)
+        else:
+            var_idx = None
         
         self.compile_expr(node.iterator)
-        self.chunk.write(OpCode.POP, self.current_line)
         
         loop_start = len(self.chunk.code)
         
         self.loop_stack.append({
             'start': loop_start,
             'body': len(self.chunk.code),
-            'break_jumps': []
+            'break_jumps': [],
+            'continue_jumps': [],
+            'variable': node.variable,
+            'var_idx': var_idx
         })
+        
+        self.chunk.write(OpCode.DUP, self.current_line)
+        check_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+        
+        if var_idx is not None:
+            self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+            self.chunk.write(var_idx, self.current_line)
         
         for stmt in node.body:
             self.compile_stmt(stmt)
         
         self.chunk.emit_loop(loop_start, self.current_line)
+        self.chunk.patch_jump(check_jump)
+        
+        if var_idx is not None:
+            self.chunk.write(OpCode.POP, self.current_line)
         
         for brk in self.loop_stack.pop()['break_jumps']:
             self.chunk.patch_jump(brk)
@@ -254,7 +280,8 @@ class Compiler:
         self.loop_stack.append({
             'start': loop_start,
             'body': len(self.chunk.code),
-            'break_jumps': []
+            'break_jumps': [],
+            'continue_jumps': []
         })
         
         for stmt in node.body:
@@ -276,7 +303,8 @@ class Compiler:
         self.loop_stack.append({
             'start': loop_start,
             'body': len(self.chunk.code),
-            'break_jumps': []
+            'break_jumps': [],
+            'continue_jumps': []
         })
         
         for stmt in node.body:
@@ -332,20 +360,24 @@ class Compiler:
         if not self.loop_stack:
             self.error("continue outside of loop")
         loop_info = self.loop_stack[-1]
+        jump = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
+        loop_info['continue_jumps'].append(jump)
+        self.chunk.patch_jump(jump)
         self.chunk.emit_loop(loop_info['start'], self.current_line)
     
     def compile_try(self, node: TryStmt):
-        try_start = len(self.chunk.code)
         try_jump = self.chunk.emit_jump(OpCode.TRY, self.current_line)
         
         for stmt in node.try_body:
             self.compile_stmt(stmt)
         
-        try_end = len(self.chunk.code)
         self.chunk.write(OpCode.TRY_END, self.current_line)
         
+        skip_catch = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
+        
+        catch_target = len(self.chunk.code)
         if node.catch_body:
-            catch_start = len(self.chunk.code)
+            self.chunk.patch_jump(try_jump)
             self.chunk.write(OpCode.CATCH, self.current_line)
             
             if node.exception_var:
@@ -356,13 +388,12 @@ class Compiler:
             
             self.chunk.write(OpCode.CATCH_END, self.current_line)
         
+        self.chunk.patch_jump(skip_catch)
+        
         if node.finally_body:
             self.chunk.write(OpCode.FINALLY, self.current_line)
-            finally_start = len(self.chunk.code)
-            
             for stmt in node.finally_body:
                 self.compile_stmt(stmt)
-            
             self.chunk.write(OpCode.END_FINALLY, self.current_line)
     
     def compile_throw(self, node: ThrowStmt):
@@ -422,6 +453,8 @@ class Compiler:
         elif isinstance(node, OptionalChainingExpr):
             self.compile_optional_chain(node)
         elif isinstance(node, SelfExpr):
+            pass
+        elif isinstance(node, SuperExpr):
             pass
     
     def compile_identifier(self, name: str):
@@ -486,6 +519,10 @@ class Compiler:
             self.chunk.write(OpCode.NOT, self.current_line)
         elif node.operator == "~":
             self.chunk.write(OpCode.BIT_NOT, self.current_line)
+        elif node.operator == "++":
+            self.chunk.write(OpCode.INCREMENT, self.current_line)
+        elif node.operator == "--":
+            self.chunk.write(OpCode.DECREMENT, self.current_line)
     
     def compile_call(self, node: CallExpr):
         self.compile_expr(node.callee)

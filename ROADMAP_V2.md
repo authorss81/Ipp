@@ -9,23 +9,22 @@
 | v0.3.1 | ✅ DONE | Multiline + IppList fixes |
 | v0.4.0 | ✅ DONE | CLI + Color/Rect + Module fixes |
 | v0.5.0 | ✅ DONE | Ternary, match, bitwise, floor div, try/catch |
-| v0.5.1 | ✅ DONE | ASCII logo, colored REPL, >>> prompt |
-| v0.5.2 | ✅ DONE | Box UI, .help, .vars, .clear commands |
-| v0.5.3 | ✅ DONE | REPL multiline (auto-detect braces) |
-| v0.5.4 | ✅ DONE | Fix let reassignment, game math functions |
+| v0.5.1-0.5.4 | ✅ DONE | Various improvements |
 | v0.6.0 | ✅ DONE | Type System + Enums |
 | v0.6.1 | ✅ DONE | Integer type, type annotations, ** power, fixed XOR |
 | v0.7.0 | ✅ DONE | List/Dict Comprehensions |
-| **v0.8.0** | ✅ DONE | Advanced Operators + Tuples |
-| **v0.9.0** | ✅ DONE | Control Flow + Exceptions |
-| **v0.10.0** | ✅ DONE | Functions + OOP Enhancements |
-| **v0.11.0** | ✅ DONE | Standard Library Expansion |
-| **v0.11.1** | ✅ DONE | Auto-print REPL, minor fixes |
-| **v0.11.2** | ✅ DONE | Additional Libraries (xml, yaml, toml, uuid, url, http, compress, log, collections, argparse, thread) |
-| **v0.12.0** | ✅ DONE | Module System (import, alias, selective), REPL (history, completion, lint) |
-| **v0.13.0** | ✅ DONE | Professional REPL UI (gradient logo, box drawing, syntax highlighting, autocomplete) |
-| **v1.0.0** | ✅ DONE | Bytecode VM Infrastructure (compiler, VM, optimizations, benchmarks) |
-| **v1.0.0** | **PENDING** | Performance (Bytecode VM) |
+| v0.8.0 | ✅ DONE | Advanced Operators + Tuples |
+| v0.9.0 | ✅ DONE | Control Flow + Exceptions |
+| v0.10.0 | ✅ DONE | Functions + OOP Enhancements |
+| v0.11.0-0.11.2 | ✅ DONE | Standard Library Expansion |
+| v0.12.0 | ✅ DONE | Module System (import, alias, selective) |
+| v0.13.0 | ✅ DONE | Professional REPL UI |
+| **v1.0.0** | ✅ DONE | Bytecode VM Infrastructure |
+| **v1.0.1** | ✅ DONE | VM Stabilization & Bug Fixes |
+| **v1.1.0** | **PENDING** | Performance Optimization & JIT |
+| **v1.2.0** | **PENDING** | Benchmark Suite vs Other Languages |
+| **v1.3.0** | **PENDING** | Production Ready |
+| **v2.0.0** | **PENDING** | Game Features |
 
 ---
 
@@ -362,6 +361,117 @@ ipp lint file.ipp
 ### Benchmarks ✅
 - Benchmark suite at `tests/v1/benchmark.py`
 - Performance comparison tools
+
+---
+
+## v1.0.1 - VM Stabilization ✅ DONE
+
+**Goal**: Fix bugs, complete missing features, stabilize VM
+
+### VM Bug Fixes ✅
+- [x] Fix opcode conflicts and duplicate values
+- [x] Fix constant pool index handling
+- [x] Fix jump instruction handling
+- [x] Fix function call/return
+- [x] Fix class instantiation
+- [x] Fix list index type checking in interpreter
+
+### Missing Features Implemented ✅
+- [x] Complete FOR loop support
+- [x] Complete TRY/CATCH exception handling
+- [x] Complete CLASS/METHOD implementation
+- [x] Complete IMPORT statement
+- [x] Complete BREAK/CONTINUE
+- [x] Complete WHILE/DO-WHILE loops
+- [x] Complete MATCH statement
+
+### Testing ✅
+- [x] Comprehensive VM tests (`tests/v1_0_1/test_features.ipp`)
+- [x] Integration tests via regression suite
+- [x] All regression tests pass
+
+---
+
+## v1.1.0 - Performance Optimization (PENDING)
+
+**Goal**: Optimize VM performance, add JIT compilation
+
+### VM Optimizations
+- [ ] Loop unrolling for hot paths
+- [ ] Method dispatch caching
+- [ ] Escape analysis for object allocation
+- [ ] Register-based VM (faster than stack)
+- [ ] Specialized opcodes for common patterns
+
+### JIT Compiler
+- [ ] Basic JIT for hot functions
+- [ ] Native code generation (x86, ARM)
+- [ ] Dynamic recompilation
+- [ ] Inline caching optimization
+
+### Profiling
+- [ ] Built-in profiler
+- [ ] Opcode count statistics
+- [ ] Memory usage tracking
+- [ ] Call graph visualization
+
+---
+
+## v1.2.0 - Benchmark Suite (PENDING)
+
+**Goal**: Comprehensive benchmarks vs Lua, Python, GDScript
+
+### Benchmark Categories
+1. **Micro Benchmarks**
+   - Integer arithmetic
+   - Floating point math
+   - String operations
+   - Function calls
+   - Property access
+
+2. **Game-Specific Benchmarks**
+   - Physics simulation (collision detection)
+   - Pathfinding (A*, Dijkstra)
+   - Particle systems
+   - Game loop performance
+   - Entity component updates
+
+3. **Language Comparison**
+   - vs Lua/LuaJIT
+   - vs Python/PyPy
+   - vs GDScript
+   - vs AngelScript
+
+### Benchmark Suite Features
+- [ ] `tests/v1/benchmarks/` directory
+- [ ] Lua comparison scripts
+- [ ] Python comparison scripts
+- [ ] HTML report generation
+- [ ] CI/CD integration
+
+---
+
+## v1.3.0 - Production Ready (PENDING)
+
+**Goal**: VM production-ready, stable release
+
+### Stability
+- [ ] All regression tests pass on VM
+- [ ] Memory safety verified
+- [ ] Stack overflow protection
+- [ ] Exception safety
+
+### Features
+- [ ] Bytecode serialization (`.ipbc` files)
+- [ ] VM CLI flag (`--vm` to use VM)
+- [ ] Hot reload support
+- [ ] Debugger support
+
+### Documentation
+- [ ] VM internals documentation
+- [ ] Opcode reference
+- [ ] Performance tuning guide
+- [ ] Migration guide from interpreter
 
 ---
 

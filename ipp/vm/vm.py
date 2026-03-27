@@ -1,7 +1,9 @@
 from .bytecode import Chunk, OpCode, OpcodeInfo
-from typing import List, Any, Dict, Optional
+from typing import List, Any, Dict, Optional, Callable
 import math
 import time
+import sys
+import os
 
 
 class InlineCache:
@@ -53,9 +55,10 @@ class ObjectPool:
 
 
 class VMFrame:
-    def __init__(self, chunk: Chunk, closure: 'Closure' = None):
+    def __init__(self, chunk: Chunk, closure=None, function=None):
         self.chunk = chunk
         self.closure = closure
+        self.function = function
         self.ip = 0
         self.stack_base = 0
 
@@ -67,14 +70,48 @@ class Closure:
 
 
 class IppFunction:
-    def __init__(self, name: str = "<script>", arity: int = 0, chunk: Chunk = None):
+    def __init__(self, name: str = "<script>", arity: int = 0, chunk: Chunk = None, is_method: bool = False):
         self.name = name
         self.arity = arity
         self.chunk = chunk
+        self.is_method = is_method
+
+
+class IppClass:
+    def __init__(self, name: str, superclass: 'IppClass' = None):
+        self.name = name
+        self.superclass = superclass
+        self.methods: Dict[str, IppFunction] = {}
+    
+    def get_method(self, name: str) -> Optional[IppFunction]:
+        if name in self.methods:
+            return self.methods[name]
+        if self.superclass:
+            return self.superclass.get_method(name)
+        return None
 
 
 class VMError(Exception):
     pass
+
+
+class IppInstance:
+    def __init__(self, cls: IppClass):
+        self.cls = cls
+        self.fields: Dict[str, Any] = {}
+    
+    def get(self, name: str) -> Any:
+        if name in self.fields:
+            return self.fields[name]
+        method = self.cls.get_method(name)
+        if method:
+            if isinstance(method.chunk, Closure):
+                return lambda *args: method.chunk.chunk
+            return method
+        raise VMError(f"Undefined property: {name}")
+    
+    def set(self, name: str, value: Any):
+        self.fields[name] = value
 
 
 class OptimizedVM:
@@ -88,8 +125,9 @@ class OptimizedVM:
         self.frames: List[VMFrame] = []
         self.globals: Dict[str, Any] = {}
         self.open_upvalues: List = []
-        self.exception_handler = None
+        self.exception_handler: Optional[tuple] = None
         self.running = True
+        self._return_value = None
         
         self.call_count = 0
         self.instruction_count = 0
@@ -101,9 +139,6 @@ class OptimizedVM:
         self._init_builtins()
     
     def _init_builtins(self):
-        import sys
-        import os
-        import math
         import random
         import json
         import datetime
@@ -118,7 +153,7 @@ class OptimizedVM:
             'min': min,
             'max': max,
             'sum': self._builtin_sum,
-            'range': range,
+            'range': self._builtin_range,
             'random': random.random,
             'randint': random.randint,
             'str': str,
@@ -136,11 +171,13 @@ class OptimizedVM:
             'round': round,
             'json_parse': json.loads,
             'json_stringify': json.dumps,
-            'datetime': datetime.datetime.now,
+            'datetime_now': datetime.datetime.now,
             'md5': lambda s: hashlib.md5(s.encode()).hexdigest(),
             'sha256': lambda s: hashlib.sha256(s.encode()).hexdigest(),
             'base64_encode': lambda s: base64.b64encode(s.encode()).decode(),
             'base64_decode': lambda s: base64.b64decode(s.encode()).decode(),
+            'clock': time.perf_counter,
+            'input': input,
         })
         
         for k in self.globals:
@@ -180,16 +217,25 @@ class OptimizedVM:
             return "list"
         if isinstance(obj, dict):
             return "dict"
+        if isinstance(obj, IppClass):
+            return "class"
+        if isinstance(obj, IppInstance):
+            return "instance"
         return type(obj).__name__
     
     def _builtin_sum(self, *args):
-        total = 0
-        for arg in args:
-            if hasattr(arg, '__iter__') and not isinstance(arg, str):
-                total += sum(arg)
-            else:
-                total += arg
-        return total
+        if len(args) == 1 and hasattr(args[0], '__iter__') and not isinstance(args[0], str):
+            return sum(args[0])
+        return sum(args)
+    
+    def _builtin_range(self, *args):
+        if len(args) == 1:
+            return list(range(args[0]))
+        elif len(args) == 2:
+            return list(range(args[0], args[1]))
+        elif len(args) == 3:
+            return list(range(args[0], args[1], args[2]))
+        return []
     
     def _intern_string(self, s: str) -> str:
         if s not in self._string_cache:
@@ -202,6 +248,7 @@ class OptimizedVM:
         self.open_upvalues.clear()
         self.exception_handler = None
         self.running = True
+        self._return_value = None
     
     def run(self, chunk: Chunk = None) -> Any:
         if chunk:
@@ -212,8 +259,7 @@ class OptimizedVM:
         
         frame = VMFrame(self.chunk)
         self.frames.append(frame)
-        
-        result = None
+        frame.stack_base = 0
         
         while self.running and frame.ip < len(frame.chunk.code):
             self.instruction_count += 1
@@ -221,45 +267,72 @@ class OptimizedVM:
             opcode = OpCode(frame.chunk.code[frame.ip])
             
             try:
-                result = self._execute_opcode_fast(opcode, frame)
+                result = self._execute_opcode(opcode, frame)
+                if result is not None:
+                    if result == VM.SUSPEND:
+                        continue
+                    elif result == VM.RETURN_FRAME:
+                        self._return_value = self.stack.pop() if self.stack else None
+                        if len(self.frames) > 1:
+                            self.frames.pop()
+                            frame = self.frames[-1]
+                            self.stack.append(self._return_value)
+                            continue
+                        else:
+                            self.running = False
+                            return self._return_value
+                    else:
+                        self.running = False
+                        return result
             except Exception as e:
                 if self.exception_handler:
-                    frame.ip = self.exception_handler
+                    target_ip, stack_len = self.exception_handler
+                    frame.ip = target_ip
+                    while len(self.stack) > stack_len:
+                        self.stack.pop()
                     self.stack.append(str(e))
+                    self.exception_handler = None
                 else:
                     raise VMError(str(e))
             
-            if result is not None and result != VM.SUSPEND:
-                self.running = False
-            
             frame.ip += self._opcode_size(opcode)
         
-        self.frames.pop()
-        return result if self.stack else result
+        if self.frames:
+            self.frames.pop()
+        return self._return_value if self.stack else None
     
     def _opcode_size(self, opcode: OpCode) -> int:
         if opcode in (OpCode.CONSTANT, OpCode.GET_GLOBAL, OpCode.SET_GLOBAL,
                       OpCode.DEFINE_GLOBAL, OpCode.GET_LOCAL, OpCode.SET_LOCAL,
                       OpCode.GET_PROPERTY, OpCode.SET_PROPERTY, OpCode.GET_METHOD,
-                      OpCode.METHOD, OpCode.CALL, OpCode.POP, OpCode.LIST, OpCode.DICT,
-                      OpCode.JUMP_IF_FALSE_POP, OpCode.JUMP_IF_TRUE_POP):
+                      OpCode.METHOD, OpCode.CLASS, OpCode.SUBCLASS,
+                      OpCode.POP, OpCode.LIST, OpCode.DICT, OpCode.TUPLE,
+                      OpCode.JUMP_IF_FALSE_POP, OpCode.JUMP_IF_TRUE_POP,
+                      OpCode.BREAK, OpCode.CONTINUE, OpCode.RETURN,
+                      OpCode.RETURN_VAL, OpCode.THROW):
             return 2
         elif opcode in (OpCode.JUMP, OpCode.LOOP, OpCode.TRY, OpCode.CATCH,
-                        OpCode.TRY_END, OpCode.MATCH):
+                        OpCode.TRY_END, OpCode.MATCH, OpCode.IMPORT, OpCode.END_IMPORT):
             return 4
         elif opcode == OpCode.CONSTANT_LONG:
             return 4
+        elif opcode == OpCode.CALL:
+            return 2
         return 1
     
     SUSPEND = object()
+    RETURN_FRAME = object()
     
-    def _execute_opcode_fast(self, opcode: OpCode, frame: VMFrame) -> Any:
+    def _execute_opcode(self, opcode: OpCode, frame: VMFrame) -> Any:
         code = frame.chunk.code
         constants = frame.chunk.constants
         
         if opcode == OpCode.HALT:
             self.running = False
             return None
+        
+        elif opcode == OpCode.NOP:
+            pass
         
         elif opcode == OpCode.CONSTANT:
             idx = code[frame.ip + 1]
@@ -283,6 +356,15 @@ class OptimizedVM:
         elif opcode == OpCode.DUP:
             if self.stack:
                 self.stack.append(self.stack[-1])
+        
+        elif opcode == OpCode.DUP2:
+            if len(self.stack) >= 2:
+                self.stack.append(self.stack[-2])
+                self.stack.append(self.stack[-2])
+        
+        elif opcode == OpCode.SWAP:
+            if len(self.stack) >= 2:
+                self.stack[-1], self.stack[-2] = self.stack[-2], self.stack[-1]
         
         elif opcode == OpCode.GET_GLOBAL:
             idx = code[frame.ip + 1]
@@ -322,24 +404,29 @@ class OptimizedVM:
         
         elif opcode == OpCode.SET_LOCAL:
             idx = code[frame.ip + 1]
-            if idx < len(self.stack) and len(self.stack) > 1:
+            if idx < len(self.stack):
                 self.stack[idx] = self.stack[-1]
+        
+        elif opcode == OpCode.GET_UPVALUE:
+            idx = code[frame.ip + 1]
+            if frame.closure and idx < len(frame.closure.upvalues):
+                self.stack.append(frame.closure.upvalues[idx])
+        
+        elif opcode == OpCode.SET_UPVALUE:
+            idx = code[frame.ip + 1]
+            if frame.closure and idx < len(frame.closure.upvalues):
+                frame.closure.upvalues[idx] = self.stack[-1]
         
         elif opcode == OpCode.GET_PROPERTY:
             idx = code[frame.ip + 1]
             name = constants[idx]
             obj = self.stack[-1]
             
-            cache_key = hash((id(type(obj)), name))
-            cached = self._method_cache.get(cache_key)
-            
-            if cached is not None:
-                self.stack[-1] = cached(obj) if callable(cached) else cached
+            if isinstance(obj, IppInstance):
+                self.stack[-1] = obj.get(name)
             elif hasattr(obj, name):
-                self._method_cache.set(cache_key, getattr(obj, name))
                 self.stack[-1] = getattr(obj, name)
             elif isinstance(obj, dict) and name in obj:
-                self._method_cache.set(cache_key, obj[name])
                 self.stack[-1] = obj[name]
             else:
                 raise VMError(f"Property not found: {name}")
@@ -347,22 +434,57 @@ class OptimizedVM:
         elif opcode == OpCode.SET_PROPERTY:
             idx = code[frame.ip + 1]
             name = constants[idx]
-            value = self.stack[-2]
+            value = self.stack.pop()
             obj = self.stack[-1]
-            if hasattr(obj, '__dict__'):
+            
+            if isinstance(obj, IppInstance):
+                obj.set(name, value)
+            elif hasattr(obj, '__dict__'):
                 setattr(obj, name, value)
             elif isinstance(obj, dict):
                 obj[name] = value
         
+        elif opcode == OpCode.GET_SUPER:
+            idx = code[frame.ip + 1]
+            name = constants[idx]
+            obj = self.stack.pop()
+            if isinstance(obj, IppClass):
+                method = obj.get_method(name)
+                self.stack.append(method)
+            else:
+                raise VMError(f"Cannot get super from non-class")
+        
+        elif opcode == OpCode.GET_INDEX:
+            idx = self.stack.pop()
+            obj = self.stack.pop()
+            if isinstance(obj, (list, tuple, str)):
+                self.stack.append(obj[int(idx)])
+            elif isinstance(obj, dict):
+                self.stack.append(obj.get(idx))
+            else:
+                self.stack.append(None)
+        
+        elif opcode == OpCode.SET_INDEX:
+            value = self.stack.pop()
+            idx = self.stack.pop()
+            obj = self.stack.pop()
+            if isinstance(obj, list):
+                obj[int(idx)] = value
+            elif isinstance(obj, dict):
+                obj[idx] = value
+        
         elif opcode == OpCode.ADD:
             b = self.stack.pop()
             a = self.stack.pop()
-            if isinstance(a, (int, float)) and isinstance(b, (int, float)):
+            if isinstance(a, str) or isinstance(b, str):
+                self.stack.append(self._intern_string(str(a) + str(b)))
+            elif isinstance(a, (int, float)) and isinstance(b, (int, float)):
                 self.stack.append(a + b)
-            elif isinstance(a, str) and isinstance(b, str):
-                self.stack.append(self._intern_string(a + b))
             else:
-                self.stack.append(a + b)
+                try:
+                    self.stack.append(a + b)
+                except:
+                    self.stack.append(str(a) + str(b))
         
         elif opcode == OpCode.SUBTRACT:
             b = self.stack.pop()
@@ -377,6 +499,8 @@ class OptimizedVM:
         elif opcode == OpCode.DIVIDE:
             b = self.stack.pop()
             a = self.stack.pop()
+            if b == 0:
+                raise VMError("Division by zero")
             self.stack.append(a / b)
         
         elif opcode == OpCode.MODULO:
@@ -394,13 +518,50 @@ class OptimizedVM:
             a = self.stack.pop()
             self.stack.append(int(a) // int(b))
         
+        elif opcode == OpCode.BIT_AND:
+            b = self.stack.pop()
+            a = self.stack.pop()
+            self.stack.append(int(a) & int(b))
+        
+        elif opcode == OpCode.BIT_OR:
+            b = self.stack.pop()
+            a = self.stack.pop()
+            self.stack.append(int(a) | int(b))
+        
+        elif opcode == OpCode.BIT_XOR:
+            b = self.stack.pop()
+            a = self.stack.pop()
+            self.stack.append(int(a) ^ int(b))
+        
+        elif opcode == OpCode.BIT_NOT:
+            a = self.stack.pop()
+            self.stack.append(~int(a))
+        
+        elif opcode == OpCode.SHIFT_LEFT:
+            b = self.stack.pop()
+            a = self.stack.pop()
+            self.stack.append(int(a) << int(b))
+        
+        elif opcode == OpCode.SHIFT_RIGHT:
+            b = self.stack.pop()
+            a = self.stack.pop()
+            self.stack.append(int(a) >> int(b))
+        
         elif opcode == OpCode.NEGATE:
             a = self.stack.pop()
             self.stack.append(-a)
         
         elif opcode == OpCode.NOT:
             a = self.stack.pop()
-            self.stack.append(not a)
+            self.stack.append(not self._is_truthy(a))
+        
+        elif opcode == OpCode.INCREMENT:
+            a = self.stack.pop()
+            self.stack.append(a + 1)
+        
+        elif opcode == OpCode.DECREMENT:
+            a = self.stack.pop()
+            self.stack.append(a - 1)
         
         elif opcode == OpCode.EQUAL:
             b = self.stack.pop()
@@ -434,80 +595,344 @@ class OptimizedVM:
         
         elif opcode == OpCode.JUMP:
             offset = frame.chunk.read_int(frame.ip + 1)
-            frame.ip = frame.ip + 4 + offset - 1
+            frame.ip = frame.ip + 3 + offset
+            return self.SUSPEND
+        
+        elif opcode == OpCode.JUMP_IF_FALSE:
+            offset = frame.chunk.read_int(frame.ip + 1)
+            if not self._is_truthy(self.stack[-1]):
+                frame.ip = frame.ip + 3 + offset
+                return self.SUSPEND
+        
+        elif opcode == OpCode.JUMP_IF_TRUE:
+            offset = frame.chunk.read_int(frame.ip + 1)
+            if self._is_truthy(self.stack[-1]):
+                frame.ip = frame.ip + 3 + offset
+                return self.SUSPEND
         
         elif opcode == OpCode.JUMP_IF_FALSE_POP:
             offset = frame.chunk.read_int(frame.ip + 1)
             val = self.stack.pop()
             if not self._is_truthy(val):
-                frame.ip = frame.ip + 4 + offset - 1
+                frame.ip = frame.ip + 3 + offset
+                return self.SUSPEND
+        
+        elif opcode == OpCode.JUMP_IF_TRUE_POP:
+            offset = frame.chunk.read_int(frame.ip + 1)
+            val = self.stack.pop()
+            if self._is_truthy(val):
+                frame.ip = frame.ip + 3 + offset
+                return self.SUSPEND
         
         elif opcode == OpCode.LOOP:
             offset = frame.chunk.read_int(frame.ip + 1)
             frame.ip = frame.ip - offset - 3
+            return self.SUSPEND
         
-        elif opcode == OpCode.LIST:
-            count = code[frame.ip + 1]
-            items = self.stack[-count:]
-            del self.stack[-count:]
-            self.stack.append(items)
-        
-        elif opcode == OpCode.DICT:
-            count = code[frame.ip + 1]
-            d = {}
-            for _ in range(count):
-                value = self.stack.pop()
-                key = self.stack.pop()
-                d[key] = value
-            self.stack.append(d)
-        
-        elif opcode == OpCode.RANGE:
-            b = self.stack.pop()
-            a = self.stack.pop()
-            self.stack.append(range(int(a), int(b)))
+        elif opcode == OpCode.MATCH:
+            pass
         
         elif opcode == OpCode.CALL:
             argc = code[frame.ip + 1]
-            args = self.stack[-argc:]
-            del self.stack[-argc:]
+            args = []
+            for _ in range(argc):
+                if self.stack:
+                    args.append(self.stack.pop())
+            args.reverse()
             callee = self.stack.pop()
             
             if callable(callee):
                 try:
-                    result = callee(*args)
+                    if argc == 0:
+                        result = callee()
+                    else:
+                        result = callee(*args)
                     self.stack.append(result)
                 except Exception as e:
                     raise VMError(str(e))
             elif isinstance(callee, IppFunction):
                 self.call_count += 1
-                new_frame = VMFrame(callee.chunk)
+                new_frame = VMFrame(callee.chunk, function=callee)
+                new_frame.stack_base = len(self.stack)
+                self.frames.append(new_frame)
+                return self.SUSPEND
+            elif isinstance(callee, Chunk):
+                self.call_count += 1
+                new_frame = VMFrame(callee)
+                new_frame.stack_base = len(self.stack)
                 self.frames.append(new_frame)
                 return self.SUSPEND
             else:
-                raise VMError(f"Cannot call non-function: {type(callee)}")
+                raise VMError(f"Cannot call {type(callee)}")
         
-        elif opcode == OpCode.RETURN_VAL:
-            result = self.stack.pop() if self.stack else None
-            self.frames.pop()
-            if self.frames:
-                self.stack.append(result)
+        elif opcode == OpCode.INVOKE:
+            argc = code[frame.ip + 1]
+            args = []
+            for _ in range(argc):
+                if self.stack:
+                    args.append(self.stack.pop())
+            args.reverse()
+            method_name = constants[code[frame.ip + 2]] if frame.ip + 2 < len(code) else None
+            obj = self.stack.pop()
+            
+            if isinstance(obj, IppInstance):
+                method = obj.cls.get_method(method_name)
+                if method and method.chunk:
+                    new_frame = VMFrame(method.chunk, function=method)
+                    new_frame.stack_base = len(self.stack)
+                    self.stack.append(obj)
+                    for arg in args:
+                        self.stack.append(arg)
+                    self.frames.append(new_frame)
+                    return self.SUSPEND
+            raise VMError(f"Method {method_name} not found")
+        
+        elif opcode == OpCode.SUPER_INVOKE:
+            argc = code[frame.ip + 1]
+            method_name = constants[code[frame.ip + 2]] if frame.ip + 2 < len(code) else None
+            args = []
+            for _ in range(argc):
+                if self.stack:
+                    args.append(self.stack.pop())
+            args.reverse()
+            superclass = self.stack.pop()
+            obj = self.stack.pop()
+            
+            if isinstance(superclass, IppClass):
+                method = superclass.get_method(method_name)
+                if method and method.chunk:
+                    new_frame = VMFrame(method.chunk, function=method)
+                    new_frame.stack_base = len(self.stack)
+                    self.stack.append(obj)
+                    for arg in args:
+                        self.stack.append(arg)
+                    self.frames.append(new_frame)
+                    return self.SUSPEND
+            raise VMError(f"Super method {method_name} not found")
+        
+        elif opcode == OpCode.TAIL_CALL:
+            argc = code[frame.ip + 1]
+            args = []
+            for _ in range(argc):
+                if self.stack:
+                    args.append(self.stack.pop())
+            args.reverse()
+            callee = self.stack.pop()
+            
+            if isinstance(callee, IppFunction):
+                self.call_count += 1
+                self.frames.pop()
+                new_frame = VMFrame(callee.chunk, function=callee)
+                new_frame.stack_base = len(self.stack)
+                self.frames.append(new_frame)
+                for arg in args:
+                    self.stack.append(arg)
+                return self.SUSPEND
+            elif isinstance(callee, Chunk):
+                self.call_count += 1
+                self.frames.pop()
+                new_frame = VMFrame(callee)
+                new_frame.stack_base = len(self.stack)
+                self.frames.append(new_frame)
+                for arg in args:
+                    self.stack.append(arg)
+                return self.SUSPEND
+            raise VMError(f"Cannot tail call {type(callee)}")
+        
+        elif opcode == OpCode.CLOSURE:
+            idx = code[frame.ip + 1]
+            const = constants[idx]
+            if isinstance(const, Chunk):
+                closure = Closure(const)
+                self.stack.append(closure)
             else:
-                return result
+                self.stack.append(const)
+        
+        elif opcode == OpCode.CLOSE_UPVALUE:
+            if self.open_upvalues:
+                self.open_upvalues.pop()
+        
+        elif opcode == OpCode.GET_CAPTURED:
+            if frame.closure and frame.closure.upvalues:
+                self.stack.append(frame.closure.upvalues[0])
         
         elif opcode == OpCode.RETURN:
-            self.frames.pop()
-            if self.frames:
-                self.stack.append(None)
-            else:
-                return None
+            return self.RETURN_FRAME
+        
+        elif opcode == OpCode.RETURN_VAL:
+            return self.RETURN_FRAME
+        
+        elif opcode == OpCode.YIELD:
+            return self.SUSPEND
         
         elif opcode == OpCode.CLASS:
             idx = code[frame.ip + 1]
             name = constants[idx]
-            self.stack.append(type(name, (), {}))
+            cls = IppClass(name)
+            self.stack.append(cls)
         
-        elif opcode == OpCode.NOP:
+        elif opcode == OpCode.SUBCLASS:
+            superclass = self.stack.pop()
+            if isinstance(superclass, IppClass):
+                self.stack[-1].superclass = superclass
+            else:
+                raise VMError("Superclass must be a class")
+        
+        elif opcode == OpCode.METHOD:
+            idx = code[frame.ip + 1]
+            name = constants[idx]
+            method = self.stack.pop()
+            if isinstance(self.stack[-1], IppClass):
+                if isinstance(method, Chunk):
+                    func = IppFunction(name, 0, method, is_method=True)
+                    self.stack[-1].methods[name] = func
+                elif callable(method):
+                    self.stack[-1].methods[name] = method
+        
+        elif opcode == OpCode.END_METHOD:
             pass
+        
+        elif opcode == OpCode.GET_METHOD:
+            idx = code[frame.ip + 1]
+            name = constants[idx]
+            obj = self.stack[-1]
+            if isinstance(obj, IppClass):
+                method = obj.get_method(name)
+                if method:
+                    self.stack.append(method)
+                else:
+                    raise VMError(f"Undefined method: {name}")
+            elif isinstance(obj, IppInstance):
+                self.stack.append(obj.get(name))
+        
+        elif opcode == OpCode.IMPORT:
+            offset = frame.chunk.read_int(frame.ip + 1)
+            idx = code[frame.ip + 2] if frame.ip + 2 < len(code) else 0
+            module_path = constants[idx] if idx < len(constants) else ""
+            self.stack.append(module_path)
+        
+        elif opcode == OpCode.END_IMPORT:
+            pass
+        
+        elif opcode == OpCode.LIST:
+            count = code[frame.ip + 1]
+            items = self.stack[-count:] if count <= len(self.stack) else self.stack[:]
+            del self.stack[-count:] if count <= len(self.stack) else None
+            if count <= len(self.stack):
+                del self.stack[-count:]
+            self.stack.append(list(items) if items else [])
+        
+        elif opcode == OpCode.DICT:
+            count = code[frame.ip + 1]
+            d = {}
+            for _ in range(count):
+                if self.stack:
+                    value = self.stack.pop()
+                else:
+                    value = None
+                if self.stack:
+                    key = self.stack.pop()
+                else:
+                    key = None
+                d[key] = value
+            self.stack.append(d)
+        
+        elif opcode == OpCode.TUPLE:
+            count = code[frame.ip + 1]
+            items = self.stack[-count:] if count <= len(self.stack) else self.stack[:]
+            if count <= len(self.stack):
+                del self.stack[-count:]
+            self.stack.append(tuple(items) if items else ())
+        
+        elif opcode == OpCode.SPREAD:
+            obj = self.stack.pop()
+            if hasattr(obj, '__iter__') and not isinstance(obj, str):
+                for item in obj:
+                    self.stack.append(item)
+        
+        elif opcode == OpCode.RANGE:
+            b = self.stack.pop()
+            a = self.stack.pop()
+            self.stack.append(list(range(int(a), int(b))))
+        
+        elif opcode == OpCode.NULLISH:
+            b = self.stack.pop()
+            a = self.stack.pop()
+            self.stack.append(a if a is not None else b)
+        
+        elif opcode == OpCode.OPTIONAL_CHAIN:
+            idx = code[frame.ip + 1]
+            name = constants[idx]
+            obj = self.stack.pop()
+            if obj is None:
+                self.stack.append(None)
+            elif hasattr(obj, name):
+                self.stack.append(getattr(obj, name))
+            else:
+                self.stack.append(None)
+        
+        elif opcode == OpCode.OPTIONAL_CHAIN_END:
+            pass
+        
+        elif opcode == OpCode.THROW:
+            msg = self.stack.pop() if self.stack else "Unknown error"
+            raise VMError(str(msg))
+        
+        elif opcode == OpCode.TRY:
+            offset = frame.chunk.read_int(frame.ip + 1)
+            target = frame.ip + 4 + offset
+            self.exception_handler = (target, len(self.stack))
+        
+        elif opcode == OpCode.TRY_END:
+            self.exception_handler = None
+        
+        elif opcode == OpCode.CATCH:
+            offset = frame.chunk.read_int(frame.ip + 1)
+            target = frame.ip + 4 + offset
+            self.exception_handler = (target, len(self.stack))
+        
+        elif opcode == OpCode.CATCH_END:
+            self.exception_handler = None
+        
+        elif opcode == OpCode.FINALLY:
+            pass
+        
+        elif opcode == OpCode.END_FINALLY:
+            pass
+        
+        elif opcode == OpCode.EXCEPTION:
+            self.stack.append("Exception")
+        
+        elif opcode == OpCode.WITH_ENTER:
+            resource = self.stack.pop() if self.stack else None
+            self.stack.append(resource)
+        
+        elif opcode == OpCode.WITH_EXIT:
+            pass
+        
+        elif opcode == OpCode.BREAK:
+            pass
+        
+        elif opcode == OpCode.CONTINUE:
+            pass
+        
+        elif opcode == OpCode.CONCATENATE:
+            count = code[frame.ip + 1] if frame.ip + 1 < len(code) else 2
+            parts = []
+            for _ in range(count):
+                if self.stack:
+                    parts.append(str(self.stack.pop()))
+            parts.reverse()
+            self.stack.append(self._intern_string("".join(parts)))
+        
+        elif opcode == OpCode.CONCAT_COUNT:
+            count = code[frame.ip + 1]
+            parts = []
+            for _ in range(count):
+                if self.stack:
+                    parts.append(str(self.stack.pop()))
+            parts.reverse()
+            self.stack.append("".join(parts))
         
         return None
     
