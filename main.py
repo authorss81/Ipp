@@ -108,19 +108,13 @@ def box_row(content, width=WIDTH):
     return f"|{content}{' ' * pad}|"
 
 def box_line(width=WIDTH):
-    if USE_UNICODE:
-        return f"\u2560{'═' * (width + 2)}\u2563"
-    return f"+{'=' * (width + 2)}+"
+    return f"{'=' * (width + 4)}"
 
 def box_double_line(width=WIDTH):
-    if USE_UNICODE:
-        return f"\u2550{'═' * (width + 2)}\u2550"
-    return f"+{'=' * (width + 2)}+"
+    return f"{'=' * (width + 4)}"
 
 def box_single(width=WIDTH):
-    if USE_UNICODE:
-        return f"\u2502{' ' * (width + 2)}\u2502"
-    return f"|{' ' * (width + 2)}|"
+    return f"{' ' * (width + 4)}"
 
 def c(text, color=None, attrs=None):
     if HAS_COLOR and color:
@@ -179,15 +173,14 @@ IPP_ASCII = [
 
 def print_banner():
     width = WIDTH + 4
-    v = "│" if USE_UNICODE else "|"
     print(box_line(width))
     for line in IPP_ASCII:
-        print(f"{v} {line} {v}")
+        print(f"  {line}")
     print(box_double_line(width))
     
     subtitle = f"  >> A scripting language for game development  v{REPL_VERSION}"
-    print(f"{v} {subtitle.ljust(width - 1)} {v}")
-    print(f"{v} {'Python 3.8+'.ljust(width - 1)} {v}")
+    print(f"  {subtitle.ljust(width - 1)}")
+    print(f"  {'Python 3.8+'.ljust(width - 1)}")
     print(box_double_line(width))
     print()
     print(f"  {DIM('.help')} for commands  ·  {DIM('exit')} to quit  ·  {DIM('Tab')} autocomplete")
@@ -195,10 +188,9 @@ def print_banner():
 
 def print_help_box():
     width = WIDTH + 4
-    v = "│" if USE_UNICODE else "|"
     print()
     print(box_line(width))
-    print(f"{v} {BOLD('  Commands').ljust(width - 1)} {v}")
+    print(f"  {BOLD('Commands').ljust(width - 1)}")
     print(box_double_line(width))
     
     commands = [
@@ -209,7 +201,7 @@ def print_help_box():
         ("exit / quit", "Leave REPL"),
     ]
     for cmd, desc in commands:
-        print(f"{v}    {CYAN(cmd.ljust(15))}{WHITE(desc.ljust(width - 22))} {v}")
+        print(f"    {CYAN(cmd.ljust(15))}{WHITE(desc.ljust(width - 22))}")
     
     print(box_double_line(width))
     print()
@@ -222,10 +214,9 @@ def print_help_box():
 
 def print_types_box():
     width = WIDTH + 4
-    v = "│" if USE_UNICODE else "|"
     print()
     print(box_line(width))
-    print(f"{v} {BOLD('  Type System').ljust(width - 1)} {v}")
+    print(f"  {BOLD('Type System').ljust(width - 1)}")
     print(box_double_line(width))
     
     types_info = [
@@ -244,7 +235,7 @@ def print_types_box():
     ]
     
     for t_type, desc in types_info:
-        print(f"{v}    {ORANGE(t_type.ljust(12))}{WHITE(desc.ljust(width - 20))} {v}")
+        print(f"    {ORANGE(t_type.ljust(12))}{WHITE(desc.ljust(width - 20))}")
     
     print(box_double_line(width))
     print()
@@ -470,13 +461,12 @@ def get_interpreter_globals(interpreter):
 
 def show_vars(interpreter):
     width = WIDTH + 4
-    v = "│" if USE_UNICODE else "|"
     vars_dict = get_interpreter_globals(interpreter)
     
     print()
     print(box_line(width))
-    print(f"{v} {BOLD('  Variables').ljust(width - 1)} {v}")
-    print(f"{v} {DIM(f'  {len(vars_dict)} defined').ljust(width - 1)} {v}")
+    print(f"  {BOLD('Variables').ljust(width - 1)}")
+    print(f"  {DIM(f'{len(vars_dict)} defined').ljust(width - 1)}")
     print(box_double_line(width))
     
     for name, val in sorted(vars_dict.items()):
@@ -501,7 +491,7 @@ def show_vars(interpreter):
         plain = re.sub(r'\033\[[0-9;]*m', '', line)
         dw = sum(2 if unicodedata.east_asian_width(ch) in ('W','F') else 1 for ch in plain)
         pad = max(0, width - dw - 2)
-        print(f"{v} {line}{' ' * pad} {v}")
+        print(f"  {line}{' ' * pad}")
     
     print(box_double_line(width))
     print()
