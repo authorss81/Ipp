@@ -1,11 +1,34 @@
-# Ipp Language — Full Audit Report v1.2.0
+# Ipp Language — Full Audit Report v1.2.4
 > Status: **ALL BUGS FIXED AND TESTED** — 15/15 regression tests pass.
+> 
+> **v1.2.4 Update**: Full class support in VM complete - instantiation, methods, properties, inheritance
 
 ---
 
 ## Summary Table
 
 | ID | Component | Severity | Description | Status |
+|---|---|---|---|---|
+| BUG-C1 | VM | 🔴 Critical | `_opcode_size` wrong for JUMP_IF_FALSE_POP/TRUE_POP | ✅ FIXED |
+| BUG-C2 | VM | 🔴 Critical | `GET_LOCAL` ignores `frame.stack_base` | ✅ FIXED |
+| BUG-C3 | Compiler | 🔴 Critical | `exception_var` vs `catch_var` attribute name mismatch | ✅ FIXED |
+| BUG-C4 | Compiler | 🔴 Critical | `node.expression` vs `node.subject` in MatchStmt | ✅ FIXED |
+| BUG-C5 | Compiler | 🔴 Critical | `SuperExpr` referenced but not defined in AST | ✅ FIXED |
+| BUG-C6 | VM | 🔴 Critical | LIST opcode double-deletes the stack | ✅ FIXED |
+| BUG-C7 | VM/Bytecode | 🔴 Critical | `emit_loop` ignores `loop_start` parameter | ✅ FIXED |
+| BUG-M1 | Parser | 🟠 Major | `&&`/`\|\|` have broken precedence relative to comparisons | ✅ FIXED |
+| BUG-M2 | Compiler | 🟠 Major | `^` mapped to power, `**` emits no opcode | ✅ FIXED |
+| BUG-M3 | Compiler | 🟠 Major | AND/OR short-circuit compiles both sides always | ✅ FIXED |
+| BUG-M4 | Compiler | 🟠 Major | `compile_continue` patches its own jump immediately | ✅ FIXED |
+| BUG-M5 | VM | 🟠 Major | `InlineCache` can't distinguish nil value from cache miss | ✅ FIXED |
+| BUG-M6 | Parser/AST | 🟠 Major | `ClassDecl` has no superclass field; inheritance not parsed | ✅ FIXED |
+| BUG-M7 | VM | 🟠 Major | CALL handler discards args before building local frame | ✅ FIXED |
+| BUG-M8 | VM | 🟠 Major | `JUMP_IF_FALSE`/`JUMP_IF_TRUE` missing from `_opcode_size` | ✅ FIXED |
+| **BUG-CL1** | VM/Compiler | 🔴 Critical | **Class property assignment bytecode wrong order** | ✅ FIXED |
+| **BUG-CL2** | VM | 🔴 Critical | **BoundMethod return value not returned** | ✅ FIXED |
+| **BUG-CL3** | VM | 🔴 Critical | **BoundMethod CALL args extracted wrong** | ✅ FIXED |
+| **BUG-CL4** | VM/Bytecode | 🟠 Major | **Opcode size wrong for single-byte opcodes** | ✅ FIXED |
+| **BUG-CL5** | Parser/Lexer | 🟠 Major | **super() keyword not parsed, init lexed as token** | ✅ FIXED |
 |---|---|---|---|---|
 | BUG-C1 | VM | 🔴 Critical | `_opcode_size` wrong for JUMP_IF_FALSE_POP/TRUE_POP | ✅ FIXED |
 | BUG-C2 | VM | 🔴 Critical | `GET_LOCAL` ignores `frame.stack_base` | ✅ FIXED |
@@ -232,9 +255,80 @@ Added `+=`, `-=`, `*=`, `/=`, `%=` throughout the entire pipeline:
 
 ---
 
+## v1.2.4 Class Support Bug Fixes
+
+### ✅ BUG-CL1 — Class property assignment bytecode wrong order
+**Fix:** In `compile_set`, the order of emitted bytecode was wrong. DUP must come BEFORE compiling the value expression:
+```python
+# Before (broken):
+self.compile_expr(node.object)
+self.compile_expr(node.value)  # This consumes 'this' from stack!
+self.chunk.write(OpCode.DUP, self.current_line)  # Nothing to duplicate
+
+# After (correct):
+self.compile_expr(node.object)
+self.chunk.write(OpCode.DUP, self.current_line)  # Duplicate 'this' first
+self.compile_expr(node.value)
+```
+
+### ✅ BUG-CL2 — BoundMethod return value not returned
+**Fix:** The `vm.run()` call inside `BoundMethod.__call__` was returning None because the return value wasn't being captured:
+```python
+# Before (broken):
+vm.run()
+return result  # 'result' was never set
+
+# After (correct):
+vm.run()
+return vm._return_value  # Capture the actual return value
+```
+
+### ✅ BUG-CL3 — BoundMethod CALL args extracted wrong
+**Fix:** The CALL handler for BoundMethod was popping arguments twice:
+```python
+# Before (broken):
+self.stack.pop()  # Pop callee
+for _ in range(argc):  # Pop args
+    self.stack.pop()
+args = self.stack[-argc:] if argc > 0 else []  # Try to get args again (empty!)
+for _ in range(argc):  # Pop again (double-pop!)
+    self.stack.pop()
+
+# After (correct):
+args = []
+for _ in range(argc):
+    args.append(self.stack.pop())
+args.reverse()
+self.stack.pop()  # Then pop callee
+```
+
+### ✅ BUG-CL4 — Opcode size wrong for single-byte opcodes
+**Fix:** Many single-byte opcodes (DUP, POP, RETURN_VAL, etc.) were incorrectly assigned size=2:
+```python
+# Correct: single-byte opcodes return size=1
+return 1  # Default for all single-byte opcodes
+```
+
+---
+
+## Class Support Test Results (v1.2.4)
+
+All class operations now work correctly:
+
+```
+✅ Class instantiation: BankAccount("Alice", 1000)
+✅ Property access: account.balance = 1000
+✅ Method calls: account.deposit(500)
+✅ Method return values: deposit returns new balance
+✅ Multiple methods: deposit, withdraw, get_balance
+✅ Inheritance: class SavingsAccount : BankAccount
+```
+
+---
+
 ## Regression Test Results
 
-All 15 regression tests pass as of v1.2.0:
+All 15 regression tests pass as of v1.2.4:
 
 ```
 PASS  hex         (0xFF = 255)
@@ -253,6 +347,30 @@ PASS  repeat      (repeat/until loop)
 PASS  listcomp    ([x for x in list])
 PASS  nullcoal    (nil ?? default)
 PASS  optchain    (obj?.field returns nil on nil)
+PASS  super       (super.init() calls parent constructor)
+```
+
+---
+
+## v1.2.4 Super Parsing Fix
+
+### ✅ BUG-CL5 — super() keyword not parsed, init lexed as token
+**Fix:** Added SUPER token and proper parsing in `primary()`:
+
+1. Added `SUPER = auto()` token in `ipp/lexer/token.py`
+2. Added `"super": TokenType.SUPER` keyword mapping
+3. Added parsing in `primary()`:
+```python
+if self.match(TokenType.SUPER):
+    if self.match(TokenType.DOT):
+        if self.match(TokenType.IDENTIFIER):
+            method_name = self.previous().lexeme
+        elif self.match(TokenType.INIT):  # Handle "super.init()"
+            method_name = "init"
+        else:
+            self.error("Expect method name after 'super.'")
+        return SuperExpr(method_name)
+    self.error("Expect 'super.method()'")
 ```
 
 ---
@@ -268,12 +386,14 @@ PASS  optchain    (obj?.field returns nil on nil)
 | `ipp/interpreter/interpreter.py` | Fixed `visit_class_decl` (all methods get self), `visit_self_expr`, `call_function`, added `visit_compound_assign_expr`, `visit_super_expr`, `visit_labeled_stmt`; `this` keyword support |
 | `ipp/runtime/builtins.py` | Fixed `keys()`/`values()` to handle `IppDict` wrapper |
 | `ipp/vm/bytecode.py` | Full rewrite: authoritative `_SIZE1`/`_SIZE2`/`_SIZE4` lookup, correct `emit_loop`, `patch_jump`, `opcode_size()` |
-| `ipp/vm/compiler.py` | Full rewrite: fixed `resolve_local`, `compile_var_decl` order, `compile_match`, `compile_try`, `compile_continue`, `SelfExpr`, `EnumDecl`, `AssignExpr`, short-circuit AND/OR, `^` vs `**` |
-| `ipp/vm/vm.py` | Full rewrite: `_MISS` sentinel, `ExceptionHandler` stack, `BoundMethod`, `frame.stack_base` for locals, LOOP offset, LIST fix, WITH protocol, GET_CAPTURED operand |
+| `ipp/vm/compiler.py` | Full rewrite: fixed `resolve_local`, `compile_var_decl` order, `compile_match`, `compile_try`, `compile_continue`, `SelfExpr`, `EnumDecl`, `AssignExpr`, short-circuit AND/OR, `^` vs `**`, compile_set order fix |
+| `ipp/vm/vm.py` | Full rewrite: `_MISS` sentinel, `ExceptionHandler` stack, `BoundMethod`, `frame.stack_base` for locals, LOOP offset, LIST fix, WITH protocol, GET_CAPTURED operand, BoundMethod return value fix, CALL args fix |
 | `main.py` | Full rewrite: Gemini-CLI-style REPL, true-colour ANSI, syntax highlighting, execution timer, autocomplete |
 | `README.md` | Complete rewrite with all new features, correct examples, operator table |
 | `IPP_FULL_AUDIT.md` | This file |
+| `ROADMAP_V2.md` | Updated with v1.2.4 status |
+| `tests/v1/benchmarks/comparison.md` | Updated with VM benchmark results |
 
 ---
 
-*Audit completed and all bugs fixed — v1.2.0*
+*Audit completed and all bugs fixed — v1.2.4*

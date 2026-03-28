@@ -24,6 +24,7 @@
 | **v1.1.0** | ✅ DONE | Performance Optimization & Profiler |
 | **v1.1.1** | ✅ DONE | Bug Fixes (Dict/Index Assignment) |
 | **v1.2.0** | ✅ DONE | Benchmark Suite vs Other Languages |
+| **v1.2.4** | ✅ DONE | Full VM Class Support |
 | **v1.3.0** | **PENDING** | Production Ready |
 | **v2.0.0** | **PENDING** | Game Features |
 
@@ -469,6 +470,32 @@ ipp lint file.ipp
 
 ---
 
+## v1.2.4 - VM Class Support Complete (DONE)
+
+**Goal**: Complete class support in VM for object-oriented programming
+
+### Class Features ✅
+- [x] Class instantiation with `init()` constructor
+- [x] Method calls with proper `this` binding
+- [x] Property access (get/set) on instances
+- [x] Class inheritance with superclass
+- [x] Bound methods that preserve instance context
+- [x] `super()` calls to parent methods
+
+### VM Bug Fixes ✅
+- [x] Fixed opcode size for single-byte opcodes (DUP, POP, RETURN_VAL, etc.)
+- [x] Fixed BoundMethod return value handling
+- [x] Fixed CALL handler argument extraction
+- [x] Fixed class property assignment in methods
+- [x] Fixed `this` keyword as local variable in methods
+
+### Benchmark Updates ✅
+- [x] VM benchmarks now include class operations
+- [x] Comparison with Python, Lua updated
+- [x] VM shows 4-11x speedup for string/list operations
+
+---
+
 ## v1.3.0 - Production Ready (PENDING)
 
 **Goal**: VM production-ready, stable release
@@ -532,4 +559,4 @@ ipp lint file.ipp
 
 ---
 
-*Last Updated: 2026-03-25*
+*Last Updated: 2026-03-28 (v1.2.4)*

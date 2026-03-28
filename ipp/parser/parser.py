@@ -541,6 +541,18 @@ class Parser:
             return NilLiteral()
         if self.match(TokenType.SELF):
             return SelfExpr()
+        
+        # FIX: Add super expression support
+        if self.match(TokenType.SUPER):
+            if self.match(TokenType.DOT):
+                if self.match(TokenType.IDENTIFIER):
+                    method_name = self.previous().lexeme
+                elif self.match(TokenType.INIT):
+                    method_name = "init"
+                else:
+                    self.error("Expect method name after 'super.'")
+                return SuperExpr(method_name)
+            self.error("Expect 'super.method()'")
 
         # FIX: BUG-P4 — parse lambda expressions: func(a, b) => expr
         if self.check(TokenType.FUNC):
