@@ -1032,3 +1032,90 @@ class VM:
 def execute_bytecode(chunk: Chunk) -> Any:
     vm = VM(chunk)
     return vm.run()
+
+
+def benchmark_vm(chunk: Chunk, iterations: int = 100) -> dict:
+    vm = VM()
+    
+    times = []
+    for _ in range(iterations):
+        vm.reset()
+        start = time.perf_counter()
+        vm.run(chunk)
+        end = time.perf_counter()
+        times.append(end - start)
+    
+    avg_time = sum(times) / len(times)
+    min_time = min(times)
+    max_time = max(times)
+    
+    return {
+        'iterations': iterations,
+        'avg_ms': avg_time * 1000,
+        'min_ms': min_time * 1000,
+        'max_ms': max_time * 1000,
+        'total_ms': sum(times) * 1000,
+        'instructions': vm.instruction_count // iterations,
+    }
+
+
+def profile_vm(chunk: Chunk, iterations: int = 100) -> dict:
+    vm = VM(chunk)
+    vm.profiler.start()
+    
+    for _ in range(iterations):
+        vm.reset()
+        vm.run(chunk)
+    
+    vm.profiler.stop()
+    return vm.profiler.get_stats()
+
+
+def profile_source(source: str, iterations: int = 100) -> dict:
+    from ipp.lexer.lexer import tokenize
+    from ipp.parser.parser import parse
+    
+    tokens = tokenize(source)
+    ast = parse(tokens)
+    chunk = compile_ast(ast)
+    
+    return profile_vm(chunk, iterations)
+
+
+def profile_and_report(source: str, iterations: int = 100):
+    from ipp.lexer.lexer import tokenize
+    from ipp.parser.parser import parse
+    
+    tokens = tokenize(source)
+    ast = parse(tokens)
+    chunk = compile_ast(ast)
+    
+    vm = VM(chunk)
+    vm.profiler.start()
+    
+    start = time.perf_counter()
+    for _ in range(iterations):
+        vm.reset()
+        vm.run(chunk)
+    end = time.perf_counter()
+    
+    vm.profiler.stop()
+    stats = vm.profiler.get_stats()
+    
+    total_time = (end - start) * 1000
+    
+    print("\n=== Performance Profile ===")
+    print(f"Iterations: {iterations}")
+    print(f"Total Time: {total_time:.2f} ms")
+    print(f"Avg per iteration: {total_time / iterations:.4f} ms")
+    print(f"Total Instructions: {stats['total_instructions']:,}")
+    print(f"Instructions/iteration: {stats['total_instructions'] // iterations:,}")
+    
+    if stats['opcode_counts']:
+        print("\nTop 10 Opcodes:")
+        sorted_ops = sorted(stats['opcode_counts'].items(), key=lambda x: x[1], reverse=True)[:10]
+        for opcode, count in sorted_ops:
+            pct = (count / stats['total_instructions']) * 100 if stats['total_instructions'] > 0 else 0
+            print(f"  {opcode.name}: {count:,} ({pct:.1f}%)")
+    
+    return stats

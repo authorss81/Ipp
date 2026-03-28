@@ -29,6 +29,7 @@ class TokenType(Enum):
     AS = auto()
     CLASS = auto()
     SELF = auto()
+    SUPER = auto()
     INIT = auto()
     MATCH = auto()
     CASE = auto()
@@ -133,6 +134,7 @@ KEYWORDS = {
     "as": TokenType.AS,
     "class": TokenType.CLASS,
     "self": TokenType.SELF,
+    "super": TokenType.SUPER,
     "init": TokenType.INIT,
     "true": TokenType.TRUE,
     "false": TokenType.FALSE,

@@ -10,6 +10,8 @@ import shutil
 import atexit
 import unicodedata
 import time
+import signal
+import threading
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -17,11 +19,59 @@ from ipp.lexer.lexer import tokenize
 from ipp.parser.parser import parse
 from ipp.interpreter.interpreter import Interpreter
 
-VERSION = "1.2.0"
+# ─── Interrupt handling ────────────────────────────────────────────────────────
+_INTERRUPT_FLAG = threading.Event()
+_INTERRUPT_COUNT = 0
+
+def _handle_interrupt(signum, frame):
+    global _INTERRUPT_COUNT
+    _INTERRUPT_FLAG.set()
+    _INTERRUPT_COUNT += 1
+    if _INTERRUPT_COUNT >= 2:
+        print(f"\n  {colour(C_ERROR, 'Exiting REPL...')}")
+        _disable_interrupt_handling()
+        sys.exit(0)
+    else:
+        print(f"\n  {colour(C_WARN, '<< Interrupt! Press Ctrl+C again to exit REPL')}")
+
+def _check_interrupt():
+    """Check if interrupt was requested."""
+    if _INTERRUPT_FLAG.is_set():
+        _INTERRUPT_FLAG.clear()
+        return True
+    return False
+
+def _enable_interrupt_handling():
+    """Enable SIGINT (Ctrl+C) handling."""
+    global _INTERRUPT_COUNT
+    _INTERRUPT_COUNT = 0
+    if sys.platform != "win32":
+        signal.signal(signal.SIGINT, _handle_interrupt)
+    else:
+        try:
+            import ctypes
+            handler_defined = [False]
+            def handler(dwCtrlType):
+                if dwCtrlType == 0:
+                    _handle_interrupt(None, None)
+                    return True
+                return False
+            kernel32 = ctypes.windll.kernel32
+            HANDLER_ROUTINE = ctypes.WINFUNCTYPE(ctypes.c_bool, ctypes.c_uint)
+            kernel32.SetConsoleCtrlHandler(HANDLER_ROUTINE(handler), True)
+        except Exception:
+            pass
+
+def _disable_interrupt_handling():
+    """Disable interrupt handling."""
+    if sys.platform != "win32":
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+
+VERSION = "1.2.4"
 
 # ─── Windows ANSI enablement ──────────────────────────────────────────────────
 # Windows 10 supports ANSI but requires ENABLE_VIRTUAL_TERMINAL_PROCESSING.
-# Without this, escape codes print as literal ←[ garbage.
+# Without this, escape codes print as literal garbage.
 def _enable_windows_ansi() -> bool:
     """Enable ANSI escape processing on Windows 10+. Returns True if succeeded."""
     if sys.platform != "win32":
@@ -30,43 +80,70 @@ def _enable_windows_ansi() -> bool:
         import ctypes
         import ctypes.wintypes
         kernel32 = ctypes.windll.kernel32
-        # Get handle to stdout (STD_OUTPUT_HANDLE = -11)
         hout = kernel32.GetStdHandle(-11)
         if hout == -1:
             return False
-        # Get current console mode
         mode = ctypes.wintypes.DWORD()
         if not kernel32.GetConsoleMode(hout, ctypes.byref(mode)):
             return False
-        # ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x0004
         ENABLE_VTP = 0x0004
         if mode.value & ENABLE_VTP:
-            return True  # already enabled
+            return True
         new_mode = mode.value | ENABLE_VTP
         if kernel32.SetConsoleMode(hout, new_mode):
             return True
         return False
-    except Exception:
+    except Exception as e:
         return False
 
-# Try to enable ANSI; if it fails, we will strip all escape codes
 _ANSI_OK = _enable_windows_ansi()
+IS_TTY = sys.stdout.isatty()
 
-# Also check if we're in a real terminal (not redirected to a file)
-IS_TTY = sys.stdout.isatty() and _ANSI_OK
+# Disable ANSI on Windows by default unless explicitly enabled
+# This prevents garbage output on terminals that don't properly support ANSI
+_FORCE_ANSI = False
+
+def _check_ansi_support():
+    """Check if ANSI codes are actually supported by trying to write one."""
+    if not sys.stdout.isatty():
+        return False
+    try:
+        import os
+        if hasattr(os, 'getenv') and os.getenv('IPP_COLORS', '').lower() in ('1', 'true', 'yes'):
+            return True
+        return _ANSI_OK and not sys.platform.startswith('win')
+    except:
+        return False
 
 # ─── ANSI colour helpers ──────────────────────────────────────────────────────
-# IS_TTY is set above; when False every colour function returns plain text.
+# Only enable colors if we're in a TTY AND ANSI is supported
+# On Windows, disable by default unless FORCE_ANSI is set
+_USE_ANSI = _check_ansi_support() if not _FORCE_ANSI else True
 
 def _fg(n, t):
-    return (f"\033[38;5;{n}m{t}\033[0m" if IS_TTY else t)
+    if not _USE_ANSI or not IS_TTY:
+        return t
+    return f"\033[38;5;{n}m{t}\033[0m"
 
 def _rgb(r, g, b, t):
-    return (f"\033[38;2;{r};{g};{b}m{t}\033[0m" if IS_TTY else t)
+    if not _USE_ANSI or not IS_TTY:
+        return t
+    return f"\033[38;2;{r};{g};{b}m{t}\033[0m"
 
-BOLD   = lambda t: (f"\033[1m{t}\033[0m" if IS_TTY else t)
-DIM    = lambda t: (f"\033[2m{t}\033[0m" if IS_TTY else t)
-ITALIC = lambda t: (f"\033[3m{t}\033[0m" if IS_TTY else t)
+def BOLD(t):
+    if not _USE_ANSI or not IS_TTY:
+        return t
+    return f"\033[1m{t}\033[0m"
+
+def DIM(t):
+    if not _USE_ANSI or not IS_TTY:
+        return t
+    return f"\033[2m{t}\033[0m"
+
+def ITALIC(t):
+    if not _USE_ANSI or not IS_TTY:
+        return t
+    return f"\033[3m{t}\033[0m"
 
 # ── Palette ───────────────────────────────────────────────────────────────────
 C_PROMPT  = lambda t: _rgb(100, 200, 255, t)
@@ -119,7 +196,7 @@ _BUILTINS = frozenset([
 ])
 
 def highlight(code: str) -> str:
-    if not IS_TTY:
+    if not _USE_ANSI:
         return code
     lines = code.split('\n')
     out = []
@@ -219,11 +296,23 @@ def print_banner():
     sep = "   "
     parts = [
         colour(C_CMD, ".help") + " " + DIM("commands"),
-        colour(C_CMD, ".vars") + " " + DIM("variables"),
+        colour(C_CMD, ".vars") + " " + DIM("vars"),
+        colour(C_CMD, ".fns") + " " + DIM("fns"),
         colour(C_CMD, "exit")  + " " + DIM("quit"),
-        colour(C_CMD, "Tab")   + " " + DIM("autocomplete"),
     ]
     print(sp + "  " + sep.join(parts))
+    print()
+    hint = DIM("  .builtins .modules .history .types Tab")
+    print(sp + hint)
+    print()
+    if not _USE_ANSI:
+        if not sys.stdout.isatty():
+            print(sp + DIM("  (colors disabled - stdout not a terminal)"))
+        elif not _ANSI_OK:
+            print(sp + DIM("  (colors disabled - ANSI not supported)"))
+        print(sp + DIM("  Use .colors on to force colors"))
+    else:
+        print(sp + colour(C_OK, "  (colors enabled)"))
     print()
 
 # ─── Readline / autocomplete ──────────────────────────────────────────────────
@@ -330,7 +419,38 @@ def _needs_more(src: str) -> bool:
     if re.search(r'[\{,]\s*$', src): return True
     return False
 
-# ─── Help & meta commands ─────────────────────────────────────────────────────
+# ─── Function color palette (unique colors for each function) ─────────────────
+# Each function gets a unique color. The format is:
+# <function NAME at 0xADDRESS> where NAME is purple and the rest is colorful
+_FN_PALETTE = [
+    (lambda r, g, b: lambda t: _rgb(r, g, b, t))(200, 120, 255),
+    (lambda r, g, b: lambda t: _rgb(r, g, b, t))(120, 200, 255),
+    (lambda r, g, b: lambda t: _rgb(r, g, b, t))(255, 180, 120),
+    (lambda r, g, b: lambda t: _rgb(r, g, b, t))(120, 255, 180),
+    (lambda r, g, b: lambda t: _rgb(r, g, b, t))(255, 120, 180),
+    (lambda r, g, b: lambda t: _rgb(r, g, b, t))(180, 255, 255),
+    (lambda r, g, b: lambda t: _rgb(r, g, b, t))(255, 255, 120),
+    (lambda r, g, b: lambda t: _rgb(r, g, b, t))(255, 150, 200),
+    (lambda r, g, b: lambda t: _rgb(r, g, b, t))(150, 255, 150),
+    (lambda r, g, b: lambda t: _rgb(r, g, b, t))(200, 200, 255),
+]
+
+_fn_color_map = {}
+_fn_color_idx = 0
+
+def _get_fn_color(fn_id):
+    global _fn_color_idx
+    if fn_id not in _fn_color_map:
+        _fn_color_map[fn_id] = _FN_PALETTE[_fn_color_idx % len(_FN_PALETTE)]
+        _fn_color_idx += 1
+    return _fn_color_map[fn_id]
+
+def _reset_fn_colors():
+    global _fn_color_map, _fn_color_idx
+    _fn_color_map = {}
+    _fn_color_idx = 0
+
+# ─── Help & meta commands ──────────────────────────────────────────────────────
 def _section(title):
     print()
     print("  " + colour(C_CMD, BOLD(f" {title} ")))
@@ -341,7 +461,13 @@ def print_help():
     _section("Commands")
     cmds = [
         (".help",       "Show this help"),
-        (".vars",       "List all defined variables"),
+        (".vars",       "List user-defined variables"),
+        (".fns",        "List user-defined functions"),
+        (".builtins",   "List all built-in functions"),
+        (".modules",    "List available modules"),
+        (".history",    "Show command history (.history N for N lines)"),
+        (".colors",     "Toggle colors (.colors on/off)"),
+        (".vm",         "Switch interpreter (.vm interpreter/vm)"),
         (".clear",      "Reset the session"),
         (".types",      "Show the type system"),
         (".version",    f"Show version (v{VERSION})"),
@@ -354,19 +480,21 @@ def print_help():
 
     _section("Quick Reference")
     snippets = [
-        ("var x = 10",                  "mutable variable"),
-        ("let y = 20",                  "immutable binding"),
-        ("x += 5",                      "compound assignment  ✓ NEW"),
+        ("var x = 10",                   "mutable variable"),
+        ("let y = 20",                   "immutable binding"),
+        ("x += 5",                       "compound assignment"),
         ("func add(a, b) { return a+b }","function"),
-        ("var f = func(a) => a*2",      "lambda  ✓ NEW"),
-        ("class Dog : Animal { }",      "class with inheritance  ✓ NEW"),
-        ("2 ** 10",                     "power operator  ✓ FIXED"),
-        ("0xFF & 0x0F",                 "hex literals & bitwise  ✓ NEW"),
-        ('var s = "Hi\\nWorld"',        "escape sequences  ✓ FIXED"),
-        ("[x*x for x in 1..5]",         "list comprehension"),
-        ('nil ?? "default"',            "nullish coalescing"),
-        ("try { } catch e { }",         "error handling  ✓ FIXED"),
-        ("import \"mod.ipp\" as m",     "modules"),
+        ("var f = func(a) => a*2",       "lambda"),
+        ("class Dog : Animal { }",       "class with inheritance"),
+        ("2 ** 10",                      "power operator"),
+        ("0xFF & 0x0F",                  "hex literals & bitwise"),
+        ('var s = "Hi\\nWorld"',         "escape sequences"),
+        ("[x*x for x in 1..5]",          "list comprehension"),
+        ('nil ?? "default"',             "nullish coalescing"),
+        ("try { } catch e { }",          "error handling"),
+        ("import \"module.ipp\" as m",   "import local module"),
+        ("print(sha256(\"hello\"))",     "use built-in functions"),
+        ("1 + \\",                       "multiline (end with \\)"),
     ]
     for code, note in snippets:
         print(f"    {highlight(code.ljust(36))} {colour(DIM, note)}")
@@ -390,8 +518,16 @@ def print_types():
         print(f"    {colour(C_TYPE, t.ljust(12))} {colour(DIM, desc)}")
     print()
 
+def _is_ipp_function(val):
+    return type(val).__name__ == 'IppFunction'
+
 def show_vars(interp):
-    _section("Defined Variables")
+    _section("User Variables")
+    try:
+        from ipp.runtime.builtins import BUILTINS as _RUNTIME_BUILTINS
+    except ImportError:
+        _RUNTIME_BUILTINS = set()
+    
     env = interp.global_env
     all_vars = {}
     while env:
@@ -401,9 +537,8 @@ def show_vars(interp):
                     all_vars[k] = v
         env = env.parent
 
-    # filter builtins
     user_vars = {k: v for k, v in all_vars.items()
-                 if k not in _BUILTINS and not callable(v)}
+                 if k not in _RUNTIME_BUILTINS and not callable(v) and not _is_ipp_function(v)}
 
     if not user_vars:
         print(f"    {colour(DIM, '(none defined yet)')}")
@@ -412,35 +547,222 @@ def show_vars(interp):
             vt = type(val).__name__
             if hasattr(val, 'cls'):  vt = val.cls.name
             elif hasattr(val, 'name') and hasattr(val, 'methods'): vt = 'class'
-            elif callable(val): vt = 'function'
-            val_str = str(val)
-            if len(val_str) > 40: val_str = val_str[:37] + '...'
+            val_str = _format_val(val)
+            if len(strip_ansi(val_str)) > 40: val_str = _format_val(val, truncate=True)
             print(f"    {colour(C_STR, name.ljust(16))} "
                   f"{colour(C_TYPE, vt.ljust(10))} "
-                  f"{colour(DIM, val_str)}")
+                  f"{val_str}")
     print()
 
+def show_fns(interp):
+    _section("User Functions")
+    try:
+        from ipp.runtime.builtins import BUILTINS as _RUNTIME_BUILTINS
+    except ImportError:
+        _RUNTIME_BUILTINS = set()
+    
+    env = interp.global_env
+    all_items = {}
+    while env:
+        if hasattr(env, 'values'):
+            for k, v in env.values.items():
+                if k not in all_items and not k.startswith('_'):
+                    all_items[k] = v
+        env = env.parent
+
+    user_fns = {k: v for k, v in all_items.items()
+                if k not in _RUNTIME_BUILTINS and (callable(v) or _is_ipp_function(v))}
+
+    if not user_fns:
+        print(f"    {colour(DIM, '(none defined yet)')}")
+    else:
+        for name, val in sorted(user_fns.items()):
+            fn_display = _format_fn_display(id(val), name, id(val))
+            print(f"    {colour(C_STR, name.ljust(16))} {fn_display}")
+    print()
+
+def show_builtins():
+    _section("Built-in Functions")
+    try:
+        from ipp.runtime.builtins import BUILTINS
+    except ImportError:
+        print(f"    {colour(DIM, '(unable to load builtins)')}")
+        print()
+        return
+    
+    for name in sorted(BUILTINS.keys()):
+        fn_display = _format_builtin_display(name)
+        print(f"    {colour(C_STR, name.ljust(16))} {fn_display}")
+    print()
+
+def show_modules():
+    _section("Available Modules")
+    try:
+        from ipp.runtime.builtins import BUILTINS
+    except ImportError:
+        print(f"    {colour(DIM, '(unable to load modules)')}")
+        print()
+        return
+    
+    mod_groups = {
+        "I/O": ["print", "input"],
+        "Type Conversion": ["str", "int", "float", "bool", "to_number", "to_string", "to_int", "to_float", "to_bool"],
+        "Math": ["abs", "min", "max", "sum", "round", "floor", "ceil", "sqrt", "pow", "pi", "e",
+                 "sin", "cos", "tan", "log", "log10", "degrees", "radians", "asin", "acos", "atan", "atan2"],
+        "Random": ["random", "randint", "randfloat", "choice", "shuffle"],
+        "Collections": ["len", "range", "keys", "values", "items", "contains"],
+        "String": ["upper", "lower", "strip", "replace", "find", "starts_with", "ends_with", "split", "join"],
+        "Control": ["assert", "exit"],
+    }
+    
+    for group, names in mod_groups.items():
+        available = [n for n in names if n in BUILTINS]
+        if available:
+            print(f"  {colour(C_HEADER, group + ':')}")
+            for name in sorted(available):
+                fn_display = _format_builtin_display(name)
+                print(f"    {colour(C_STR, name.ljust(16))} {fn_display}")
+            print()
+    print()
+
+# ─── VM Interpreter Wrapper ─────────────────────────────────────────────────────
+class VMInterpreter:
+    """Wrapper around VM to provide Interpreter-like interface for REPL."""
+    def __init__(self):
+        from ipp.vm import VM
+        self.vm = VM()
+        self.return_value = None
+        self.last_value = None
+        self.current_file = None
+    
+    def run(self, ast):
+        from ipp.vm.compiler import compile_ast
+        from ipp.parser.ast import Program, ExprStmt, ReturnStmt
+        wrapped = self._wrap_for_vm(ast)
+        chunk = compile_ast(wrapped)
+        self.vm.reset()
+        result = self.vm.run(chunk)
+        self.return_value = result
+        self.last_value = result
+    
+    def _wrap_for_vm(self, ast):
+        """Wrap expression statements in return for VM to return values."""
+        from ipp.parser.ast import Program, ExprStmt, ReturnStmt
+        if not isinstance(ast, Program):
+            return ast
+        new_stmts = []
+        for stmt in ast.statements:
+            if isinstance(stmt, ExprStmt):
+                new_stmts.append(ReturnStmt(value=stmt.expression))
+            else:
+                new_stmts.append(stmt)
+        return Program(statements=new_stmts)
+
+# ─── Interpreter Manager ────────────────────────────────────────────────────────
+class InterpreterManager:
+    """Manages switching between interpreter and VM."""
+    def __init__(self):
+        self.interpreter = Interpreter()
+        self.vm_interpreter = VMInterpreter()
+        self.use_vm = False
+    
+    def get_interpreter(self):
+        return self.vm_interpreter if self.use_vm else self.interpreter
+    
+    def switch_to(self, mode):
+        if mode == 'vm':
+            self.use_vm = True
+            return "Switched to VM interpreter"
+        elif mode == 'interpreter':
+            self.use_vm = False
+            return "Switched to interpreter"
+        else:
+            return f"Unknown mode: {mode}. Use .vm interpreter or .vm vm"
+    
+    def reset(self):
+        self.interpreter = Interpreter()
+        self.vm_interpreter = VMInterpreter()
+    
+    @property
+    def global_env(self):
+        return self.get_interpreter().interpreter.global_env if self.use_vm else self.get_interpreter().global_env
+
 # ─── Output formatter ─────────────────────────────────────────────────────────
-def format_output(val) -> str:
-    if val is None:            return ''
+C_FN_PURPLE = lambda t: _rgb(180, 100, 255, t)  # Purple for <function and >
+C_FN_BLUE = lambda t: _rgb(130, 170, 255, t)    # Blue for function NAME
+C_FN_CYAN = lambda t: _rgb(100, 200, 200, t)    # Cyan for "at"
+C_FN_ORANGE = lambda t: _rgb(255, 180, 100, t)   # Orange for 0x...
+
+def _format_fn_display(fn_id, name, addr=None):
+    """Format function display with UNIQUE color per function.
+    Used for user-defined functions and function output."""
+    fn_color = _get_fn_color(fn_id)  # unique color for NAME
+    addr_str = f" at {C_FN_ORANGE(f'0x{addr:X}')}" if addr is not None else ""
+    return (
+        C_FN_PURPLE("<function ") +
+        fn_color(name) +
+        C_FN_CYAN(addr_str) +
+        C_FN_PURPLE(">")
+    )
+
+def _format_builtin_display(name):
+    """Format builtin function display with FIXED colors.
+    Used for .builtins and .modules commands."""
+    return (
+        C_FN_PURPLE("<function ") +
+        C_FN_BLUE(name) +
+        C_FN_PURPLE(">")
+    )
+
+def _format_val(val, truncate=False):
+    if val is None:            return colour(DIM, 'nil')
     if isinstance(val, bool):  return colour(C_BOOL, 'true' if val else 'false')
     if isinstance(val, (int, float)):
         s = str(int(val)) if isinstance(val, float) and val.is_integer() else str(val)
         return colour(C_NUM, s)
-    if isinstance(val, str):   return colour(C_STR, repr(val))
-    return colour(C_RESULT, str(val))
+    if isinstance(val, str):
+        s = repr(val)
+        if truncate and len(s) > 40: s = s[:37] + '...'
+        return colour(C_STR, s)
+    if _is_ipp_function(val):
+        fn_id = id(val)
+        return _format_fn_display(fn_id, "ipp_function", fn_id)
+    if callable(val):
+        fn_id = id(val)
+        if hasattr(val, '__name__'):
+            return _format_fn_display(fn_id, val.__name__, fn_id)
+        return _format_fn_display(fn_id, "function", fn_id)
+    s = str(val)
+    if truncate and len(s) > 40: s = s[:37] + '...'
+    return colour(C_RESULT, s)
+
+def format_output(val) -> str:
+    return _format_val(val)
 
 # ─── REPL spinner (simple, no threads) ───────────────────────────────────────
 _SPINNER = ['⣾','⣽','⣻','⢿','⡿','⣟','⣯','⣷']
 
 # ─── Main REPL ────────────────────────────────────────────────────────────────
 def run_repl():
-    interp = Interpreter()
+    interp_manager = InterpreterManager()
+    interp = interp_manager.get_interpreter()
     setup_readline(interp)
     print_banner()
+    _enable_interrupt_handling()
 
     buf = []
     line_num = 0
+    _reset_fn_colors()
+    _cmd_history = []
+
+    def show_history(n=20):
+        if not _cmd_history:
+            print(f"    {colour(DIM, '(no history yet)')}")
+            return
+        start = max(0, len(_cmd_history) - n)
+        for i, cmd in enumerate(_cmd_history[start:], start + 1):
+            display = cmd if len(cmd) <= 60 else cmd[:57] + '...'
+            print(f"    {colour(DIM, f'{i:4}:')} {display}")
 
     while True:
         try:
@@ -459,31 +781,75 @@ def run_repl():
                 buf.clear()
                 print(f"  {colour(C_WARN, '<< Buffer cleared')}")
             else:
-                print(f"  {colour(DIM, 'Ctrl+C  — type exit to quit')}")
+                print(f"  {colour(DIM, 'Ctrl+C — type exit to quit')}")
             continue
         except EOFError:
             print()
             print(f"  {colour(C_OK, 'Goodbye!')}")
             break
 
-        # ── Meta commands (only at fresh prompt) ──────────────────────
         stripped = raw.strip()
+        
+        # ── Meta commands (only at fresh prompt) ──────────────────────
         if not buf:
             if stripped in ('exit', 'exit()', 'quit', '.exit', '.quit'):
                 print(f"  {colour(C_OK, 'Goodbye!')}")
                 break
-            if stripped == '.help':    print_help();         continue
-            if stripped == '.types':   print_types();        continue
-            if stripped == '.vars':    show_vars(interp);    continue
-            if stripped == '.version': print(f"  Ipp v{VERSION}"); continue
+            if stripped == '.help':        print_help();         continue
+            if stripped == '.types':       print_types();         continue
+            if stripped == '.vars':         show_vars(interp);    continue
+            if stripped == '.fns':          show_fns(interp);    continue
+            if stripped == '.builtins':     show_builtins();      continue
+            if stripped == '.modules':      show_modules();       continue
+            if stripped == '.version':      print(f"  Ipp v{VERSION}"); continue
             if stripped in ('.clear', 'clear()'):
                 buf.clear()
-                interp = Interpreter()
+                interp_manager.reset()
+                interp = interp_manager.get_interpreter()
                 setup_readline(interp)
+                _reset_fn_colors()
+                _cmd_history.clear()
                 print(f"  {colour(C_WARN, '>> Session cleared')}")
+                continue
+            # .vm interpreter/vm command
+            m = re.match(r'\.vm\s+(interpreter|vm)$', stripped)
+            if m:
+                msg = interp_manager.switch_to(m.group(1))
+                mode_name = colour(C_OK, m.group(1).upper()) if m.group(1) == 'vm' else colour(C_HEADER, 'INTERPRETER')
+                print(f"  {colour(C_OK, '>>')} {msg} ({mode_name})")
+                interp = interp_manager.get_interpreter()
+                setup_readline(interp)
+                continue
+            # .vm without args - show current mode
+            if stripped == '.vm':
+                mode = colour(C_OK, 'VM') if interp_manager.use_vm else colour(C_HEADER, 'INTERPRETER')
+                print(f"  Current interpreter: {mode}")
+                continue
+            # .history command with optional number
+            m = re.match(r'\.history\s*(\d+)?$', stripped)
+            if m:
+                n = int(m.group(1)) if m.group(1) else 20
+                show_history(n)
+                continue
+            # .colors on/off command
+            m = re.match(r'\.colors\s+(on|off)$', stripped)
+            if m:
+                global _USE_ANSI
+                if m.group(1) == 'on':
+                    _USE_ANSI = True
+                    print(f"  {colour(C_OK, 'Colors enabled')}")
+                else:
+                    _USE_ANSI = False
+                    print(f"  {colour(C_WARN, 'Colors disabled')}")
                 continue
 
         if not stripped and not buf:
+            continue
+
+        # Check for line continuation with \
+        if raw.rstrip('\r\n').endswith('\\'):
+            # Keep the backslash - it signals line continuation
+            buf.append(raw.rstrip('\r\n'))
             continue
 
         buf.append(raw)
@@ -493,38 +859,72 @@ def run_repl():
             continue
 
         # ── Execute ───────────────────────────────────────────────────
+        # Check for pending interrupts before execution
+        if _check_interrupt():
+            print(f"  {colour(C_WARN, '<< Interrupted - command cancelled')}")
+            buf.clear()
+            continue
+
+        interp = interp_manager.get_interpreter()
         t0 = time.perf_counter()
-        try:
-            tokens = tokenize(source)
-            ast    = parse(tokens)
-            interp.run(ast)
+        exec_result = [None]  # Container for result and exception
+        exec_done = threading.Event()
+        
+        def run_in_thread():
+            try:
+                tokens = tokenize(source)
+                ast    = parse(tokens)
+                interp.run(ast)
+                val = interp.return_value if interp.return_value is not None else interp.last_value
+                interp.return_value = None
+                interp.last_value   = None
+                exec_result[0] = ('ok', val)
+            except Exception as e:
+                exec_result[0] = ('error', e)
+            finally:
+                exec_done.set()
+        
+        thread = threading.Thread(target=run_in_thread)
+        thread.daemon = True
+        thread.start()
+        
+        while thread.is_alive():
+            thread.join(timeout=0.1)  # Check every 100ms
+            if _check_interrupt():
+                print(f"\n  {colour(C_WARN, '<< Interrupted!')}")
+                buf.clear()
+                thread.join(timeout=0.1)  # Let it finish
+                interp_manager.reset()
+                interp = interp_manager.get_interpreter()
+                setup_readline(interp)
+                exec_done.set()  # Ensure we exit the loop
+                break
+        
+        if not _INTERRUPT_FLAG.is_set() and exec_result[0]:
+            result_type, result_val = exec_result[0]
             elapsed = time.perf_counter() - t0
-
-            val = interp.return_value if interp.return_value is not None else interp.last_value
-            interp.return_value = None
-            interp.last_value   = None
-
-            if val is not None:
-                fmted = format_output(val)
-                ms_str = colour(DIM, f"  {elapsed*1000:.1f}ms")
-                arrow2 = '->' if not _UNI else '→'
-                print(f"  {colour(DIM, arrow2)} {fmted}{ms_str}")
-
-            buf.clear()
-            line_num += 1
-
-        except (SyntaxError, RuntimeError) as e:
-            buf.clear()
-            msg = str(e)
-            # Extract line info if present
-            m = re.search(r'line (\d+)', msg)
-            loc = f" {colour(DIM, f'(line {m.group(1)})')}" if m else ''
-            cross = 'x' if not _UNI else '✗'
-            print(f"  {colour(C_ERROR, cross)} {colour(C_ERROR, msg)}{loc}")
-        except Exception as e:
-            buf.clear()
-            cross = 'x' if not _UNI else '✗'
-            print(f"  {colour(C_ERROR, cross)} {colour(C_ERROR, str(e))}")
+            
+            if result_type == 'ok':
+                _cmd_history.append(source)
+                if result_val is not None:
+                    fmted = format_output(result_val)
+                    ms_str = colour(DIM, f"  {elapsed*1000:.1f}ms")
+                    arrow2 = '->' if not _UNI else '→'
+                    print(f"  {colour(DIM, arrow2)} {fmted}{ms_str}")
+                buf.clear()
+                line_num += 1
+            else:
+                buf.clear()
+                e = result_val
+                if isinstance(e, (SyntaxError, RuntimeError)):
+                    msg = str(e)
+                    m = re.search(r'line (\d+)', msg)
+                    loc = f" {colour(DIM, f'(line {m.group(1)})')}" if m else ''
+                    cross = 'x' if not _UNI else '✗'
+                    print(f"  {colour(C_ERROR, cross)} {colour(C_ERROR, msg)}{loc}")
+                else:
+                    cross = 'x' if not _UNI else '✗'
+                    print(f"  {colour(C_ERROR, cross)} {colour(C_ERROR, str(e))}")
 
 # ─── File runner ──────────────────────────────────────────────────────────────
 def run_file(path: str) -> int:

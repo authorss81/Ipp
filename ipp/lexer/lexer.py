@@ -284,9 +284,26 @@ class Lexer:
         self.add_token(TokenType.STRING, literal=value)
 
     def skip_whitespace(self):
-        while not self.is_at_end and self.peek() in ' \t\r':
-            self.advance()
-            self.at_line_start = False
+        while not self.is_at_end:
+            ch = self.peek()
+            if ch == ' ' or ch == '\t' or ch == '\r':
+                self.advance()
+                self.at_line_start = False
+            elif ch == '\\':
+                # Line continuation: \ at end of line joins with next line
+                self.advance()  # consume \
+                if self.peek() == '\n':
+                    self.advance()  # consume newline
+                    self.line += 1
+                    self.column = 1
+                    self.at_line_start = True
+                else:
+                    # Not followed by newline, put back the backslash
+                    self.current -= 1
+                    self.column -= 1
+                    break
+            else:
+                break
 
     def skip_comments(self):
         # FIX: BUG-L4 — don't mess with at_line_start inside comment skip
