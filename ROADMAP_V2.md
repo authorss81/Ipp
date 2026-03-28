@@ -1,6 +1,10 @@
-# Ipp Detailed Roadmap v2
+# Ipp Language — Detailed Roadmap v3
+> Last Updated: 2026-03-28 | Reflects audit findings through v1.3.0
+
+---
 
 ## Version History
+
 | Version | Status | Features |
 |---------|--------|----------|
 | v0.1.0 | ✅ DONE | Foundation (MVP) |
@@ -9,14 +13,14 @@
 | v0.3.1 | ✅ DONE | Multiline + IppList fixes |
 | v0.4.0 | ✅ DONE | CLI + Color/Rect + Module fixes |
 | v0.5.0 | ✅ DONE | Ternary, match, bitwise, floor div, try/catch |
-| v0.5.1-0.5.4 | ✅ DONE | Various improvements |
-| v0.6.0 | ✅ DONE | Type System + Enums |
+| v0.5.1–0.5.4 | ✅ DONE | Various improvements |
+| v0.6.0 | ✅ DONE | Type system + Enums |
 | v0.6.1 | ✅ DONE | Integer type, type annotations, ** power, fixed XOR |
 | v0.7.0 | ✅ DONE | List/Dict Comprehensions |
 | v0.8.0 | ✅ DONE | Advanced Operators + Tuples |
 | v0.9.0 | ✅ DONE | Control Flow + Exceptions |
 | v0.10.0 | ✅ DONE | Functions + OOP Enhancements |
-| v0.11.0-0.11.2 | ✅ DONE | Standard Library Expansion |
+| v0.11.0–0.11.2 | ✅ DONE | Standard Library Expansion |
 | v0.12.0 | ✅ DONE | Module System (import, alias, selective) |
 | v0.13.0 | ✅ DONE | Professional REPL UI |
 | **v1.0.0** | ✅ DONE | Bytecode VM Infrastructure |
@@ -66,33 +70,44 @@
 - [ ] `--vm` flag to force VM mode
 - [ ] `--no-color` flag
 
----
-
-## v1.3.1 - Documentation & Examples 📋 PLANNED
-
-**Goal**: Complete documentation, tutorials, and examples
-
-### Documentation ⏳ TODO
-- [ ] Language tutorial (getting started)
-- [ ] Standard library reference
-- [ ] VM internals documentation
-- [ ] Opcode reference
-- [ ] Performance tuning guide
-- [ ] Migration guide (interpreter → VM)
-
-### Examples ⏳ TODO
-- [ ] Hello World examples
-- [ ] Game development examples
-- [ ] Data processing examples
-- [ ] API/server examples
-
-### Website (FREE Options) ⏳ TODO
-- [ ] GitHub Pages (free) - Static documentation site
-- [ ] MkDocs (free, Python) - Beautiful docs from Markdown
-- [ ] Docusaurus (free, JS) - React-based documentation
-- [ ] Read the Docs (free for OSS) - Auto-deploy docs
+**Plan:**
+- `BreakStmt.label` and `ContinueStmt.label` already parsed and stored
+- Interpreter: `break_flag` becomes `break_label: Optional[str]` — unwind until matching label
+- Compiler: emit labeled JUMP that skips to end of labeled loop
 
 ---
+
+## v1.4.0 — Generators + Async/Await 📋 PLANNED
+
+**Audit reference:** BUG-NEW-N4, BUG-NEW-N7
+
+### Generator Functions (BUG-NEW-N4)
+
+```ipp
+func fibonacci() {
+    var a = 0
+    var b = 1
+    while true {
+        yield a
+        var temp = a
+        a = b
+        b = temp + b
+    }
+}
+
+for n in fibonacci() |> take(10) {
+    print(n)
+}
+```
+
+**Plan:**
+- `yield` becomes a keyword (TokenType.YIELD)
+- Functions containing `yield` produce `IppGenerator` objects, not immediate values
+- `IppGenerator` stores: function body AST, current execution position, local environment snapshot
+- `next(gen)` resumes execution until next `yield` or return
+- `for x in gen` iterates the generator
+
+### Async/Await (BUG-NEW-N7)
 
 ## v1.3.2 - Standard Library Completion 📋 PLANNED
 
@@ -122,7 +137,12 @@
 - [ ] `ftp` - FTP client
 - [ ] `smtp` - Email sending
 
----
+```bash
+ippkg install math-utils
+ippkg install game-physics@2.1.0
+ippkg publish my-library
+ippkg search collision
+```
 
 ## v1.3.3 - Game SDK Alpha 📋 PLANNED
 
@@ -166,7 +186,7 @@
 - [ ] `Random.shuffle(seq)` - Shuffle in place
 - [ ] `Random.gauss(mu, sigma)` - Gaussian distribution
 
----
+### Engine Bindings
 
 ## v1.4.0 - Game Engine Integration 📋 PLANNED
 
@@ -192,7 +212,10 @@
 - [ ] `ippkg publish <package>`
 - [ ] `ippkg search <query>`
 
----
+```ipp
+var body = RigidBody(mass = 1.0, position = vec2(0, 0))
+body.apply_force(vec2(0, -9.8))     # gravity
+body.update(delta_time)
 
 ## v2.0.0 - Game Features 📋 PLANNED
 

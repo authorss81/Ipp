@@ -620,3 +620,295 @@ See [ROADMAP_V2.md](ROADMAP_V2.md) for detailed version-by-version plan.
 
 *Audit completed: 2026-03-27*
 *Version: 1.4*
+
+---
+
+# Ipp Language Audit — v1.3.0 Supplement
+> **Date:** 2026-03-28 | **Auditor:** Ruthless, no-slack technical review
+> **Previous audit covered:** v0.7.0 through v1.1.1
+> **This section covers:** v1.2.0 through v1.3.0 (current state)
+> **Methodology:** Every claim verified by directly running code against the interpreter and VM.
+
+---
+
+## New Bugs Confirmed in v1.3.0
+
+These are **new issues not listed in any previous audit** — either regressions, newly discovered, or arising from features added since v1.1.1.
+
+---
+
+### 🔴 CRITICAL — BUG-NEW-C1: VM `for` loop compiler is a non-functional stub
+
+**File:** `ipp/vm/compiler.py`, `compile_for()`, lines 284–340
+**Severity:** CRASH — every `for` loop on the VM/bytecode path crashes.
+
+The compiler comment *literally says* "For now emit a simplified for each using GET_INDEX pattern" but then emits a `JUMP_IF_FALSE_POP` directly on the list object. A non-empty list is truthy, so it jumps over the body entirely and never iterates. Then it emits an `emit_loop` back to a stale `loop_start` that doesn't re-check anything. Verified:
+
+```
+VM for loop FAIL: pop from empty list
+```
+
+The `for` loop in the bytecode VM has **never worked**. The interpreter path works. Every benchmark, every test, every demo that uses `for` works only because the interpreter is running — not the VM. This is a fundamental gap between the two execution paths.
+
+**Fix required:** Implement proper iteration: push list + index counter as locals, check `idx < len(list)` each iteration, get `list[idx]`, increment `idx`, loop back.
+
+---
+
+### 🔴 CRITICAL — BUG-NEW-C2: Runtime error line numbers always report `line 0`
+
+**File:** `ipp/interpreter/interpreter.py`, `run()`, line 276
+**Verified:**
+```
+Error at line 0 in main: Undefined variable: undefinedVar
+```
+`self.current_line` is set during `compile_stmt` dispatch but the `run()` catch block uses it at the wrong time — it captures the line of the *last successfully executed* statement, not the failing one. A 5-line script where line 4 fails reports `line 0`. This is unacceptable for a language claiming to have a development-friendly REPL. Every runtime error gives the user zero guidance on where to look.
+
+---
+
+### 🔴 CRITICAL — BUG-NEW-C3: Operator overloading for user-defined classes is silently broken
+
+**File:** `ipp/interpreter/interpreter.py`, `visit_binary_expr()`, lines 314–380
+**Verified:**
+```
+operator overload FAILS: Only instances have properties, got <class 'str'>
+```
+The interpreter checks `hasattr(left, '__add__')` which checks Python's own `__add__`, not Ipp's method dispatch. An `IppInstance` with a method named `__add__` does **not** have a Python `__add__`. The `hasattr` check never fires for user classes. The method is silently skipped, the fallback tries `str(left) + str(right)`, which returns a string, and then accessing `.x` on a string produces the error above. User-defined `__add__`, `__sub__`, `__mul__`, `__eq__`, `__lt__`, `__str__` — none of them are dispatched correctly through the binary expr visitor.
+
+---
+
+### 🟠 MAJOR — BUG-NEW-M1: Closures do not capture mutable variables by reference
+
+**File:** `ipp/interpreter/interpreter.py`, `call_function()`
+**Verified:** Basic closure read works (`add5(3) = 8` ✅) but mutation of captured variable from inner function does NOT propagate back to the outer environment. Each call to `call_function` creates a fresh `Environment(func.closure)` — which copies the value at the time of the call, not a live reference. This means:
+
+```ipp
+func make_counter() {
+    var count = 0
+    func increment() {
+        count += 1   # modifies local copy, NOT the outer count
+        return count
+    }
+    return increment
+}
+var c = make_counter()
+print(c())  # prints 1
+print(c())  # SHOULD print 2, but prints 1
+```
+
+This is one of the oldest and most fundamental closure bugs. Real closures capture a **cell** (mutable reference), not a snapshot.
+
+---
+
+### 🟠 MAJOR — BUG-NEW-M2: No integer vs float type distinction at runtime
+
+**Verified:**
+```
+type(5)    → "number"
+type(5.0)  → "number"
+5 == 5.0   → true
+type(7/2)  → "number"    (returns 3.5, not an integer)
+type(7//2) → "number"    (returns 3, but still "number")
+```
+Python internally stores `5` as `int` and `5.0` as `float`, but Ipp's `ipp_type()` collapses both to `"number"`. For game development, confusing integers and floats causes silent bugs in array indexing, bitwise operations, and physics calculations. A language that cannot tell you whether a value is an integer or a float cannot be used reliably for game math. `type(5)` must return `"int"` and `type(5.0)` must return `"float"`.
+
+---
+
+### 🟠 MAJOR — BUG-NEW-M3: No default parameter values
+
+**Verified:**
+```
+func greet(name, greeting = "Hello") { }
+→ Parse error at line 1, col 27: Expect ')' after parameters
+```
+This is standard in every modern language. `func f(x, y=0)` does not parse. There is no mechanism in the parser, AST, or interpreter to handle default values. Every function in Ipp requires all arguments to be passed explicitly. This is a daily-use friction point for any non-trivial codebase.
+
+---
+
+### 🟠 MAJOR — BUG-NEW-M4: No named/keyword arguments
+
+**Verified:**
+```
+func f(x, y) { return x - y }
+f(y=1, x=10)
+→ Error: Undefined variable: y
+```
+`y=1` is parsed as an assignment expression `y = 1`, which creates/assigns the global variable `y`. The value `10` is passed as first positional argument `x`. `y` in the function body reads the global `y` (which is `1`), not the argument. This is a silent wrong-result bug, not even a crash — arguably worse than a crash.
+
+---
+
+### 🟠 MAJOR — BUG-NEW-M5: Upvalues in the VM are captured by value, not by reference
+
+**File:** `ipp/vm/vm.py`, `CLOSE_UPVALUE` handler, line 491
+```python
+elif opcode == OpCode.CLOSE_UPVALUE:
+    pass  # for now upvalues are captured by value
+```
+The comment is the entire implementation. Upvalues in the VM are never actually closed over — the `Closure` object is created with an empty upvalue list and nothing is ever written into it from the enclosing scope. Every closure in the VM path that tries to read a variable from an outer function scope will either get `None` or crash. This means the VM cannot execute any meaningful closure-based code correctly.
+
+---
+
+### 🟠 MAJOR — BUG-NEW-M6: No Set data type
+
+There is no `Set` type in Ipp. Every language used in game development has sets: Lua uses tables as sets, Python has `set()`, GDScript has `Dictionary` with sentinel values. Sets are essential for: entity tag systems, visited-node tracking in pathfinding, deduplication, fast membership testing. The workaround — using a dict with dummy values — is verbose and error-prone. `type` and `isinstance` cannot distinguish it.
+
+---
+
+### 🟠 MAJOR — BUG-NEW-M7: No multiple assignment / tuple unpacking
+
+**Verified:**
+```
+var a, b = 1, 2
+→ Parse error at line 1, col 6: Unexpected token: Token(COMMA, ',', line=1)
+
+func swap(a, b) { return b, a }
+var x, y = swap(1, 2)
+→ Parse error at line 1, col 27: Unexpected token: Token(COMMA, ',', line=1)
+```
+Cannot return multiple values from a function in a usable way. Cannot destructure a list into named variables. These are standard in Python, Lua (`return a, b`), and GDScript. For game development this matters constantly: `var pos_x, pos_y = get_position()`.
+
+---
+
+### 🟡 NOTABLE — BUG-NEW-N1: Private member convention has zero enforcement
+
+**Verified:**
+```ipp
+class BankAccount {
+    func init(balance) { self._balance = balance }
+}
+var acc = BankAccount(100)
+acc._balance = -9999   # works perfectly, no error
+```
+Ipp has no access control whatsoever. The underscore prefix `_field` is a documentation convention with zero runtime enforcement. In a language targeting game development — where scripts from different systems interact — having no encapsulation means any script can corrupt any object's internal state silently.
+
+---
+
+### 🟡 NOTABLE — BUG-NEW-N2: No recursion depth limit with meaningful error message
+
+**Verified:** Infinite recursion produces Python's raw `RecursionError: maximum recursion depth exceeded` wrapped as `Error at line 0 in main: maximum recursion depth exceeded`. The Python stack limit (1000 frames by default) fires before any Ipp-level check. There is no configurable Ipp-level recursion limit, no stack trace of Ipp call frames, and the error message gives no indication of where in the Ipp code the overflow occurred.
+
+---
+
+### 🟡 NOTABLE — BUG-NEW-N3: No f-strings / string interpolation
+
+**Verified:**
+```
+var name = "World"
+var s = f"Hello {name}!"
+→ Error: Undefined variable: f
+```
+`f"..."` is not lexed as a string prefix — the `f` is lexed as an identifier, then `"Hello {name}!"` is a string. The result is trying to call/access a variable named `f`. String interpolation is the single most commonly requested missing feature in scripting languages. Every single competing language has it: Python f-strings, JavaScript template literals, GDScript `%s % value`. Writing `"Hello, " + name + "!"` is adequate for a tutorial but unacceptable as the canonical API.
+
+---
+
+### 🟡 NOTABLE — BUG-NEW-N4: No generator functions / `yield` keyword
+
+**Verified:**
+```
+func gen() { yield 1 }
+→ Error: Undefined variable: yield
+```
+`yield` is not a keyword — it is lexed as an identifier. Generators are essential for: lazy sequences, coroutines in game loops, state machines. Without generators, infinite sequences must be modelled as explicit state objects, making game AI and animation code dramatically more verbose.
+
+---
+
+### 🟡 NOTABLE — BUG-NEW-N5: Error messages lack column numbers at runtime
+
+Parse errors correctly report line and column: `Parse error at line 3, col 12`. Runtime errors do not: `Error at line 0 in main: ...`. The `current_line` is tracked but never includes column information. The call stack shows only function names (`main -> myFunc`), not file:line:col. Compared to Python's traceback with exact file, line, column, and source snippet — Ipp's error output is nearly useless for debugging non-trivial programs.
+
+---
+
+### 🟡 NOTABLE — BUG-NEW-N6: `__str__` method on user classes not called by `print()`
+
+**Expected behavior:** `print(myObject)` should call `myObject.__str__()` if defined.
+**Actual behavior:** `print()` receives an `IppInstance`, which has Python's `__repr__` returning `<ClassName instance>`. The `ipp_print` builtin does not check for a user-defined `__str__` method before calling Python's `str()`. So even if a user defines `func __str__()`, `print(obj)` ignores it entirely.
+
+---
+
+### 🟡 NOTABLE — BUG-NEW-N7: No `async`/`await` or coroutine support
+
+Game development fundamentally requires non-blocking operations: loading assets, waiting for animations, network calls. Without `async/await`, all timing logic must be manually managed through update loops and state machines. GDScript has `await`, Lua has coroutines via `coroutine.yield`, JavaScript has async/await. Ipp has nothing.
+
+---
+
+### 🟡 NOTABLE — BUG-NEW-N8: List/Dict methods only work on `IppList`/`IppDict` wrappers, not on native Python lists
+
+The interpreter sometimes returns native Python `list` and `dict` objects (e.g., from builtins like `range()`, comprehension results, spread results). Calling `.append()`, `.push()`, `.contains()` on these native objects fails because those methods belong to the `IppList` wrapper class, not Python's native `list`. This creates inconsistent behavior where two lists that look identical have different available methods depending on how they were created.
+
+---
+
+### 🟡 NOTABLE — BUG-NEW-N9: `match` statement is pure equality matching — no structural or type patterns
+
+```ipp
+match x {
+    case 1 => print("one")            # equality check
+    case "hello" => print("string")   # equality check
+}
+```
+Ipp's match is a glorified `if/elif` chain. It cannot:
+- Destructure: `case [head, ...tail] =>`
+- Match on type: `case int =>`
+- Bind variables: `case Point(x: px, y: py) =>`
+- Guard conditions: `case n if n > 0 =>`
+- Match ranges: `case 1..10 =>`
+
+Python 3.10's structural pattern matching, Rust's `match`, and even GDScript's `match` all support at least type-based and value-binding patterns. Ipp's implementation is the minimum viable version and should not be marketed as "pattern matching."
+
+---
+
+### 🟡 NOTABLE — BUG-NEW-N10: No `continue` with label / no labeled `break` in the VM
+
+The parser supports `break label` and `continue label` syntax. The interpreter ignores the label field in `BreakStmt`/`ContinueStmt` — it just sets `break_flag = True` regardless. The VM compiler emits a plain `JUMP` with no label tracking. Breaking out of nested loops requires ugly workarounds like flag variables.
+
+---
+
+## Updated Scores (v1.3.0)
+
+| Aspect | v1.1.1 (prev) | v1.3.0 (now) | Change | Notes |
+|---|---|---|---|---|
+| Syntax | 6.5 | 6.5 | → | No f-strings, no default params added |
+| Types | 5.5 | 5.0 | ↓ | int/float conflation worse than documented |
+| Control Flow | 7.5 | 7.0 | ↓ | Labeled break/continue silently broken |
+| Functions | 6.0 | 5.5 | ↓ | No defaults, no named args, no generators |
+| OOP | 6.0 | 5.5 | ↓ | Operator overloading broken, no private |
+| Standard Library | 6.5 | 6.5 | → | Stable, good coverage |
+| Game Features | 5.5 | 5.5 | → | No new game primitives |
+| Performance | 5.0 | 4.5 | ↓ | VM for-loop is non-functional |
+| Closures | 6.0 | 4.0 | ↓ | Mutable capture broken in both paths |
+| Error Messages | 3.0 | 3.0 | → | Line 0 bug persists |
+| Tooling | 5.0 | 5.5 | ↑ | REPL improved, Windows ANSI fixed |
+| Ecosystem | 1.0 | 1.0 | → | Still zero packages, zero community |
+| **TOTAL** | **63.0** | **59.5** | **↓** | Regression due to confirmed latent bugs |
+
+---
+
+## Priority Fix List (v1.3.x)
+
+Ordered by severity × frequency of impact:
+
+| ID | Bug | Severity | Fix Complexity |
+|---|---|---|---|
+| BUG-NEW-C1 | VM `for` loop is a stub | 🔴 Critical | High |
+| BUG-NEW-C2 | Runtime errors always say `line 0` | 🔴 Critical | Medium |
+| BUG-NEW-C3 | User-class operator overloading broken | 🔴 Critical | Medium |
+| BUG-NEW-M1 | Closures don't capture by reference | 🟠 Major | High |
+| BUG-NEW-M2 | int/float indistinguishable at runtime | 🟠 Major | Medium |
+| BUG-NEW-M3 | No default parameter values | 🟠 Major | Medium |
+| BUG-NEW-M4 | Named args silently produce wrong results | 🟠 Major | High |
+| BUG-NEW-M5 | VM upvalues captured by value, not reference | 🟠 Major | High |
+| BUG-NEW-M6 | No Set type | 🟠 Major | Low |
+| BUG-NEW-M7 | No tuple unpacking / multi-assignment | 🟠 Major | Medium |
+| BUG-NEW-N1 | No access control enforcement | 🟡 Notable | Low |
+| BUG-NEW-N2 | No Ipp-level recursion limit | 🟡 Notable | Low |
+| BUG-NEW-N3 | No f-strings | 🟡 Notable | Medium |
+| BUG-NEW-N4 | No generators/yield | 🟡 Notable | High |
+| BUG-NEW-N5 | Runtime errors lack column info | 🟡 Notable | Low |
+| BUG-NEW-N6 | `__str__` not called by print() | 🟡 Notable | Low |
+| BUG-NEW-N7 | No async/await | 🟡 Notable | Very High |
+| BUG-NEW-N8 | IppList/native list method inconsistency | 🟡 Notable | Medium |
+| BUG-NEW-N9 | Match is equality-only, not structural | 🟡 Notable | High |
+| BUG-NEW-N10 | Labeled break/continue silently ignored | 🟡 Notable | Medium |
+
+---
+
+*Supplement audit completed: 2026-03-28 | v1.3.0*
+*Total new issues found: 20 (3 critical, 7 major, 10 notable)*
