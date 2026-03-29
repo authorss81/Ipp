@@ -375,11 +375,18 @@ body.update(delta_time)
 3. **Examples Repository** - github.com/ipp-lang/examples
 4. **Website** - MkDocs + GitHub Pages (FREE)
 
-### Phase 3: Standard Library (v1.3.2) ✅ DONE (Set type)
+### Phase 3: Standard Library (v1.3.2+) ✅ DONE (Set type)
 - [x] `Set` type - Unordered unique elements (BUG-NEW-M6) ✅
 - [ ] Missing Builtins - File I/O, regex, networking
 - [ ] Collection Types - Deque, priority queue, tree, graph
 - [ ] Data Formats - JSON, XML, YAML, TOML parsers
+
+### Notable Bug Fixes (Standard Library)
+- [ ] BUG-NEW-N1: **No access control enforcement** (`__field` name mangling)
+- [ ] BUG-NEW-N2: **No Ipp-level recursion limit** (add `max_depth` config)
+- [ ] BUG-NEW-N5: **Runtime errors lack column info** (add column tracking)
+- [ ] BUG-NEW-N6: **`__str__` not called by `print()`** (check for method)
+- [ ] BUG-NEW-N8: **IppList/native list inconsistency** (wrap all list returns)
 
 ### Phase 4: Game SDK (v1.3.3)
 1. **Math Library** - vec2, vec3, mat4, quat
