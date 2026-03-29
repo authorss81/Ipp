@@ -29,8 +29,8 @@
 | **v1.1.1** | ✅ DONE | Bug Fixes (Dict/Index Assignment) |
 | **v1.2.0** | ✅ DONE | Benchmark Suite vs Other Languages |
 | **v1.2.4** | ✅ DONE | Full VM Class Support |
-| **v1.3.0** | 🔄 IN PROGRESS | REPL Enhancements & VM Production Ready |
-| **v1.3.1** | 📋 PLANNED | Documentation & Examples |
+| **v1.3.0** | ✅ DONE | REPL Enhancements (`.vars`, `.fns`, `.history`, `.vm`, `\`, Ctrl+C, colors) |
+| **v1.3.1** | 📋 PLANNED | Critical Bug Fixes (C1/C2/C3: for-loop, line 0, operator overload) |
 | **v1.3.2** | 📋 PLANNED | Standard Library Completion |
 | **v1.3.3** | 📋 PLANNED | Game SDK Alpha |
 | **v1.4.0** | 📋 PLANNED | Game Engine Integration |
@@ -38,9 +38,9 @@
 
 ---
 
-## v1.3.0 - REPL Enhancements & VM Production Ready 🔄 IN PROGRESS
+## v1.3.0 - REPL Enhancements & Bug Fixes ✅ DONE
 
-**Goal**: Complete REPL features, make VM production-ready
+**Goal**: Complete REPL features, fix critical bugs before any feature work
 
 ### REPL Enhancements ✅ DONE
 - [x] `.vars` - List user-defined variables
@@ -54,32 +54,109 @@
 - [x] Ctrl+C interrupt support
 - [x] Colorful function display (purple/blue/cyan/orange)
 - [x] ANSI garbage prevention
+- [x] Git tags created for all releases (v0.6-v1.3.0)
 
-### VM Production Readiness ⏳ TODO
-- [ ] All regression tests pass on VM
-- [ ] Memory safety verified
-- [ ] Stack overflow protection
-- [ ] Exception safety
-- [ ] Bytecode serialization (`.ipbc` files)
+### Critical Bug Fixes (MUST FIX BEFORE v1.3.1) ⏳ TODO
+- [ ] BUG-NEW-C1: **VM `for` loop is a non-functional stub** (CRASHES)
+- [ ] BUG-NEW-C2: **Runtime errors always report `line 0`** (useless debugging)
+- [ ] BUG-NEW-C3: **User-class operator overloading silently broken**
 
-### CLI Improvements ⏳ TODO
-- [ ] `ipp run <file>` - Run script
-- [ ] `ipp check <file>` - Syntax check
-- [ ] `ipp lint <file>` - Lint code
-- [ ] `ipp bench <file>` - Run benchmarks
-- [ ] `--vm` flag to force VM mode
-- [ ] `--no-color` flag
+**Fix Complexity:**
+| Bug | Complexity | Priority |
+|-----|------------|----------|
+| BUG-NEW-C1 | HIGH | P0 |
+| BUG-NEW-C2 | MEDIUM | P0 |
+| BUG-NEW-C3 | MEDIUM | P0 |
 
-**Plan:**
-- `BreakStmt.label` and `ContinueStmt.label` already parsed and stored
-- Interpreter: `break_flag` becomes `break_label: Optional[str]` — unwind until matching label
-- Compiler: emit labeled JUMP that skips to end of labeled loop
+---
+
+## v1.3.1 - Closures, F-strings, Default Params 📋 PLANNED
+
+**Audit reference:** BUG-NEW-M1, BUG-NEW-M3, BUG-NEW-N3
+
+### BUG-NEW-M1: Closures Capture by Value ⏳ TODO
+- [ ] Fix closure cells to capture mutable references
+- [ ] Verify `count += 1` propagates to outer scope
+- [ ] Test nested closures
+
+### BUG-NEW-M3: Default Parameter Values ⏳ TODO
+- [ ] Parse `func f(x, y=0)` syntax
+- [ ] Store defaults in `FunctionDecl`
+- [ ] Fill in missing args in `call_function()`
+
+### BUG-NEW-N3: F-strings / String Interpolation ⏳ TODO
+- [ ] Lex `f"..."` as f-string token
+- [ ] Parse `{expr}` segments
+- [ ] Implement `fstring(format, *values)` builtin
+
+---
+
+## v1.3.2 - VM For-Loop, Int/Float Types, Set 📋 PLANNED
+
+**Audit reference:** BUG-NEW-C1, BUG-NEW-M2, BUG-NEW-M5, BUG-NEW-M6
+
+### BUG-NEW-C1: VM For-Loop Implementation ⏳ TODO
+- [ ] Implement proper iteration bytecode
+- [ ] Push list + index as locals
+- [ ] Check `idx < len(list)` each iteration
+- [ ] Get `list[idx]`, increment `idx`, loop back
+
+### BUG-NEW-M2: int/float Type Distinction ⏳ TODO
+- [ ] Track int/float in `IppNumber`
+- [ ] Return `"int"` or `"float"` from `type()`
+- [ ] Distinguish in equality comparison
+
+### BUG-NEW-M5: VM Upvalues by Reference ⏳ TODO
+- [ ] Implement proper upvalue cells
+- [ ] Move to heap on `CLOSE_UPVALUE`
+- [ ] Read/write through upvalue pointer
+
+### BUG-NEW-M6: Set Data Type ⏳ TODO
+- [ ] Implement `IppSet` class
+- [ ] Add `add()`, `remove()`, `contains()`
+- [ ] Expose `set()` builtin
+
+---
+
+## v1.3.3 - Structural Match, Operator Overload, Labeled Break 📋 PLANNED
+
+**Audit reference:** BUG-NEW-C3, BUG-NEW-M4, BUG-NEW-N9, BUG-NEW-N10
+
+### BUG-NEW-C3: Operator Overloading Fix ⏳ TODO
+- [ ] Change `hasattr(left, '__add__')` to check `left.fields`
+- [ ] Dispatch to Ipp methods, not Python dunders
+- [ ] Test `__add__`, `__sub__`, `__mul__`, `__eq__`
+
+### BUG-NEW-M4: Named Arguments ⏳ TODO
+- [ ] Lex `NAME =` as `NAMED_ARG` token
+- [ ] Parse named args in `arguments()`
+- [ ] Match by name in `call_function()`
+
+### BUG-NEW-N9: Structural Pattern Matching ⏳ TODO
+- [ ] Add type guards: `case int =>`
+- [ ] Add guards: `case n if n > 0 =>`
+- [ ] Add destructuring: `case [h, ...t] =>`
+
+### BUG-NEW-N10: Labeled Break/Continue ⏳ TODO
+- [ ] Create `LoopContext` stack in compiler
+- [ ] Look up label in context stack
+- [ ] Emit correct jump offset
 
 ---
 
 ## v1.4.0 — Generators + Async/Await 📋 PLANNED
 
 **Audit reference:** BUG-NEW-N4, BUG-NEW-N7
+
+### BUG-NEW-N4: Generator Functions ⏳ TODO
+- [ ] Lex `yield` as keyword
+- [ ] Create `IppGenerator` object
+- [ ] Serialize/resume execution state
+
+### BUG-NEW-N7: Async/Await ⏳ TODO
+- [ ] Implement async/await over generators
+- [ ] Add event loop
+- [ ] Handle `await expr` as `yield wait(expr)`
 
 ### Generator Functions (BUG-NEW-N4)
 
@@ -111,6 +188,8 @@ for n in fibonacci() |> take(10) {
 
 ## v1.3.2 - Standard Library Completion 📋 PLANNED
 
+**Audit reference:** BUG-NEW-M6, BUG-NEW-N1, BUG-NEW-N2, BUG-NEW-N5, BUG-NEW-N6, BUG-NEW-N8
+
 **Goal**: Complete stdlib for general-purpose programming
 
 ### Missing Builtins ⏳ TODO
@@ -125,11 +204,18 @@ for n in fibonacci() |> take(10) {
 - [ ] `zip` module - Zip file handling
 
 ### Collections ⏳ TODO
-- [ ] `Set` type - Unordered unique elements
+- [x] `Set` type - Unordered unique elements (BUG-NEW-M6)
 - [ ] `Deque` - Fast queue operations
 - [ ] `PriorityQueue` - Heap-based priority queue
 - [ ] `Tree` - Tree data structure
 - [ ] `Graph` - Graph data structure
+
+### Notable Bug Fixes ⏳ TODO
+- [ ] BUG-NEW-N1: **No access control enforcement** (`__field` name mangling)
+- [ ] BUG-NEW-N2: **No Ipp-level recursion limit** (add `max_depth` config)
+- [ ] BUG-NEW-N5: **Runtime errors lack column info** (add column tracking)
+- [ ] BUG-NEW-N6: **`__str__` not called by `print()`** (check for method)
+- [ ] BUG-NEW-N8: **IppList/native list inconsistency** (wrap all list returns)
 
 ### Networking ⏳ TODO
 - [ ] `http.server` - HTTP server
@@ -374,4 +460,4 @@ body.update(delta_time)
 
 ---
 
-*Last Updated: 2026-03-28 (v1.3.0 IN PROGRESS)*
+*Last Updated: 2026-03-29 (v1.3.0 DONE, v1.3.1-1.3.3 planned with bug mapping)*
