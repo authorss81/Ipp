@@ -180,50 +180,6 @@ for n in fibonacci() |> take(10) {
 
 ### Async/Await (BUG-NEW-N7)
 
-## v1.3.2 - Standard Library Completion 📋 PLANNED
-
-**Audit reference:** BUG-NEW-M6, BUG-NEW-N1, BUG-NEW-N2, BUG-NEW-N5, BUG-NEW-N6, BUG-NEW-N8
-
-**Goal**: Complete stdlib for general-purpose programming
-
-### Missing Builtins ⏳ TODO
-- [ ] `printf()` - Formatted output
-- [ ] `sprintf()` - Format to string
-- [ ] `scanf()` - Formatted input
-- [ ] `file_read()` / `file_write()` - Binary file ops
-- [ ] `regex` module - Full regex support
-- [ ] `xml` module - XML parsing
-- [ ] `yaml` module - YAML parsing
-- [ ] `toml` module - TOML parsing
-- [ ] `zip` module - Zip file handling
-
-### Collections ⏳ TODO
-- [x] `Set` type - Unordered unique elements (BUG-NEW-M6)
-- [ ] `Deque` - Fast queue operations
-- [ ] `PriorityQueue` - Heap-based priority queue
-- [ ] `Tree` - Tree data structure
-- [ ] `Graph` - Graph data structure
-
-### Notable Bug Fixes ⏳ TODO
-- [ ] BUG-NEW-N1: **No access control enforcement** (`__field` name mangling)
-- [ ] BUG-NEW-N2: **No Ipp-level recursion limit** (add `max_depth` config)
-- [ ] BUG-NEW-N5: **Runtime errors lack column info** (add column tracking)
-- [ ] BUG-NEW-N6: **`__str__` not called by `print()`** (check for method)
-- [ ] BUG-NEW-N8: **IppList/native list inconsistency** (wrap all list returns)
-
-### Networking ⏳ TODO
-- [ ] `http.server` - HTTP server
-- [ ] `websocket` - WebSocket client/server
-- [ ] `ftp` - FTP client
-- [ ] `smtp` - Email sending
-
-```bash
-ippkg install math-utils
-ippkg install game-physics@2.1.0
-ippkg publish my-library
-ippkg search collision
-```
-
 ## v1.3.3 - Game SDK Alpha 📋 PLANNED
 
 **Goal**: Alpha game development toolkit
@@ -419,10 +375,11 @@ body.update(delta_time)
 3. **Examples Repository** - github.com/ipp-lang/examples
 4. **Website** - MkDocs + GitHub Pages (FREE)
 
-### Phase 3: Standard Library (v1.3.2)
-1. **Missing Builtins** - File I/O, regex, networking
-2. **Collection Types** - Set, deque, priority queue
-3. **Data Formats** - JSON, XML, YAML, TOML parsers
+### Phase 3: Standard Library (v1.3.2) ✅ DONE (Set type)
+- [x] `Set` type - Unordered unique elements (BUG-NEW-M6) ✅
+- [ ] Missing Builtins - File I/O, regex, networking
+- [ ] Collection Types - Deque, priority queue, tree, graph
+- [ ] Data Formats - JSON, XML, YAML, TOML parsers
 
 ### Phase 4: Game SDK (v1.3.3)
 1. **Math Library** - vec2, vec3, mat4, quat

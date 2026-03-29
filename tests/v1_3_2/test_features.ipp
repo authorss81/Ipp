@@ -32,9 +32,9 @@ func make_pair() {
 
 var pair = make_pair()
 var get = pair[0]
-var set = pair[1]
+var setter = pair[1]
 print(get())       # expected: 10
-set(99)
+setter(99)
 print(get())       # expected: 99
 
 # Test 3: Nested closures (transitive upvalue capture)

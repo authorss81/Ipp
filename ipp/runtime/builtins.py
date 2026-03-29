@@ -42,8 +42,6 @@ def ipp_len(obj):
         return len(obj)
     if hasattr(obj, 'elements'):
         return len(obj.elements)
-    if hasattr(obj, '_data') and hasattr(obj, 'add'):   # IppSet (FIX BUG-NEW-M6)
-        return len(obj._data)
     if hasattr(obj, 'data'):
         return len(obj.data)
     if hasattr(obj, '__len__'):
@@ -70,7 +68,7 @@ def ipp_type(obj):
         return "dict"
     if hasattr(obj, 'data'):
         return "dict"
-    if hasattr(obj, '_data') and hasattr(obj, 'add'):   # IppSet (FIX BUG-NEW-M6)
+    if hasattr(obj, '_items'):
         return "set"
     if isinstance(obj, Vector2):
         return "vec2"
@@ -80,27 +78,11 @@ def ipp_type(obj):
         return "color"
     if isinstance(obj, Rect):
         return "rect"
+    if hasattr(obj, 'ipp_class'):
+        return "instance"
     if callable(obj):
         return "function"
     return "unknown"
-
-
-def ipp_set(*args):
-    """FIX BUG-NEW-M6 — set([iterable]) → IppSet.
-
-    Called as set() → empty set, or set(list) → set from list.
-    """
-    from ipp.interpreter.interpreter import IppSet, IppList
-    if not args:
-        return IppSet()
-    iterable = args[0]
-    if isinstance(iterable, IppList):
-        return IppSet(iterable.elements)
-    if isinstance(iterable, IppSet):
-        return IppSet(iterable._data.copy())
-    if isinstance(iterable, (list, tuple, set, str)):
-        return IppSet(iterable)
-    raise RuntimeError(f"set() argument must be iterable, got {type(iterable).__name__}")
 
 
 def ipp_to_number(value):
@@ -324,9 +306,8 @@ def ipp_str(s):
         return "nil"
     if isinstance(s, bool):
         return "true" if s else "false"
-    from ..interpreter.interpreter import IppInstance
-    if isinstance(s, IppInstance):
-        return s.__str__()
+    if hasattr(s, 'ipp_class'):
+        return f"<{s.ipp_class.name} instance>"
     return str(s)
 
 
@@ -799,6 +780,17 @@ def ipp_mkdir(path):
         return True
     except Exception as e:
         raise RuntimeError(f"Cannot create directory: {e}")
+
+
+def ipp_set(items=None):
+    from ipp.interpreter.interpreter import IppSet, IppList
+    if items is None:
+        return IppSet()
+    if isinstance(items, IppList):
+        return IppSet(items.elements)
+    if isinstance(items, list):
+        return IppSet(items)
+    return IppSet([items])
 
 
 def ipp_time():
@@ -1782,7 +1774,6 @@ BUILTINS = {
     "print": ipp_print,
     "len": ipp_len,
     "type": ipp_type,
-    "set": ipp_set,          # FIX BUG-NEW-M6 — Set type
     "to_number": ipp_to_number,
     "to_string": ipp_to_string,
     "to_int": ipp_to_int,
@@ -1792,6 +1783,7 @@ BUILTINS = {
     "int": ipp_int,
     "float": ipp_float,
     "bool": ipp_bool,
+    "set": ipp_set,
     "abs": ipp_abs,
     "min": ipp_min,
     "max": ipp_max,

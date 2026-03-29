@@ -42,6 +42,28 @@ class IppInstance:
         return f"<{self.ipp_class.name} instance>"
     
     def __str__(self):
+        str_method = self.ipp_class.get_method('__str__')
+        if str_method:
+            new_env = Environment(str_method.closure)
+            new_env.define("self", self, constant=False)
+            interp = _ipp_get_interpreter()
+            if interp:
+                old_env = interp.environment
+                old_return = interp.return_value
+                interp.environment = new_env
+                interp.return_value = None
+                result = None
+                for stmt in str_method.body:
+                    stmt.accept(interp)
+                    if interp.return_value is not None:
+                        result = interp.return_value
+                        break
+                interp.environment = old_env
+                interp.return_value = old_return
+                if result is not None:
+                    if hasattr(result, 'ipp_class'):
+                        return f"<{result.ipp_class.name} instance>"
+                    return str(result)
         return f"<{self.ipp_class.name} instance>"
     
     def get(self, name: str):
@@ -219,82 +241,83 @@ class IppDict:
 
 
 class IppSet:
-    """FIX BUG-NEW-M6 — Unordered collection of unique values.
-
-    Mirrors the IppList/IppDict API style: thin wrapper around a Python set
-    with Ipp-friendly method names.
-    """
-
-    def __init__(self, elements=None):
-        if elements is None:
-            self._data: set = set()
-        elif isinstance(elements, set):
-            self._data = elements
-        else:
-            self._data = set(elements)
-
-    # ── dunder helpers ────────────────────────────────────────────────────────
-
+    def __init__(self, items: Optional[List[Any]] = None):
+        self._items = set()
+        if items:
+            for item in items:
+                self._items.add(self._hashable(item))
+    
+    def _hashable(self, item):
+        if isinstance(item, IppList):
+            return tuple(self._hashable(e) for e in item.elements)
+        if isinstance(item, IppDict):
+            return tuple(sorted((self._hashable(k), self._hashable(v)) for k, v in item.data.items()))
+        if isinstance(item, IppSet):
+            return frozenset(self._hashable(e) for e in item._items)
+        return item
+    
+    def _unhashable(self, item):
+        if isinstance(item, tuple):
+            return IppList(list(item))
+        if isinstance(item, frozenset):
+            return IppSet(list(item))
+        return item
+    
     def __repr__(self):
-        if not self._data:
-            return "set()"
-        items = ", ".join(repr(e) for e in sorted(self._data, key=str))
-        return "{" + items + "}"
-
-    def __str__(self):
-        return self.__repr__()
-
+        return "{" + ", ".join(str(self._unhashable(e)) for e in self._items) + "}"
+    
     def __len__(self):
-        return len(self._data)
-
-    def __iter__(self):
-        return iter(self._data)
-
-    def __contains__(self, item):
-        return item in self._data
-
-    # ── Ipp-callable methods ──────────────────────────────────────────────────
-
+        return len(self._items)
+    
     def add(self, item):
-        self._data.add(item)
-
+        self._items.add(self._hashable(item))
+    
     def remove(self, item):
-        self._data.discard(item)   # discard = remove without raising on missing
-
+        h = self._hashable(item)
+        if h in self._items:
+            self._items.remove(h)
+    
     def contains(self, item):
-        return item in self._data
-
+        return self._hashable(item) in self._items
+    
     def len(self):
-        return len(self._data)
-
+        return len(self._items)
+    
     def clear(self):
-        self._data.clear()
-
-    def to_list(self):
-        from ipp.interpreter.interpreter import IppList
-        return IppList(list(self._data))
-
-    # ── Set algebra ───────────────────────────────────────────────────────────
-
+        self._items = set()
+    
     def union(self, other):
-        other_set = other._data if isinstance(other, IppSet) else set(other)
-        return IppSet(self._data | other_set)
-
+        result = IppSet()
+        result._items = self._items.copy()
+        if isinstance(other, IppSet):
+            result._items |= other._items
+        elif isinstance(other, list):
+            for item in other:
+                result._items.add(self._hashable(item))
+        return result
+    
     def intersection(self, other):
-        other_set = other._data if isinstance(other, IppSet) else set(other)
-        return IppSet(self._data & other_set)
-
+        result = IppSet()
+        if isinstance(other, IppSet):
+            result._items = self._items & other._items
+        return result
+    
     def difference(self, other):
-        other_set = other._data if isinstance(other, IppSet) else set(other)
-        return IppSet(self._data - other_set)
-
+        result = IppSet()
+        if isinstance(other, IppSet):
+            result._items = self._items - other._items
+        return result
+    
     def is_subset(self, other):
-        other_set = other._data if isinstance(other, IppSet) else set(other)
-        return self._data <= other_set
-
+        other_items = other._items if isinstance(other, IppSet) else set(other)
+        return self._items <= other_items
+    
     def is_superset(self, other):
-        other_set = other._data if isinstance(other, IppSet) else set(other)
-        return self._data >= other_set
+        other_items = other._items if isinstance(other, IppSet) else set(other)
+        return self._items >= other_items
+
+
+class Environment:
     def __init__(self, parent: Optional['Environment'] = None):
         self.values: Dict[str, Any] = {}
         self.parent = parent
@@ -621,8 +644,6 @@ class Interpreter:
         if isinstance(obj, IppList):
             return getattr(obj, node.name)
         if isinstance(obj, IppDict):
-            return getattr(obj, node.name)
-        if isinstance(obj, IppSet):
             return getattr(obj, node.name)
         if hasattr(obj, node.name):
             return getattr(obj, node.name)
@@ -1139,9 +1160,19 @@ class Interpreter:
         return result
 
 
+_ipp_current_interpreter = None
+
+def _ipp_set_interpreter(interp):
+    global _ipp_current_interpreter
+    _ipp_current_interpreter = interp
+
+def _ipp_get_interpreter():
+    return _ipp_current_interpreter
+
 def interpret(program: Program, current_file: str = None) -> Any:
     interpreter = Interpreter()
     if current_file:
         interpreter.current_file = current_file
+    _ipp_set_interpreter(interpreter)
     interpreter.run(program)
     return interpreter.return_value
