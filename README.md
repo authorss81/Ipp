@@ -27,7 +27,7 @@ Ipp is a dynamically-typed, interpreted scripting language designed to feel like
 
 ```bash
 # Clone your repo
-git clone (https://github.com/authorss81/Ipp)
+git clone https://github.com/authorss81/Ipp
 cd Ipp
 
 # Run a script
