@@ -854,9 +854,9 @@ class Compiler:
         self.chunk.lines.append(self.current_line)
 
     def compile_set(self, node: SetExpr):
+        # FIX: removed DUP — SET_PROPERTY pops both value and obj cleanly
         self.compile_expr(node.object)
         self.compile_expr(node.value)
-        self.chunk.write(OpCode.DUP, self.current_line)
         self.compile_set_property(node.name)
 
     def compile_list(self, node: ListLiteral):
