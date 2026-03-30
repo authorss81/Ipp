@@ -79,7 +79,7 @@ class InlineCache:
 
 
 class VMFrame:
-    __slots__ = ('chunk', 'closure', 'function', 'ip', 'stack_base')
+    __slots__ = ('chunk', 'closure', 'function', 'ip', 'stack_base', '_method_instance')
 
     def __init__(self, chunk: Chunk, closure=None, function=None, stack_base: int = 0):
         self.chunk = chunk
