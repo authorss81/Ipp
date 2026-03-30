@@ -6,7 +6,7 @@
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/bugs_fixed-57-brightgreen.svg" alt="Bugs Fixed">
-<img src="https://img.shields.io/badge/tests-passing-success.svg" alt="Tests">
+<img src="https://img.shields.io/badge/status-class_fix_in_progress-yellow.svg" alt="Status">
 
 **A beginner-friendly scripting language for game development.**  
 Python-like syntax · Closures · Classes with Inheritance · Pattern Matching · Bytecode VM
@@ -383,7 +383,7 @@ print(PI)
 - **`with` statement**: resource cleanup was a stub — implemented
 - **`self` in methods**: was broken in certain call paths — fixed
 
-See `IPP_FULL_AUDIT.md` for the complete list of all 57 bugs with exact file/line references.
+See [AUDIT.md](AUDIT.md) for the complete list of all bugs and roadmap.
 
 ---
 

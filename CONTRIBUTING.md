@@ -26,9 +26,9 @@ Ipp/
 ├── ipp/
 │   ├── lexer/         # Tokenizer
 │   ├── parser/        # Parser & AST
-│   ├── interpreter/   # Interpreter
+│   ├── interpreter/   # Tree-walking interpreter
 │   ├── runtime/       # Built-in functions
-│   └── vm/            # Bytecode VM (future)
+│   └── vm/            # Bytecode VM (primary)
 ├── examples/          # Example scripts
 ├── tests/             # Test files
 └── main.py           # Entry point
@@ -41,6 +41,12 @@ Ipp/
 python main.py examples/hello_world.ipp
 python main.py examples/functions.ipp
 python main.py examples/class_example.ipp
+
+# Run regression tests
+python tests/regression.py
+
+# Run feature tests
+python main.py tests/v1_3_2/test_features.ipp
 ```
 
 ## Code Style
@@ -52,11 +58,12 @@ python main.py examples/class_example.ipp
 
 ## Adding Features
 
-1. **Lexer** - Add new tokens in `lexer/token.py`
-2. **Parser** - Add parsing in `parser/parser.py`
-3. **AST** - Define nodes in `parser/ast.py`
-4. **Interpreter** - Add evaluation in `interpreter/interpreter.py`
-5. **Built-ins** - Add functions in `runtime/builtins.py`
+1. **Lexer** - Add new tokens in `ipp/lexer/token.py`
+2. **Parser** - Add parsing in `ipp/parser/parser.py`
+3. **AST** - Define nodes in `ipp/parser/ast.py`
+4. **VM** - Add bytecode opcodes in `ipp/vm/vm.py` and compiler in `ipp/vm/compiler.py`
+5. **Interpreter** - Add evaluation in `ipp/interpreter/interpreter.py`
+6. **Built-ins** - Add functions in `ipp/runtime/builtins.py`
 
 ## Submitting Changes
 

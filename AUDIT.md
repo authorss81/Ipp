@@ -1072,55 +1072,23 @@ Ordered by severity × frequency of impact:
 
 *Supplement audit completed: 2026-03-28 | v1.3.0*
 *v1.3.1 completed: 2026-03-29 - Critical bugs fixed*
-*v1.3.2 completed: 2026-03-29 - VM upvalues + Set type*
+*v1.3.2 in progress: 2026-03-30 - VM upvalues + Set type + partial fixes*
 *Total new issues found: 20 (3 critical, 7 major, 10 notable)*
 
 ---
 
-# v1.3.2 Bug Fix Release (v1.3.2-bugfix)
+## v1.3.2 Current Status
 
-## Release: https://github.com/authorss81/Ipp/releases/tag/v1.3.2-bugfix
+**Release:** https://github.com/authorss81/Ipp/releases/tag/v1.3.2-bugfix
 
-### PARTIAL FIXES (Need Completion)
-1. **arg_idx in interpreter.py** - Parameter index calculation (interpreter only)
-2. **__str__ in vm.py** - Partial __str__ implementation (incomplete)
-3. **current_class tracking in interpreter.py** - For private field detection (interpreter only)
+### Fixed ✅
+- VM upvalues by reference (BUG-NEW-M5)
+- Set data type (BUG-NEW-M6)
+- arg_idx calculation in interpreter
+- Recursion depth tracking in VM
+- Private field protection in VM (partial)
+- __str__ method support in VM (partial)
 
-### BUGS STILL NEEDING FIX (CRITICAL)
-
-#### 1. v1.1.0 Test Bug: Class Instantiation BROKEN
-- **Priority:** HIGHEST - Everything depends on this
-- **File:** `ipp/vm/compiler.py` lines 856-860
-- **Issue:** `compile_set` emits wrong bytecode (DUPs wrong value)
-- **Impact:** ALL class features broken (methods, properties, operator overloading)
-
-#### 2. BUG-N1: Private Member Name Mangling (VM)
-- **Priority:** HIGH - Security feature
-- **File:** `ipp/vm/vm.py` IppInstance class
-- **Issue:** Implemented in interpreter but NOT in VM
-- **Impact:** Private fields accessible externally in VM
-
-#### 3. BUG-N2: Recursion Limit (VM)
-- **Priority:** MEDIUM - Stability
-- **File:** `ipp/vm/vm.py` VM class
-- **Issue:** Implemented in interpreter but NOT in VM
-- **Impact:** Infinite recursion crashes Python
-
-#### 4. BUG-N6: __str__ Method (VM)
-- **Priority:** MEDIUM - Usability
-- **File:** `ipp/vm/vm.py` IppInstance class
-- **Issue:** Partial implementation, _call_ipp_method incomplete
-- **Impact:** print() doesn't call __str__ on user classes
-
-### Instructions
-See `BUGFIX_INSTRUCTIONS.md` for detailed fix instructions.
-
-### Test Files
-- `test_vec2.ipp` - Reproduction case for class instantiation
-- `tests/v1_3_2/test_features.ipp` - Create this with all test cases
-
-### Fix Instructions
-See `BUGFIX_INSTRUCTIONS.md` for detailed instructions.
-
-### Test File
-- `test_vec2.ipp` - Reproduction case for class instantiation bug
+### Needs Fix ⚠️
+- **Class instantiation** - Property assignment pushes extra value on stack
+- See `BUGFIX_INSTRUCTIONS.md` for details
