@@ -61,6 +61,8 @@ class IppInstance:
                 interp.environment = old_env
                 interp.return_value = old_return
                 if result is not None:
+                    # FIX BUG-N6: return the actual string, not a fallback
+                    return str(result)
                     if hasattr(result, 'ipp_class'):
                         return f"<{result.ipp_class.name} instance>"
         return f"<{self.ipp_class.name} instance>"
@@ -601,6 +603,8 @@ class Interpreter:
             
             for i in range(param_start, num_params):
                 param = func.parameters[i]
+                # FIX: args[0]=self, args[1]=first user param, ... so index directly by i
+                arg_idx = i
                 arg_idx = i - param_start
                 
                 if arg_idx < num_args:

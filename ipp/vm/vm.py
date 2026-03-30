@@ -172,9 +172,17 @@ class IppInstance:
     def __init__(self, cls: IppClass):
         self.cls = cls
         self.fields: Dict[str, Any] = {}
+        # tracks which class context we're currently inside (set by VM during method calls)
+        self._current_class: Optional['IppClass'] = None
+
+    def _is_private(self, name: str) -> bool:
+        return name.startswith('__') and not name.endswith('__')
 
     def get(self, name: str) -> Any:
         if name in self.fields:
+            # FIX BUG-N1: block external access to __ private fields
+            if self._is_private(name) and self._current_class is None:
+                raise VMError(f"Cannot access private field '{name}' from outside class '{self.cls.name}'")
             return self.fields[name]
         method = self.cls.get_method(name)
         if method is not None:
@@ -183,12 +191,16 @@ class IppInstance:
         raise VMError(f"Undefined property '{name}' on {self.cls.name}")
 
     def set(self, name: str, value: Any):
+        # FIX BUG-N1: block external writes to __ private fields
+        if self._is_private(name) and self._current_class is None:
+            raise VMError(f"Cannot set private field '{name}' from outside class '{self.cls.name}'")
         self.fields[name] = value
 
     def __repr__(self):
         return f"<{self.cls.name} instance>"
 
     def __str__(self):
+        # FIX BUG-N6: call user-defined __str__ if it exists
         str_method = self.cls.get_method('__str__')
         if str_method:
             return _call_ipp_method(self, str_method)
@@ -196,6 +208,42 @@ class IppInstance:
 
 
 def _call_ipp_method(instance: IppInstance, method) -> Any:
+    """Helper to call an Ipp method from Python context (e.g. __str__).
+    FIX BUG-N6: must push instance as self and capture the return value."""
+    from ipp.vm.vm import VM, Chunk, Closure, IppFunction
+    if isinstance(method, Chunk):
+        chunk = method
+        closure = None
+    elif isinstance(method, Closure):
+        chunk = method.chunk
+        closure = method
+    elif isinstance(method, IppFunction):
+        chunk = method.chunk if method.chunk else None
+        closure = None
+    else:
+        return f"<{instance.cls.name} instance>"
+
+    if chunk is None:
+        return f"<{instance.cls.name} instance>"
+
+    # Create a minimal VM with builtins, push self as slot 0, run
+    vm = VM()
+    # mark instance as inside its own class so private fields work
+    instance._current_class = instance.cls
+    base = len(vm.stack)
+    vm.stack.append(instance)   # slot 0 = self
+    frame = VMFrame(chunk, closure=closure, function=method, stack_base=base)
+    vm.frames.append(frame)
+    try:
+        vm.run()
+        result = vm._return_value
+        if result is None and vm.stack:
+            result = vm.stack[-1]
+    except Exception:
+        result = f"<{instance.cls.name} instance>"
+    finally:
+        instance._current_class = None
+    return result if result is not None else f"<{instance.cls.name} instance>"
     """Helper to call an Ipp method from Python code."""
     from ipp.vm.vm import VM, Chunk, Closure, IppFunction
     vm = VM()
@@ -261,6 +309,9 @@ class VM:
         self._return_value = None
         self.call_count = 0
         self.instruction_count = 0
+        # FIX BUG-N2: recursion depth tracking
+        self.call_depth = 0
+        self.max_depth = 1000
 
         # FIX: BUG-M5 — inline caches use _MISS sentinel
         self._global_cache = InlineCache(max_size=2048)
@@ -318,6 +369,9 @@ class VM:
                 parts.append("true" if a else "false")
             elif isinstance(a, float) and a.is_integer():
                 parts.append(str(int(a)))
+            elif isinstance(a, IppInstance):
+                # FIX BUG-N6: call user-defined __str__ via Python str() which triggers __str__
+                parts.append(str(a))
             else:
                 parts.append(str(a))
         print(" ".join(parts))
@@ -436,6 +490,12 @@ class VM:
                 ret_val = self.stack.pop() if self.stack else None
                 # FIX BUG-NEW-M5: close any upvalues still open in the returning frame
                 self._close_frame_upvalues(frame)
+                # FIX BUG-N1: clear private-access flag when leaving a method
+                if hasattr(frame, '_method_instance') and frame._method_instance is not None:
+                    frame._method_instance._current_class = None
+                # FIX BUG-N2: decrement call depth on return
+                if self.call_depth > 0:
+                    self.call_depth -= 1
                 self.frames.pop()
                 if self.frames:
                     self.stack.append(ret_val)
@@ -647,13 +707,15 @@ class VM:
             idx = code[ip + 1]
             name = constants[idx]
             value = self.stack.pop()
-            obj = self.stack[-1]
+            # FIX: pop obj too — compile_set no longer emits DUP
+            obj = self.stack.pop()
             if isinstance(obj, IppInstance):
                 obj.set(name, value)
             elif isinstance(obj, dict):
                 obj[name] = value
             else:
                 setattr(obj, name, value)
+            # property assignment is a statement — push nothing
 
         elif opcode == OpCode.GET_SUPER:
             idx = code[ip + 1]
@@ -1107,6 +1169,12 @@ class VM:
             self.stack.append(result)
             return
 
+        # FIX BUG-N2: recursion depth check for non-builtin calls
+        self.call_depth += 1
+        if self.call_depth > self.max_depth:
+            self.call_depth -= 1
+            raise VMError(f"Maximum recursion depth ({self.max_depth}) exceeded")
+
         if isinstance(callee, BoundMethod):
             self._call_method(callee.instance, callee.method, args, return_frame)
             return
@@ -1151,6 +1219,11 @@ class VM:
 
     def _call_method(self, instance: IppInstance, method, args, return_frame):
         """Call a method with self as first arg. FIX: BUG-V8."""
+        # FIX BUG-N2: recursion depth check
+        self.call_depth += 1
+        if self.call_depth > self.max_depth:
+            self.call_depth -= 1
+            raise VMError(f"Maximum recursion depth ({self.max_depth}) exceeded")
         if isinstance(method, Chunk):
             chunk = method
             closure = None
@@ -1167,6 +1240,9 @@ class VM:
             self.stack.append(None)
             return
 
+        # FIX: BUG-N1 — mark instance as being accessed from inside its own class
+        instance._current_class = instance.cls
+
         # FIX: BUG-M7 — push self + args onto stack
         base = len(self.stack)
         self.stack.append(instance)   # slot 0 = self
@@ -1174,6 +1250,8 @@ class VM:
             self.stack.append(a)
 
         new_frame = VMFrame(chunk, closure=closure, function=method, stack_base=base)
+        # Store instance on frame so RETURN_VAL can clear _current_class
+        new_frame._method_instance = instance
         self.frames.append(new_frame)
 
     def _is_truthy(self, value) -> bool:

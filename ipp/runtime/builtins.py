@@ -29,6 +29,9 @@ def ipp_print(*args):
             output.append(str(arg))
         elif isinstance(arg, (list, tuple)):
             output.append(str(arg))
+        elif hasattr(arg, 'ipp_class') or hasattr(arg, 'cls'):
+            # FIX BUG-N6: call __str__ on user-defined class instances
+            output.append(str(arg))
         elif hasattr(arg, '__dict__'):
             output.append(str(arg))
         else:
@@ -306,6 +309,7 @@ def ipp_str(s):
         return "nil"
     if isinstance(s, bool):
         return "true" if s else "false"
+    # FIX BUG-N6: call str() which triggers __str__ on IppInstance
     if hasattr(s, 'ipp_class'):
         return f"<{s.ipp_class.name} instance>"
     return str(s)
