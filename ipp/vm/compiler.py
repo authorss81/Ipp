@@ -1,6 +1,6 @@
 from ..parser.ast import *
 from .bytecode import Chunk, OpCode, opcode_size
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 
 class CompilerError(Exception):
@@ -16,7 +16,26 @@ class Local:
         self.name = name
         self.depth = depth
         self.is_const = is_const
-        self.is_captured = False
+        self.is_captured = False  # True when a nested function captures this local
+
+
+class FunctionProto:
+    """Wraps a compiled Chunk together with its upvalue descriptors.
+
+    Each descriptor is (is_local: bool, index: int):
+      - is_local=True  → capture slot `index` from the enclosing frame's locals
+      - is_local=False → inherit upvalue `index` from the enclosing closure
+    """
+    __slots__ = ('chunk', 'upvalue_descs', 'name')
+
+    def __init__(self, chunk: Chunk, upvalue_descs: List[Tuple[bool, int]],
+                 name: str = '<fn>'):
+        self.chunk = chunk
+        self.upvalue_descs = upvalue_descs
+        self.name = name
+
+    def __repr__(self):
+        return f"<proto {self.name} upvalues={self.upvalue_descs}>"
 
 
 class Compiler:
@@ -27,6 +46,8 @@ class Compiler:
         self.loop_stack: List[Dict] = []
         self.current_line = 0
         self.parent = parent
+        # FIX BUG-NEW-M5: upvalue descriptors collected while compiling this function
+        self.upvalues: List[Tuple[bool, int]] = []
 
     def error(self, msg: str):
         raise CompilerError(f"Compile error at line {self.current_line}: {msg}")
@@ -35,14 +56,47 @@ class Compiler:
         self.depth += 1
 
     def pop_scope(self):
-        # emit POP for every local at this depth
-        count = 0
+        """Emit POP or CLOSE_UPVALUE for every local leaving scope."""
+        # Collect locals at current depth (deepest first)
+        leaving: List[Local] = []
         while self.locals and self.locals[-1].depth == self.depth:
-            self.locals.pop()
-            count += 1
+            leaving.append(self.locals.pop())
         self.depth -= 1
-        for _ in range(count):
-            self.chunk.write(OpCode.POP, self.current_line)
+        # Emit cleanup for each leaving local (they're already removed from self.locals)
+        for local in leaving:
+            if local.is_captured:
+                # FIX BUG-NEW-M5: close the upvalue cell rather than discarding the value
+                self.chunk.write(OpCode.CLOSE_UPVALUE, self.current_line)
+            else:
+                self.chunk.write(OpCode.POP, self.current_line)
+
+    # ── Upvalue resolution (FIX BUG-NEW-M5) ─────────────────────────────────
+
+    def _add_upvalue(self, is_local: bool, index: int) -> int:
+        """Register an upvalue descriptor; return its index (dedup)."""
+        for i, (loc, idx) in enumerate(self.upvalues):
+            if loc == is_local and idx == index:
+                return i
+        self.upvalues.append((is_local, index))
+        return len(self.upvalues) - 1
+
+    def resolve_upvalue(self, name: str) -> Optional[int]:
+        """Walk the parent compiler chain looking for *name* as an upvalue.
+
+        Returns the upvalue slot index in *this* compiler, or None.
+        """
+        if self.parent is None:
+            return None
+        # Is it a local in the immediate parent?
+        idx = self.parent.resolve_local(name)
+        if idx is not None:
+            self.parent.locals[idx].is_captured = True
+            return self._add_upvalue(True, idx)   # capture from parent's stack
+        # Maybe it's already an upvalue in the parent (transitive capture)
+        idx = self.parent.resolve_upvalue(name)
+        if idx is not None:
+            return self._add_upvalue(False, idx)  # inherit from parent's closure
+        return None
 
     def define_local(self, name: str, is_const: bool = False) -> int:
         """Add local at current depth. Returns its slot index."""
@@ -156,8 +210,10 @@ class Compiler:
             sub.chunk.write(OpCode.RETURN_VAL, self.current_line)
 
         func_chunk = sub.chunk
+        # FIX BUG-NEW-M5: store FunctionProto so VM can capture upvalues at runtime
+        proto = FunctionProto(func_chunk, sub.upvalues, name=node.name)
         idx = len(self.chunk.constants)
-        self.chunk.constants.append(func_chunk)
+        self.chunk.constants.append(proto)
         self.chunk.write(OpCode.CLOSURE, self.current_line)
         self.chunk.write(idx, self.current_line)
 
@@ -198,14 +254,15 @@ class Compiler:
                     sub.chunk.write(OpCode.RETURN_VAL, self.current_line)
 
                 midx = len(self.chunk.constants)
-                self.chunk.constants.append(sub.chunk)
+                # FIX BUG-NEW-M5: store FunctionProto for method closures too
+                self.chunk.constants.append(FunctionProto(sub.chunk, sub.upvalues, name=method.name))
+                self.chunk.write(OpCode.CLOSURE, self.current_line)
+                self.chunk.write(midx, self.current_line)
                 self.chunk.write(OpCode.METHOD, self.current_line)
                 mnidx = len(self.chunk.constants)
                 self.chunk.constants.append(method.name)
                 self.chunk.write(mnidx, self.current_line)
                 self.chunk.lines.append(self.current_line)
-                self.chunk.write(OpCode.CLOSURE, self.current_line)
-                self.chunk.write(midx, self.current_line)
 
         self.chunk.write(OpCode.END_METHOD, self.current_line)
 
@@ -283,52 +340,99 @@ class Compiler:
 
     def compile_for(self, node: ForStmt):
         """
-        For loops iterate over a list.  We implement as:
+        For loops iterate over a list. Implementation:
           iter = <expr>           # push list
-          idx = 0                 # push counter
+          len_iter                # push length
+          idx = 0                 # push 0 as index
           [loop_start]
-          if idx >= len(iter): break
-          var = iter[idx]
-          idx += 1
+          DUP2                    # copy list and index for comparison
+          SWAP                    # put index on top
+          LOAD_CONST idx          # load index
+          SWAP                    # put len on top
+          GREATER_EQUAL           # idx >= len?
+          JUMP_IF_FALSE_POP break # if idx >= len, exit
+          DUP                     # duplicate list for indexing
+          LOAD_CONST idx          # load index
+          GET_INDEX               # list[idx]
+          <assign to var>
           <body>
+          LOAD_CONST idx          # load index
+          CONST 1
+          ADD                     # idx + 1
+          SET_LOCAL idx           # idx = idx + 1
           LOOP → loop_start
+          [break]
         """
         self.push_scope()
+        
+        # Push the iterator list
         self.compile_expr(node.iterator)
-
+        
+        # Get list length - we need to call the len() builtin
+        self.chunk.emit_get_global(self.chunk.add_constant("len"), self.current_line)
+        self.chunk.emit_call(1, self.current_line)  # len() takes 1 arg
+        
+        # Reserve local slot for index (will initialize to 0)
+        if node.variable:
+            self.define_local(node.variable)
+        index_slot = self.reserve_local("__for_index__")
+        
+        # Push 0 as initial index
+        self.chunk.emit_constant(self.chunk.add_constant(0), self.current_line)
+        self.chunk.emit_set_local(index_slot, self.current_line)
+        
         loop_start = len(self.chunk.code)
 
         self.loop_stack.append({
             'start': loop_start,
             'break_jumps': [],
-            'continue_target': None,   # will be set
+            'continue_target': None,
             'continue_jumps': [],
         })
 
-        # DUP iterator, check emptiness via JUMP_IF_FALSE_POP stub
-        # Simpler: use RANGE iteration — emit iter on stack and loop via python semantics
-        # For bytecode simplicity, emit the iterator once and rely on POP at end
-        # Use a basic approach: DUP the list, JUMP_IF_FALSE if empty
-        # Actually the cleanest approach: we push the list, push index 0 as a local,
-        # then each iteration increment index and check vs len.
-        # For now emit a simplified "for each" using GET_INDEX pattern:
-        # stack: [iterator_list]  — we walk it with a hidden index counter
+        # Duplicate list and index for bounds check
+        self.chunk.emit(OpCode.DUP, self.current_line)      # stack: [list, len, idx, list]
+        self.chunk.emit(OpCode.DUP, self.current_line)      # stack: [list, len, idx, list, list]
+        self.chunk.emit(OpCode.SWAP, self.current_line)     # stack: [list, len, idx, list, list]
+        
+        # Load index
+        self.chunk.emit_constant(self.chunk.add_constant(index_slot), self.current_line)
+        self.chunk.emit_get_local(index_slot, self.current_line)
+        
+        # Compare: idx >= len
+        self.chunk.emit(OpCode.GREATER_EQUAL, self.current_line)
+        
+        # If idx >= len, jump to exit
+        break_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
 
-        # Emit a length check and loop body — keeping it simple
-        check_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
-
+        # Get list[index] and assign to loop variable
+        self.chunk.emit(OpCode.DUP, self.current_line)      # duplicate list
+        self.chunk.emit_get_local(index_slot, self.current_line)  # load index
+        self.chunk.emit(OpCode.GET_INDEX, self.current_line)
+        
         if node.variable:
-            self.define_local(node.variable)
+            self.chunk.emit(OpCode.SET_LOCAL, self.current_line)
+            self.chunk.emit(self.chunk.add_local(node.variable), self.current_line)
 
+        # Compile body
         for stmt in node.body:
             self.compile_stmt(stmt)
 
-        # continue lands here
+        # continue target: increment index and loop back
         continue_target = len(self.chunk.code)
         self.loop_stack[-1]['continue_target'] = continue_target
 
+        # Increment index: idx = idx + 1
+        self.chunk.emit_get_local(index_slot, self.current_line)
+        self.chunk.emit_constant(self.chunk.add_constant(1), self.current_line)
+        self.chunk.emit(OpCode.ADD, self.current_line)
+        self.chunk.emit_set_local(index_slot, self.current_line)
+        
+        # Loop back to start
         self.chunk.emit_loop(loop_start, self.current_line)
-        self.chunk.patch_jump(check_jump)
+        
+        # Patch the break jump
+        self.chunk.patch_jump(break_jump)
 
         loop_info = self.loop_stack.pop()
         for brk in loop_info['break_jumps']:
@@ -603,7 +707,8 @@ class Compiler:
                 sub.chunk.write(OpCode.NIL, 0)
                 sub.chunk.write(OpCode.RETURN_VAL, 0)
             idx = len(self.chunk.constants)
-            self.chunk.constants.append(sub.chunk)
+            # FIX BUG-NEW-M5: wrap lambda in FunctionProto for upvalue support
+            self.chunk.constants.append(FunctionProto(sub.chunk, sub.upvalues, name='__lambda__'))
             self.chunk.write(OpCode.CLOSURE, self.current_line)
             self.chunk.write(idx, self.current_line)
         elif isinstance(node, ListComprehension):
@@ -624,29 +729,41 @@ class Compiler:
             self.chunk.write(OpCode.SPREAD, self.current_line)
 
     def compile_identifier(self, name: str):
+        # FIX BUG-NEW-M5: check upvalue chain before falling back to globals
         idx = self.resolve_local(name)
         if idx is not None:
             self.chunk.write(OpCode.GET_LOCAL, self.current_line)
             self.chunk.write(idx, self.current_line)
-        else:
-            self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
-            cidx = len(self.chunk.constants)
-            self.chunk.constants.append(name)
-            self.chunk.write(cidx, self.current_line)
-            self.chunk.lines.append(self.current_line)
+            return
+        idx = self.resolve_upvalue(name)
+        if idx is not None:
+            self.chunk.write(OpCode.GET_UPVALUE, self.current_line)
+            self.chunk.write(idx, self.current_line)
+            return
+        self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
+        cidx = len(self.chunk.constants)
+        self.chunk.constants.append(name)
+        self.chunk.write(cidx, self.current_line)
+        self.chunk.lines.append(self.current_line)
 
     def compile_assign_name(self, name: str):
         """Assign TOS to a named variable (local or global)."""
+        # FIX BUG-NEW-M5: assign through upvalue cell when variable is captured
         idx = self.resolve_local(name)
         if idx is not None:
             self.chunk.write(OpCode.SET_LOCAL, self.current_line)
             self.chunk.write(idx, self.current_line)
-        else:
-            self.chunk.write(OpCode.SET_GLOBAL, self.current_line)
-            cidx = len(self.chunk.constants)
-            self.chunk.constants.append(name)
-            self.chunk.write(cidx, self.current_line)
-            self.chunk.lines.append(self.current_line)
+            return
+        idx = self.resolve_upvalue(name)
+        if idx is not None:
+            self.chunk.write(OpCode.SET_UPVALUE, self.current_line)
+            self.chunk.write(idx, self.current_line)
+            return
+        self.chunk.write(OpCode.SET_GLOBAL, self.current_line)
+        cidx = len(self.chunk.constants)
+        self.chunk.constants.append(name)
+        self.chunk.write(cidx, self.current_line)
+        self.chunk.lines.append(self.current_line)
 
     def compile_set_property(self, name: str):
         pidx = len(self.chunk.constants)
@@ -737,9 +854,9 @@ class Compiler:
         self.chunk.lines.append(self.current_line)
 
     def compile_set(self, node: SetExpr):
+        # FIX: removed DUP — SET_PROPERTY pops both value and obj cleanly
         self.compile_expr(node.object)
         self.compile_expr(node.value)
-        self.chunk.write(OpCode.DUP, self.current_line)
         self.compile_set_property(node.name)
 
     def compile_list(self, node: ListLiteral):

@@ -138,6 +138,7 @@ class ListLiteral(ASTNode):
 class LambdaExpr(ASTNode):
     parameters: List[str]
     body: List[ASTNode]
+    defaults: Optional[List[Optional['ASTNode']]] = None
     def accept(self, visitor): return visitor.visit_lambda_expr(self)
 
 @dataclass
@@ -215,6 +216,7 @@ class FunctionDecl(ASTNode):
     parameters: List[str]
     body: List[ASTNode]
     param_types: Optional[List[Optional[str]]] = None   # FIX: BUG-P3
+    defaults: Optional[List[Optional['ASTNode']]] = None  # Default values
     return_type: Optional[str] = None
     is_static: bool = False
     def accept(self, visitor): return visitor.visit_function_decl(self)

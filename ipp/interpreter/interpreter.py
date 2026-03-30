@@ -4,10 +4,11 @@ from ..runtime.builtins import BUILTINS
 
 
 class IppFunction:
-    def __init__(self, parameters: List[str], body: List[ASTNode], closure: 'Environment'):
+    def __init__(self, parameters: List[str], body: List[ASTNode], closure: 'Environment', defaults: Optional[List[ASTNode]] = None):
         self.parameters = parameters
         self.body = body
         self.closure = closure
+        self.defaults = defaults or []
         self.is_init = False
     
     def __repr__(self):
@@ -41,10 +42,42 @@ class IppInstance:
         return f"<{self.ipp_class.name} instance>"
     
     def __str__(self):
+        str_method = self.ipp_class.get_method('__str__')
+        if str_method:
+            new_env = Environment(str_method.closure)
+            new_env.define("self", self, constant=False)
+            interp = _ipp_get_interpreter()
+            if interp:
+                old_env = interp.environment
+                old_return = interp.return_value
+                interp.environment = new_env
+                interp.return_value = None
+                result = None
+                for stmt in str_method.body:
+                    stmt.accept(interp)
+                    if interp.return_value is not None:
+                        result = interp.return_value
+                        break
+                interp.environment = old_env
+                interp.return_value = old_return
+                if result is not None:
+                    # FIX BUG-N6: return the actual string, not a fallback
+                    return str(result)
         return f"<{self.ipp_class.name} instance>"
+    
+    def _is_private(self, name: str) -> bool:
+        return name.startswith('__')
+    
+    def _is_internal_access(self) -> bool:
+        interp = _ipp_get_interpreter()
+        if interp and hasattr(interp, 'current_class'):
+            return interp.current_class == self.ipp_class
+        return False
     
     def get(self, name: str):
         if name in self.fields:
+            if self._is_private(name) and not self._is_internal_access():
+                raise RuntimeError(f"Cannot access private field '{name}' from outside class '{self.ipp_class.name}'")
             return self.fields[name]
         method = self.ipp_class.get_method(name)
         if method:
@@ -52,6 +85,8 @@ class IppInstance:
         raise RuntimeError(f"Undefined property: {name}")
     
     def set(self, name: str, value: Any):
+        if self._is_private(name) and not self._is_internal_access():
+            raise RuntimeError(f"Cannot modify private field '{name}' from outside class '{self.ipp_class.name}'")
         self.fields[name] = value
 
 
@@ -217,6 +252,83 @@ class IppDict:
         self.data = {}
 
 
+class IppSet:
+    def __init__(self, items: Optional[List[Any]] = None):
+        self._items = set()
+        if items:
+            for item in items:
+                self._items.add(self._hashable(item))
+    
+    def _hashable(self, item):
+        if isinstance(item, IppList):
+            return tuple(self._hashable(e) for e in item.elements)
+        if isinstance(item, IppDict):
+            return tuple(sorted((self._hashable(k), self._hashable(v)) for k, v in item.data.items()))
+        if isinstance(item, IppSet):
+            return frozenset(self._hashable(e) for e in item._items)
+        return item
+    
+    def _unhashable(self, item):
+        if isinstance(item, tuple):
+            return IppList(list(item))
+        if isinstance(item, frozenset):
+            return IppSet(list(item))
+        return item
+    
+    def __repr__(self):
+        return "{" + ", ".join(str(self._unhashable(e)) for e in self._items) + "}"
+    
+    def __len__(self):
+        return len(self._items)
+    
+    def add(self, item):
+        self._items.add(self._hashable(item))
+    
+    def remove(self, item):
+        h = self._hashable(item)
+        if h in self._items:
+            self._items.remove(h)
+    
+    def contains(self, item):
+        return self._hashable(item) in self._items
+    
+    def len(self):
+        return len(self._items)
+    
+    def clear(self):
+        self._items = set()
+    
+    def union(self, other):
+        result = IppSet()
+        result._items = self._items.copy()
+        if isinstance(other, IppSet):
+            result._items |= other._items
+        elif isinstance(other, list):
+            for item in other:
+                result._items.add(self._hashable(item))
+        return result
+    
+    def intersection(self, other):
+        result = IppSet()
+        if isinstance(other, IppSet):
+            result._items = self._items & other._items
+        return result
+    
+    def difference(self, other):
+        result = IppSet()
+        if isinstance(other, IppSet):
+            result._items = self._items - other._items
+        return result
+    
+    def is_subset(self, other):
+        other_items = other._items if isinstance(other, IppSet) else set(other)
+        return self._items <= other_items
+    
+    def is_superset(self, other):
+        other_items = other._items if isinstance(other, IppSet) else set(other)
+        return self._items >= other_items
+
+
 class Environment:
     def __init__(self, parent: Optional['Environment'] = None):
         self.values: Dict[str, Any] = {}
@@ -249,8 +361,22 @@ class Environment:
         return name in self.values or (self.parent and self.parent.has(name))
 
 
+_ipp_current_interpreter = None
+
+
+def _ipp_set_interpreter(interp):
+    global _ipp_current_interpreter
+    _ipp_current_interpreter = interp
+
+
+def _ipp_get_interpreter():
+    return _ipp_current_interpreter
+
+
 class Interpreter:
-    def __init__(self):
+    def __init__(self, max_depth: int = 1000):
+        global _ipp_current_interpreter
+        _ipp_current_interpreter = self
         self.global_env = Environment()
         self.environment = self.global_env
         self.return_value = None
@@ -259,6 +385,9 @@ class Interpreter:
         self.continue_flag = False
         self.current_line = 0
         self.call_stack = []
+        self.call_depth = 0
+        self.max_depth = max_depth
+        self.current_class = None
         
         for name, func in BUILTINS.items():
             self.global_env.define(name, func, constant=False)
@@ -283,6 +412,7 @@ class Interpreter:
             print(f"Runtime error: {e}")
 
     def execute(self, stmt: ASTNode):
+        self.current_line = getattr(stmt, 'line', 0) or 0
         return stmt.accept(self)
 
     def visit_program(self, node: Program):
@@ -304,6 +434,7 @@ class Interpreter:
         return None
 
     def visit_identifier(self, node: Identifier):
+        self.current_line = getattr(node, 'line', 0) or 0
         return self.environment.get(node.name)
 
     def visit_assign_expr(self, node: AssignExpr):
@@ -315,6 +446,21 @@ class Interpreter:
         left = node.left.accept(self)
         right = node.right.accept(self)
         
+        def _ipp_has_method(obj, method_name):
+            """Check if IppInstance has a method (not Python's dunder methods)."""
+            if isinstance(obj, IppInstance):
+                method = obj.ipp_class.get_method(method_name)
+                return method is not None
+            return False
+        
+        def _ipp_call_method(obj, method_name, arg):
+            """Call an IppInstance method."""
+            method = obj.ipp_class.get_method(method_name)
+            if method:
+                bound = BoundMethod(obj, method)
+                return self.call_function(bound.method, [obj, arg])
+            raise RuntimeError(f"Undefined method: {method_name}")
+        
         if node.operator == "+":
             if isinstance(left, (int, float)) and isinstance(right, (int, float)):
                 return left + right
@@ -322,27 +468,51 @@ class Interpreter:
                 return left + right
             if isinstance(left, IppList) and isinstance(right, IppList):
                 return IppList(left.elements + right.elements)
-            if hasattr(left, '__add__'):
-                return left + right
-            return str(left) + str(right)
+            if _ipp_has_method(left, '__add__'):
+                return _ipp_call_method(left, '__add__', right)
+            if isinstance(left, (int, float, str)):
+                return str(left) + str(right)
+            return left + right
         elif node.operator == "-":
-            if hasattr(left, '__sub__'):
-                return left - right
+            if _ipp_has_method(left, '__sub__'):
+                return _ipp_call_method(left, '__sub__', right)
             return left - right
         elif node.operator == "*":
             if isinstance(left, (int, float)) and isinstance(right, (int, float)):
                 return left * right
-            if hasattr(left, '__mul__'):
-                return left * right
-            if hasattr(right, '__rmul__'):
-                return right * left
+            if _ipp_has_method(left, '__mul__'):
+                return _ipp_call_method(left, '__mul__', right)
             return left * right
         elif node.operator == "/":
             if right == 0:
                 raise RuntimeError("Division by zero")
-            if hasattr(left, '__truediv__'):
-                return left / right
+            if _ipp_has_method(left, '__truediv__'):
+                return _ipp_call_method(left, '__truediv__', right)
             return left / right
+        elif node.operator == "==":
+            if _ipp_has_method(left, '__eq__'):
+                return _ipp_call_method(left, '__eq__', right)
+            return left == right
+        elif node.operator == "!=":
+            if _ipp_has_method(left, '__ne__'):
+                return _ipp_call_method(left, '__ne__', right)
+            return left != right
+        elif node.operator == "<":
+            if _ipp_has_method(left, '__lt__'):
+                return _ipp_call_method(left, '__lt__', right)
+            return left < right
+        elif node.operator == ">":
+            if _ipp_has_method(left, '__gt__'):
+                return _ipp_call_method(left, '__gt__', right)
+            return left > right
+        elif node.operator == "<=":
+            if _ipp_has_method(left, '__le__'):
+                return _ipp_call_method(left, '__le__', right)
+            return left <= right
+        elif node.operator == ">=":
+            if _ipp_has_method(left, '__ge__'):
+                return _ipp_call_method(left, '__ge__', right)
+            return left >= right
         elif node.operator == "**":
             return left ** right
         elif node.operator == "%":
@@ -359,20 +529,7 @@ class Interpreter:
             return int(left) | int(right)
         elif node.operator == "^":
             return int(left) ^ int(right)
-        elif node.operator == "==":
-            return left == right
-        elif node.operator == "!=":
-            return left != right
-        elif node.operator == "<":
-            return left < right
-        elif node.operator == ">":
-            return left > right
-        elif node.operator == "<=":
-            return left <= right
-        elif node.operator == ">=":
-            return left >= right
         elif node.operator == "and":
-            # FIX: BUG-M3 proper short-circuit (already correct in interpreter; compiler fix needed for VM)
             return left if not bool(left) else right
         elif node.operator == "or":
             return left if bool(left) else right
@@ -418,36 +575,68 @@ class Interpreter:
         raise RuntimeError(f"Cannot call {type(callee)}")
 
     def call_function(self, func: IppFunction, args: List[Any]):
-        new_env = Environment(func.closure)
+        # FIX BUG-NEW-N2: Check recursion depth
+        self.call_depth += 1
+        if self.call_depth > self.max_depth:
+            self.call_depth -= 1
+            raise RuntimeError(f"Maximum recursion depth ({self.max_depth}) exceeded. Possible infinite recursion.")
+        
+        try:
+            new_env = Environment(func.closure)
 
-        instance = None
-        param_start = 0
-        if func.parameters and func.parameters[0] == "self":
-            if args and isinstance(args[0], IppInstance):
-                instance = args[0]
-                new_env.define("self", instance, constant=False)
-                param_start = 1
+            instance = None
+            param_start = 0
+            owning_class = None
+            if func.parameters and func.parameters[0] == "self":
+                if args and isinstance(args[0], IppInstance):
+                    instance = args[0]
+                    new_env.define("self", instance, constant=False)
+                    param_start = 1
+                    owning_class = instance.ipp_class
 
-        for param, arg in zip(func.parameters[param_start:], args[param_start:]):
-            new_env.define(param, arg)
+            # Fill in parameters with provided args, then defaults
+            defaults = getattr(func, 'defaults', None) or []
+            num_params = len(func.parameters)
+            num_args = len(args)
+            
+            for i in range(param_start, num_params):
+                param = func.parameters[i]
+                # FIX: args[0]=self, args[1]=first user param, ... so index directly by i
+                arg_idx = i
+                
+                if arg_idx < num_args:
+                    # Use provided argument
+                    new_env.define(param, args[arg_idx])
+                elif defaults and i < len(defaults) and defaults[i] is not None:
+                    # Use default value
+                    default_val = defaults[i].accept(self)
+                    new_env.define(param, default_val)
+                else:
+                    # No argument, no default - error
+                    raise RuntimeError(f"Missing required argument: {param}")
 
-        saved_env = self.environment
-        saved_return = self.return_value
-        saved_this = getattr(self, 'this_instance', None)
+            saved_env = self.environment
+            saved_return = self.return_value
+            saved_this = getattr(self, 'this_instance', None)
+            saved_class = getattr(self, 'current_class', None)
 
-        self.environment = new_env
-        self.return_value = None
-        self.this_instance = instance
+            self.environment = new_env
+            self.return_value = None
+            self.this_instance = instance
+            self.current_class = owning_class
 
-        for stmt in func.body:
-            stmt.accept(self)
-            if self.return_value is not None:
-                break
+            for stmt in func.body:
+                stmt.accept(self)
+                if self.return_value is not None:
+                    break
 
-        self.environment = saved_env
-        result = self.return_value
-        self.return_value = saved_return
-        self.this_instance = saved_this
+            self.environment = saved_env
+            result = self.return_value
+            self.return_value = saved_return
+            self.this_instance = saved_this
+            self.current_class = saved_class
+        finally:
+            self.call_depth -= 1
 
         return result
 
@@ -586,7 +775,8 @@ class Interpreter:
 
     def visit_lambda_expr(self, node: LambdaExpr):
         closure = Environment(self.environment)
-        return IppFunction(node.parameters, node.body, closure)
+        defaults = getattr(node, 'defaults', None) or []
+        return IppFunction(node.parameters, node.body, closure, defaults)
 
     def visit_conditional_expr(self, node: ConditionalExpr):
         condition = node.condition.accept(self)
@@ -709,7 +899,8 @@ class Interpreter:
 
     def visit_function_decl(self, node: FunctionDecl):
         closure = Environment(self.environment)
-        func = IppFunction(node.parameters, node.body, closure)
+        defaults = getattr(node, 'defaults', None) or []
+        func = IppFunction(node.parameters, node.body, closure, defaults)
         self.environment.define(node.name, func, constant=False)
 
     def visit_class_decl(self, node: ClassDecl):
@@ -723,12 +914,14 @@ class Interpreter:
         for method_node in node.methods:
             closure = Environment(self.environment)
             params = method_node.parameters
+            defaults = getattr(method_node, 'defaults', None) or []
             # ALL methods get 'self' as first param (not just init)
             if params and params[0] == "self":
                 pass  # already has self
             else:
                 params = ["self"] + list(params)
-            func = IppFunction(params, method_node.body, closure)
+                defaults = [None] + list(defaults)  # self has no default
+            func = IppFunction(params, method_node.body, closure, defaults)
             if method_node.name == "init":
                 func.is_init = True
             methods[method_node.name] = func
@@ -1015,5 +1208,7 @@ def interpret(program: Program, current_file: str = None) -> Any:
     interpreter = Interpreter()
     if current_file:
         interpreter.current_file = current_file
+    interpreter.run(program)
+    return interpreter.return_value
     interpreter.run(program)
     return interpreter.return_value

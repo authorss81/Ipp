@@ -29,6 +29,9 @@ def ipp_print(*args):
             output.append(str(arg))
         elif isinstance(arg, (list, tuple)):
             output.append(str(arg))
+        elif hasattr(arg, 'ipp_class') or hasattr(arg, 'cls'):
+            # FIX BUG-N6: call __str__ on user-defined class instances
+            output.append(str(arg))
         elif hasattr(arg, '__dict__'):
             output.append(str(arg))
         else:
@@ -55,9 +58,9 @@ def ipp_type(obj):
     if isinstance(obj, bool):
         return "bool"
     if isinstance(obj, int):
-        return "number"
+        return "int"
     if isinstance(obj, float):
-        return "number"
+        return "float"
     if isinstance(obj, str):
         return "string"
     if isinstance(obj, (list, tuple)):
@@ -68,6 +71,8 @@ def ipp_type(obj):
         return "dict"
     if hasattr(obj, 'data'):
         return "dict"
+    if hasattr(obj, '_items'):
+        return "set"
     if isinstance(obj, Vector2):
         return "vec2"
     if isinstance(obj, Vector3):
@@ -76,6 +81,8 @@ def ipp_type(obj):
         return "color"
     if isinstance(obj, Rect):
         return "rect"
+    if hasattr(obj, 'ipp_class'):
+        return "instance"
     if callable(obj):
         return "function"
     return "unknown"
@@ -302,9 +309,7 @@ def ipp_str(s):
         return "nil"
     if isinstance(s, bool):
         return "true" if s else "false"
-    from ..interpreter.interpreter import IppInstance
-    if isinstance(s, IppInstance):
-        return s.__str__()
+    # FIX BUG-N6: call str() which triggers __str__ on IppInstance
     return str(s)
 
 
@@ -777,6 +782,17 @@ def ipp_mkdir(path):
         return True
     except Exception as e:
         raise RuntimeError(f"Cannot create directory: {e}")
+
+
+def ipp_set(items=None):
+    from ipp.interpreter.interpreter import IppSet, IppList
+    if items is None:
+        return IppSet()
+    if isinstance(items, IppList):
+        return IppSet(items.elements)
+    if isinstance(items, list):
+        return IppSet(items)
+    return IppSet([items])
 
 
 def ipp_time():
@@ -1769,6 +1785,7 @@ BUILTINS = {
     "int": ipp_int,
     "float": ipp_float,
     "bool": ipp_bool,
+    "set": ipp_set,
     "abs": ipp_abs,
     "min": ipp_min,
     "max": ipp_max,

@@ -145,6 +145,7 @@ class Parser:
         self.consume(TokenType.LEFT_PAREN, "Expect '(' after function name")
         parameters = []
         param_types = []
+        defaults = []
 
         if not self.check(TokenType.RIGHT_PAREN):
             self.skip_newlines()
@@ -156,6 +157,11 @@ class Parser:
                 if self.match(TokenType.COLON):
                     pt = self._parse_type()
                 param_types.append(pt)
+                # Parse default value if present
+                default_val = None
+                if self.match(TokenType.EQUAL):
+                    default_val = self.expression()
+                defaults.append(default_val)
                 if not self.match(TokenType.COMMA):
                     break
                 self.skip_newlines()
@@ -172,7 +178,7 @@ class Parser:
         self.consume(TokenType.LEFT_BRACE, "Expect '{' before function body")
         body = self.block()
 
-        return FunctionDecl(name, parameters, body, param_types, return_type, is_static)
+        return FunctionDecl(name, parameters, body, param_types, defaults, return_type, is_static)
 
     # ─── Statements ──────────────────────────────────────────────────────────
 
@@ -563,7 +569,9 @@ class Parser:
             self.current = saved  # backtrack if it's a named function
 
         if self.match(TokenType.IDENTIFIER):
-            return Identifier(self.previous().lexeme)
+            ident = Identifier(self.previous().lexeme)
+            ident.line = self.previous().line
+            return ident
 
         if self.match(TokenType.LEFT_PAREN):
             self.skip_newlines()
@@ -594,9 +602,14 @@ class Parser:
         """func(params) => expr or func(params) { body }  — FIX: BUG-P4"""
         self.consume(TokenType.LEFT_PAREN, "Expect '(' in lambda")
         parameters = []
+        defaults = []
         if not self.check(TokenType.RIGHT_PAREN):
             while True:
                 parameters.append(self.consume(TokenType.IDENTIFIER, "Expect parameter").lexeme)
+                default_val = None
+                if self.match(TokenType.EQUAL):
+                    default_val = self.expression()
+                defaults.append(default_val)
                 if not self.match(TokenType.COMMA):
                     break
         self.consume(TokenType.RIGHT_PAREN, "Expect ')'")
@@ -605,7 +618,7 @@ class Parser:
         else:
             self.consume(TokenType.LEFT_BRACE, "Expect '{' or '=>' in lambda")
             body = self.block()
-        return LambdaExpr(parameters, body)
+        return LambdaExpr(parameters, body, defaults)
 
     def list_literal(self):
         if self.check(TokenType.FOR):

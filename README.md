@@ -2,7 +2,7 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.2.4-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.3.2-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/bugs_fixed-57-brightgreen.svg" alt="Bugs Fixed">
@@ -19,15 +19,15 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.2.0** includes a full bug-fix pass — 57 bugs resolved — and a redesigned Gemini-CLI-inspired REPL with true-colour syntax highlighting.
+**v1.2.4** includes a full bug-fix pass — 57 bugs resolved — and a redesigned Gemini-CLI-inspired REPL with true-colour syntax highlighting.
 
 ---
 
 ## Quick Start
 
 ```bash
-# Clone your fork
-git clone https://github.com/SouvikSarkar011008/Ipp.git
+# Clone your repo
+git clone https://github.com/authorss81/Ipp
 cd Ipp
 
 # Run a script

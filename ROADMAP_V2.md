@@ -1,5 +1,5 @@
 # Ipp Language — Detailed Roadmap v3
-> Last Updated: 2026-03-28 | Reflects audit findings through v1.3.0
+> Last Updated: 2026-03-29 | Reflects audit findings through v1.3.2
 
 ---
 
@@ -23,263 +23,210 @@
 | v0.11.0–0.11.2 | ✅ DONE | Standard Library Expansion |
 | v0.12.0 | ✅ DONE | Module System (import, alias, selective) |
 | v0.13.0 | ✅ DONE | Professional REPL UI |
-| v1.0.0 | ✅ DONE | Bytecode VM Infrastructure |
-| v1.0.1 | ✅ DONE | VM Stabilization & Bug Fixes |
-| v1.1.0 | ✅ DONE | Performance Optimization & Profiler |
-| v1.1.1 | ✅ DONE | Bug Fixes (Dict/Index Assignment) |
-| v1.2.0 | ✅ DONE | Benchmark Suite + Full VM Class Support |
-| v1.2.4 | ✅ DONE | 57-bug audit pass, Gemini REPL, Windows ANSI fix |
-| **v1.3.0** | 🔄 IN PROGRESS | Critical bug fixes from new audit |
-| **v1.3.1** | 📋 PLANNED | Closures + f-strings + default params |
-| **v1.3.2** | 📋 PLANNED | VM for-loop + type system |
-| **v1.3.3** | 📋 PLANNED | Operator overloading + match patterns |
-| **v1.4.0** | 📋 PLANNED | Generators + async/await |
-| **v1.5.0** | 📋 PLANNED | Package manager + LSP |
-| **v2.0.0** | 📋 PLANNED | Game engine integration |
-| **v3.0.0** | 📋 PLANNED | C API embedding |
+| **v1.0.0** | ✅ DONE | Bytecode VM Infrastructure |
+| **v1.0.1** | ✅ DONE | VM Stabilization & Bug Fixes |
+| **v1.1.0** | ✅ DONE | Performance Optimization & Profiler |
+| **v1.1.1** | ✅ DONE | Bug Fixes (Dict/Index Assignment) |
+| **v1.2.0** | ✅ DONE | Benchmark Suite vs Other Languages |
+| **v1.2.4** | ✅ DONE | Full VM Class Support |
+| **v1.3.0** | ✅ DONE | REPL Enhancements (`.vars`, `.fns`, `.history`, `.vm`, `\`, Ctrl+C, colors) |
+| **v1.3.1** | ✅ DONE | Critical + Major Bugs Fixed (for-loop, line 0, overload, defaults, int/float, closures) |
+| **v1.3.2** | ✅ DONE | VM Stabilization (upvalues) + Set type |
+| **v1.3.3** | 📋 PLANNED | Game SDK + StdLib + Bug Fixes |
+| **v1.4.0** | 📋 PLANNED | Generators + Engine Integration |
+| **v2.0.0** | 📋 PLANNED | Advanced Game Features |
 
 ---
 
-## v1.3.0 — Critical Bug Sprint 🔄 IN PROGRESS
+## v1.3.0 - REPL Enhancements & Bug Fixes ✅ DONE
 
-**Goal:** Fix all 3 critical bugs identified in the v1.3.0 audit before any feature work.
-**Audit reference:** See `AUDIT.md` — BUG-NEW-C1, BUG-NEW-C2, BUG-NEW-C3
+**Goal**: Complete REPL features, fix critical bugs before any feature work
 
-### Bug Fixes (Must ship before v1.3.1)
-
-#### BUG-NEW-C1: VM `for` loop compiler stub
-- [ ] Implement proper indexed iteration in `compile_for()`
-- [ ] Push list + index counter as two locals
-- [ ] Each iteration: check `idx < len(list)`, GET_INDEX, increment idx
-- [ ] Test: VM for loop gives same results as interpreter for loop
-- [ ] Test: `break` and `continue` inside VM for loop work
-
-#### BUG-NEW-C2: Runtime errors report `line 0`
-- [ ] Fix `current_line` tracking in `execute()` — set it from the node's `.line` attribute before visiting
-- [ ] Propagate line numbers through all `RuntimeError` raises
-- [ ] Test: error on line 4 reports `line 4`, not `line 0`
-
-#### BUG-NEW-C3: User-class operator overloading silently broken
-- [ ] In `visit_binary_expr`: check if left is `IppInstance` and has method `__add__` / `__sub__` / `__mul__` / `__truediv__` / `__eq__` / `__lt__` / `__le__` / `__gt__` / `__ge__`
-- [ ] If yes, dispatch to `call_function(method, [instance, right])`
-- [ ] Do NOT use Python's `hasattr(..., '__add__')` — check Ipp method table
-- [ ] Test: Vec class with `__add__` can be added with `+`
-
-#### REPL improvements for v1.3.0
+### REPL Enhancements ✅ DONE
 - [x] `.vars` - List user-defined variables
-- [x] `.fns` - List user-defined functions  
+- [x] `.fns` - List user-defined functions
 - [x] `.builtins` - List all built-in functions
-- [x] `.history N` - Show command history
+- [x] `.modules` - Show modules by category
+- [x] `.history N` - Show command history (default 20)
 - [x] `.colors on/off` - Toggle colors
+- [x] `.vm interpreter/vm` - Switch interpreters
+- [x] `\` multiline continuation
 - [x] Ctrl+C interrupt support
-- [x] Windows ANSI colour support (via SetConsoleMode)
-- [x] ASCII fallback for old terminals
-- [ ] `.vm` / `.interp` — switch execution engine mid-session
+- [x] Colorful function display (purple/blue/cyan/orange)
+- [x] ANSI garbage prevention
+- [x] Git tags created for all releases (v0.6-v1.3.0)
+
+### Critical Bug Fixes ✅ DONE
+- [x] BUG-NEW-C1: **VM `for` loop is a non-functional stub** ✅ FIXED
+- [x] BUG-NEW-C2: **Runtime errors always report `line 0`** ✅ FIXED
+- [x] BUG-NEW-C3: **User-class operator overloading silently broken** ✅ FIXED
+
+**Fix Complexity:**
+| Bug | Complexity | Priority |
+|-----|------------|----------|
+| BUG-NEW-C1 | HIGH | ✅ DONE |
+| BUG-NEW-C2 | MEDIUM | ✅ DONE |
+| BUG-NEW-C3 | MEDIUM | ✅ DONE |
 
 ---
 
-## v1.3.1 — Closures + String Interpolation + Default Parameters 📋 PLANNED
+## v1.3.1 - Closures, F-strings, Default Params, Type System ✅ DONE
 
-**Goal:** Fix the three most painful daily-use gaps.
-**Audit reference:** BUG-NEW-M1, BUG-NEW-M3, BUG-NEW-N3
+**Audit reference:** BUG-NEW-M1, BUG-NEW-M2, BUG-NEW-M3, BUG-NEW-N3
 
-### Real Closure Variable Capture (BUG-NEW-M1)
+### BUG-NEW-M1: Closures Capture by Reference ✅ DONE (Interpreter)
+- [x] Interpreter closures work correctly
+- [x] `count += 1` propagates to outer scope
+- [x] Nested closures tested
+- ⚠️ VM closures still broken (BUG-NEW-M5)
 
-The current implementation snapshots values. True closures require **cells** — mutable shared references.
+### BUG-NEW-M2: int/float Type Distinction ✅ DONE
+- [x] `type(5)` returns `"int"` ✅
+- [x] `type(5.0)` returns `"float"` ✅
 
-**Plan:**
-- Introduce a `Cell` class wrapping a mutable value
-- Variables that are referenced by inner functions get wrapped in a `Cell` at definition time
-- `GET_UPVALUE` / `SET_UPVALUE` read/write through the cell
-- Interpreter: `Environment.define_cell()` + `Environment.get_cell()`
-- VM: `CLOSE_UPVALUE` must actually capture the live stack slot into the closure's upvalue list
+### BUG-NEW-M3: Default Parameter Values ✅ DONE
+- [x] Parse `func f(x, y=0)` syntax
+- [x] Store defaults in `FunctionDecl`
+- [x] Fill in missing args in `call_function()`
 
-**Test:**
-```ipp
-func make_counter() {
-    var count = 0
-    func increment() { count += 1; return count }
-    return increment
-}
-var c = make_counter()
-print(c())   # must print 1
-print(c())   # must print 2
-print(c())   # must print 3
-```
-
-### F-strings / String Interpolation (BUG-NEW-N3)
-
-```ipp
-var name = "World"
-var age = 25
-print(f"Hello {name}, you are {age} years old!")
-```
-
-**Plan:**
-- Lexer: detect `f"..."` prefix — lex as `FSTRING` token type
-- Lexer: parse `{expr}` segments inside f-string as sub-tokens
-- Parser: `FStringExpr` AST node with list of `(literal_str | ASTNode)` parts
-- Interpreter: evaluate each part, call `str()` on non-strings, concatenate
-- Compiler: emit CONSTANT for literal parts, compile expr for `{...}` parts, emit CONCATENATE
-
-### Default Parameter Values (BUG-NEW-M3)
-
-```ipp
-func greet(name, greeting = "Hello") {
-    return greeting + ", " + name + "!"
-}
-print(greet("World"))           # Hello, World!
-print(greet("World", "Hi"))     # Hi, World!
-```
-
-**Plan:**
-- Parser: in `function_declaration()`, after parameter name, check for `=` → parse default expr
-- AST: `FunctionDecl.defaults: List[Optional[ASTNode]]`
-- Interpreter: `call_function()` — if fewer args than params, use evaluated defaults
-- Compiler: emit defaults as constants, check arg count at call site
-
-### Named/Keyword Arguments (BUG-NEW-M4)
-
-```ipp
-func connect(host, port = 8080, timeout = 30) { }
-connect(host = "localhost", timeout = 60)
-```
-
-**Plan:**
-- Parser: detect `identifier =` pattern inside call arguments → `KeywordArg(name, value)` AST node
-- Interpreter: in `visit_call_expr()`, separate positional and keyword args, map keyword args to parameter positions
-- Error on unknown keyword names
+### BUG-NEW-N3: F-strings / String Interpolation ⏳ TODO
+- [ ] Lex `f"..."` as f-string token
+- [ ] Parse `{expr}` segments
+- [ ] Implement `fstring(format, *values)` builtin
 
 ---
 
-## v1.3.2 — VM For Loop + Type System 📋 PLANNED
+## v1.3.2 - VM Stabilization & Set Type ✅ DONE
 
-**Audit reference:** BUG-NEW-C1, BUG-NEW-M2, BUG-NEW-M6, BUG-NEW-N8
+**Audit reference:** BUG-NEW-M5, BUG-NEW-M6
 
-### VM For Loop (BUG-NEW-C1 — Full VM Implementation)
+### BUG-NEW-M5: VM Upvalues by Reference ✅ DONE
+- [x] Implement proper upvalue cells in VM
+- [x] Move to heap on `CLOSE_UPVALUE`
+- [x] Read/write through upvalue pointer
 
-```python
-# Target bytecode sequence for: for i in list { body }
-CONSTANT list_expr       # push iterator list
-GET_LEN                  # push len(list)
-CONSTANT 0               # push index = 0
-# [loop_start]
-DUP2                     # dup idx, len
-LESS                     # idx < len?
-JUMP_IF_FALSE_POP → end  # if not, exit loop
-DUP_THIRD                # dup list
-GET_IDX_LOCAL            # list[idx]
-SET_LOCAL var_slot       # store in loop variable
-# ... body ...
-INCREMENT_LOCAL idx_slot  # idx += 1
-LOOP → loop_start
-# [end]
-POP × 3                  # clean up list, len, idx
-```
-
-### Proper `int` vs `float` Type Distinction (BUG-NEW-M2)
-
-- `type(5)` must return `"int"`, `type(5.0)` must return `"float"`
-- `int / int` returns `float` (Python default) — document this clearly
-- `int // int` returns `int`
-- Add `is_int(x)`, `is_float(x)` builtins
-- Update `ipp_type()` in `builtins.py` and VM's `_builtin_type()`
-
-### Set Type (BUG-NEW-M6)
-
-```ipp
-var tags = set()
-tags.add("player")
-tags.add("collidable")
-print(tags.contains("player"))   # true
-print(len(tags))                  # 2
-tags.remove("collidable")
-```
-
-**Plan:**
-- `IppSet` wrapper class in `interpreter.py`
-- Builtin `set()` constructor
-- Methods: `add()`, `remove()`, `contains()`, `union()`, `intersect()`, `difference()`
-- `type(set()) = "set"`
-
-### IppList / native list unification (BUG-NEW-N8)
-
-- All list-returning builtins should return `IppList`, not Python `list`
-- Wrap `range()` output, comprehension results, spread results in `IppList`
-- Alternatively: teach `visit_get_expr` to bridge native lists to IppList methods
+### BUG-NEW-M6: Set Data Type ✅ DONE
+- [x] Implement `IppSet` class
+- [x] Add `add()`, `remove()`, `contains()`
+- [x] Expose `set()` builtin
 
 ---
 
-## v1.3.3 — Pattern Matching + Operator Overloading Protocol 📋 PLANNED
+## v1.3.3 - Game SDK Alpha + Standard Library + Bug Fixes 📋 PLANNED
 
-**Audit reference:** BUG-NEW-C3, BUG-NEW-N9, BUG-NEW-N10
+**Goal**: Alpha game development toolkit + Standard Library Completion + Bug Fixes
 
-### Structural Pattern Matching (BUG-NEW-N9)
+**Audit reference:** BUG-NEW-C3, BUG-NEW-M4, BUG-NEW-N6, BUG-NEW-N8, BUG-NEW-N9, BUG-NEW-N10
 
-Current match is equality-only. Target:
+### Bug Fixes ⏳ TODO
 
-```ipp
-match value {
-    case int       => print("it's an int")
-    case [h, ...t] => print("list starting with " + str(h))
-    case Point(x, y) if x > 0 => print("positive x quadrant")
-    case "hello" | "hi" => print("greeting")
-    default => print("no match")
-}
-```
+#### BUG-NEW-C3: Operator Overloading Fix ⏳ TODO
+- [ ] Change `hasattr(left, '__add__')` to check `left.fields`
+- [ ] Dispatch to Ipp methods, not Python dunders
+- [ ] Test `__add__`, `__sub__`, `__mul__`, `__eq__`
 
-**Plan:**
-- Extend `MatchStmt` pattern representation to support: type patterns, list destructure, guard clauses, OR patterns
-- `visit_match_stmt` evaluates each pattern type differently
-- Type pattern: `isinstance(subject, IppClass)` lookup
-- List pattern: check length, bind head/tail
-- Guard: evaluate `if` condition after structural match
+#### BUG-NEW-M4: Named Arguments ⏳ TODO
+- [ ] Lex `NAME =` as `NAMED_ARG` token
+- [ ] Parse named args in `arguments()`
+- [ ] Match by name in `call_function()`
 
-### Full Operator Overload Protocol (BUG-NEW-C3 — interpreter fix is in v1.3.0; this adds VM support)
+#### BUG-NEW-M7: Tuple Unpacking / Multiple Assignment ⏳ TODO
+- [ ] Parse `var a, b = 1, 2` syntax
+- [ ] Parse `var [first, ...rest] = list` destructuring
+- [ ] Implement unpacking in interpreter and VM
 
-Define the standard dunder protocol for Ipp:
+#### BUG-NEW-N6: __str__ Method ⏳ TODO
+- [ ] Check for `__str__` method on IppInstance
+- [ ] Execute custom __str__ when print() is called
+- [ ] Avoid infinite recursion with nested instances
 
-| Ipp method | Operator |
-|---|---|
-| `__add__(other)` | `+` |
-| `__sub__(other)` | `-` |
-| `__mul__(other)` | `*` |
-| `__div__(other)` | `/` |
-| `__mod__(other)` | `%` |
-| `__pow__(other)` | `**` |
-| `__eq__(other)` | `==` |
-| `__lt__(other)` | `<` |
-| `__le__(other)` | `<=` |
-| `__neg__()` | unary `-` |
-| `__len__()` | `len(obj)` |
-| `__str__()` | `print(obj)`, `str(obj)` |
-| `__contains__(item)` | `item in obj` |
-| `__iter__()` | `for x in obj` |
+#### BUG-NEW-N8: IppList/Native List Inconsistency ⏳ TODO
+- [ ] Wrap all list returns to IppList
+- [ ] Ensure consistent behavior between IppList and native Python lists
 
-**Fix `__str__` in print() (BUG-NEW-N6):** Check for user `__str__` method before calling Python's `str()`.
+#### BUG-NEW-N9: Structural Pattern Matching ⏳ TODO
+- [ ] Add type guards: `case int =>`
+- [ ] Add guards: `case n if n > 0 =>`
+- [ ] Add destructuring: `case [h, ...t] =>`
 
-### Labeled Break/Continue (BUG-NEW-N10)
+#### BUG-NEW-N10: Labeled Break/Continue ⏳ TODO
+- [ ] Create `LoopContext` stack in compiler
+- [ ] Look up label in context stack
+- [ ] Emit correct jump offset
 
-```ipp
-outer: for i in 0..5 {
-    for j in 0..5 {
-        if i + j > 6 {
-            break outer
-        }
-    }
-}
-```
+### Standard Library Expansion ⏳ TODO
+- [ ] Missing Builtins: `printf()`, `sprintf()`, `scanf()`, `file_read()`, `file_write()`
+- [ ] Regex module: Full regex support
+- [ ] XML module: XML parsing
+- [ ] YAML module: YAML parsing
+- [ ] TOML module: TOML parsing
+- [ ] ZIP module: Zip file handling
 
-**Plan:**
-- `BreakStmt.label` and `ContinueStmt.label` already parsed and stored
-- Interpreter: `break_flag` becomes `break_label: Optional[str]` — unwind until matching label
-- Compiler: emit labeled JUMP that skips to end of labeled loop
+### Collections ⏳ TODO
+- [ ] `Deque` - Fast queue operations
+- [ ] `PriorityQueue` - Heap-based priority queue
+- [ ] `Tree` - Tree data structure
+- [ ] `Graph` - Graph data structure
+
+### Math Library ⏳ TODO
+- [ ] `vec2(x, y)` - 2D vector
+- [ ] `vec3(x, y, z)` - 3D vector
+- [ ] `vec4(x, y, z, w)` - 4D vector
+- [ ] `mat2()` - 2x2 matrix
+- [ ] `mat3()` - 3x3 matrix
+- [ ] `mat4()` - 4x4 matrix
+- [ ] `quat()` - Quaternion
+- [ ] `Math.lerp()`, `Math.clamp()`, `Math.remap()`
+- [ ] `Math.distance()`, `Math.normalize()`
+- [ ] `Math.angle()`, `Math.radians()`, `Math.degrees()`
+
+### Game Primitives ⏳ TODO
+- [ ] `Rect(x, y, w, h)` - Rectangle
+- [ ] `Circle(x, y, r)` - Circle
+- [ ] `Color(r, g, b, a)` - Color
+- [ ] `Point(x, y)` - 2D point
+- [ ] `Line(x1, y1, x2, y2)` - Line segment
+
+### Collision ⏳ TODO
+- [ ] `Rect.overlaps(other)` - AABB collision
+- [ ] `Circle.overlaps(other)` - Circle collision
+- [ ] `point_in_rect(p, r)` - Point in rectangle
+- [ ] `line_intersects(l1, l2)` - Line intersection
+- [ ] `raycast(origin, direction, max_dist)` - Ray casting
+
+### Easing ⏳ TODO
+- [ ] `Easing.linear()`
+- [ ] `Easing.ease_in()`, `Easing.ease_out()`
+- [ ] `Easing.ease_in_out()`
+- [ ] `Easing.bounce()`, `Easing.elastic()`
+
+### Random ⏳ TODO
+- [ ] `Random.seed(n)` - Set seed
+- [ ] `Random.choice(seq)` - Random choice
+- [ ] `Random.shuffle(seq)` - Shuffle in place
+- [ ] `Random.gauss(mu, sigma)` - Gaussian distribution
+
+### Networking ⏳ TODO
+- [ ] `http.server` - HTTP server
+- [ ] `websocket` - WebSocket client/server
+- [ ] `ftp` - FTP client
+- [ ] `smtp` - Email sending
 
 ---
 
-## v1.4.0 — Generators + Async/Await 📋 PLANNED
+## v1.4.0 — Generators + Async/Await + Engine Integration 📋 PLANNED
 
 **Audit reference:** BUG-NEW-N4, BUG-NEW-N7
+
+### BUG-NEW-N4: Generator Functions ⏳ TODO
+- [ ] Lex `yield` as keyword
+- [ ] Create `IppGenerator` object
+- [ ] Serialize/resume execution state
+
+### BUG-NEW-N7: Async/Await ⏳ TODO
+- [ ] Implement async/await over generators
+- [ ] Add event loop
+- [ ] Handle `await expr` as `yield wait(expr)`
 
 ### Generator Functions (BUG-NEW-N4)
 
@@ -307,182 +254,201 @@ for n in fibonacci() |> take(10) {
 - `next(gen)` resumes execution until next `yield` or return
 - `for x in gen` iterates the generator
 
-### Async/Await (BUG-NEW-N7)
+### Engine Bindings (FREE Options) ⏳ TODO
+- [ ] Pygame integration (free, Python)
+- [ ] Godot GDScript alternative (free, open source)
+- [ ] Raylib binding (free, C library)
+- [ ] SFML binding (free, C++ library)
+- [ ] Love2D integration (free, Lua-based)
 
-```ipp
-async func load_level(path) {
-    var data = await read_file_async(path)
-    return parse_level(data)
-}
-```
+### Editor Integration ⏳ TODO
+- [ ] VSCode extension (free)
+- [ ] Vim/Neovim plugin (free)
+- [ ] Emacs major mode (free)
+- [ ] LSP server (free)
 
-**Plan:**
-- `async` / `await` as keywords
-- Async functions return `IppFuture` objects
-- Basic cooperative multitasking via Python's `asyncio` under the hood
-- Game loop integration: `await next_frame()`
-
----
-
-## v1.5.0 — Package Manager + LSP 📋 PLANNED
-
-### `ippkg` — Package Manager
-
-```bash
-ippkg install math-utils
-ippkg install game-physics@2.1.0
-ippkg publish my-library
-ippkg search collision
-```
-
-**Plan:**
-- Registry: GitHub Packages (free)
-- Package format: `ippkg.json` manifest (name, version, dependencies, entry point)
-- `ippkg install` downloads `.ipp` files into local `ipp_modules/` directory
-- Import resolution: checks `ipp_modules/` before local path
-- Semantic versioning with lock file (`ippkg.lock`)
-
-### Language Server Protocol (LSP)
-
-- Completion: variables, functions, class methods
-- Hover: show type/signature
-- Go to definition
-- Find references
-- Diagnostics (parse/type errors)
-- VS Code extension (free to publish on marketplace)
-
----
-
-## v2.0.0 — Game Engine Integration 📋 PLANNED
-
-### Engine Bindings
-
-| Engine | Language | Binding Strategy |
-|---|---|---|
-| Raylib | C | ctypes + cffi |
-| Pygame | Python | Direct import via Ipp builtins |
-| Godot | GDScript | Ipp as alternative scripting language via GDExtension |
-| Love2D | Lua | Not applicable (different host) |
-
-### Math Library (Full)
-
-```ipp
-var v1 = vec2(3, 4)
-var v2 = vec2(1, 0)
-print(v1.length())          # 5.0
-print(v1.dot(v2))           # 3.0
-print(v1.normalize())       # vec2(0.6, 0.8)
-print(v1.lerp(v2, 0.5))     # vec2(2.0, 2.0)
-
-var m = mat4.identity()
-m = m.translate(vec3(1, 2, 3))
-m = m.rotate_y(45)          # degrees
-```
-
-### Physics & Collision
+### Package Manager ⏳ TODO
+- [ ] `ippkg` - Package manager (build with Python, free)
+- [ ] Public package registry (GitHub Packages, free)
+- [ ] `ippkg install <package>`
+- [ ] `ippkg publish <package>`
+- [ ] `ippkg search <query>`
 
 ```ipp
 var body = RigidBody(mass = 1.0, position = vec2(0, 0))
 body.apply_force(vec2(0, -9.8))     # gravity
 body.update(delta_time)
-
-var rect_a = Rect(0, 0, 100, 50)
-var rect_b = Rect(80, 30, 100, 50)
-print(rect_a.overlaps(rect_b))      # true
-print(rect_a.intersection(rect_b))  # Rect(80, 30, 20, 20)
 ```
 
 ---
 
-## v3.0.0 — C API / Embedding 📋 PLANNED
+## v2.0.0 - Game Features 📋 PLANNED
 
-### C API Goals
+**Goal**: Full game development support
 
-```c
-// Embed Ipp in a C/C++ game engine
-IppVM* vm = ipp_vm_create();
-ipp_vm_register_function(vm, "get_player_pos", my_get_pos);
-ipp_vm_exec_file(vm, "game_logic.ipp");
-IppValue result = ipp_vm_call(vm, "update", delta_time);
-ipp_vm_destroy(vm);
-```
+### Advanced Math ⏳ TODO
+- [ ] Matrix operations (multiply, inverse, transpose)
+- [ ] Quaternion math (multiply, slerp, axis-angle)
+- [ ] Barycentric coordinates
+- [ ] Bezier curves
+- [ ] Perlin noise
+- [ ] Simplex noise
 
-### Rust Bindings
+### Physics ⏳ TODO
+- [ ] Rigid body basics
+- [ ] AABB collision response
+- [ ] Sphere collision response
+- [ ] Impulse resolution
+- [ ] Joints (distance, spring, hinge)
 
-```rust
-let vm = IppVM::new();
-vm.register_fn("draw_sprite", |args| { /* ... */ });
-vm.exec("game.ipp")?;
-```
+### Particles ⏳ TODO
+- [ ] Particle system
+- [ ] Emitter types (point, line, rect, circle)
+- [ ] Particle properties (lifetime, velocity, color, size)
 
----
-
-## Fixed vs Remaining Issues (Audit Tracker)
-
-| Bug ID | Description | Target Version | Status |
-|---|---|---|---|
-| BUG-NEW-C1 | VM for loop stub | v1.3.0 | 🔴 Open |
-| BUG-NEW-C2 | Runtime errors line 0 | v1.3.0 | 🔴 Open |
-| BUG-NEW-C3 | Operator overloading broken | v1.3.0 | 🔴 Open |
-| BUG-NEW-M1 | Closures capture by value | v1.3.1 | 🟠 Open |
-| BUG-NEW-M2 | int/float indistinguishable | v1.3.2 | 🟠 Open |
-| BUG-NEW-M3 | No default params | v1.3.1 | 🟠 Open |
-| BUG-NEW-M4 | Named args wrong results | v1.3.1 | 🟠 Open |
-| BUG-NEW-M5 | VM upvalues by value | v1.3.1 | 🟠 Open |
-| BUG-NEW-M6 | No Set type | v1.3.2 | 🟠 Open |
-| BUG-NEW-M7 | No tuple unpacking | v1.3.1 | 🟠 Open |
-| BUG-NEW-N1 | No private enforcement | v1.5.0 | 🟡 Open |
-| BUG-NEW-N2 | No Ipp recursion limit | v1.3.0 | 🟡 Open |
-| BUG-NEW-N3 | No f-strings | v1.3.1 | 🟡 Open |
-| BUG-NEW-N4 | No generators/yield | v1.4.0 | 🟡 Open |
-| BUG-NEW-N5 | Runtime errors no column | v1.3.0 | 🟡 Open |
-| BUG-NEW-N6 | __str__ not called by print | v1.3.0 | 🟡 Open |
-| BUG-NEW-N7 | No async/await | v1.4.0 | 🟡 Open |
-| BUG-NEW-N8 | IppList/native list gap | v1.3.2 | 🟡 Open |
-| BUG-NEW-N9 | Match is equality-only | v1.3.3 | 🟡 Open |
-| BUG-NEW-N10 | Labeled break silently broken | v1.3.3 | 🟡 Open |
+### Scene Graph ⏳ TODO
+- [ ] Entity class
+- [ ] Transform (position, rotation, scale)
+- [ ] Node hierarchy (parent/children)
+- [ ] Camera system
+- [ ] Layer system
 
 ---
 
-## Free Tools Referenced
+## Free Tools & Services (No Money Required)
 
-| Tool | Purpose | URL |
-|------|---------|-----|
-| GitHub Actions | CI/CD | github.com/features/actions |
-| GitHub Pages | Documentation | pages.github.com |
-| GitHub Packages | Package registry | github.com/features/packages |
-| MkDocs Material | Beautiful docs | squidfunk.github.io/mkdocs-material |
-| Read the Docs | OSS docs hosting | readthedocs.org |
-| Raylib | Game library | raylib.com |
-| Pygame | Python game lib | pygame.org |
-| Godot | Game engine | godotengine.org |
-| VS Code | IDE | code.visualstudio.com |
-| Crafting Interpreters | Language book | craftinginterpreters.com |
+### Development Tools
+| Tool | Purpose | Cost | URL |
+|------|---------|------|-----|
+| GitHub | Source control, CI/CD | FREE | github.com |
+| GitHub Actions | CI/CD pipelines | FREE | github.com/features/actions |
+| GitHub Pages | Static website hosting | FREE | pages.github.com |
+| VS Code | IDE with extensions | FREE | code.visualstudio.com |
+| Neovim | Modal editor | FREE | neovim.io |
+| MkDocs | Documentation generator | FREE | www.mkdocs.org |
+| Sphinx | Documentation generator | FREE | www.sphinx-doc.org |
+
+### Testing & Quality
+| Tool | Purpose | Cost | URL |
+|------|---------|------|-----|
+| pytest | Test framework | FREE | pytest.org |
+| Coverage.py | Code coverage | FREE | coverage.readthedocs.io |
+| pre-commit | Git hooks | FREE | pre-commit.com |
+| Ruff | Fast linter (Python) | FREE | github.com/astral-sh/ruff |
+| Black | Code formatter | FREE | black.readthedocs.io |
+| MyPy | Type checking | FREE | mypy.readthedocs.io |
+
+### Documentation
+| Tool | Purpose | Cost | URL |
+|------|---------|------|-----|
+| MkDocs | Static docs from Markdown | FREE | www.mkdocs.org |
+| Material for MkDocs | Beautiful theme | FREE | squidfunk.github.io/mkdocs-material |
+| Read the Docs | Docs hosting | FREE (OSS) | readthedocs.org |
+| Docusaurus | React docs | FREE | docusaurus.io |
+| GitBook | Docs platform | FREE tier | gitbook.com |
+
+### Package Distribution
+| Tool | Purpose | Cost | URL |
+|------|---------|------|-----|
+| GitHub Packages | Package registry | FREE | github.com/features/packages |
+| PyPI | Python package index | FREE | pypi.org |
+| npm | JS package registry | FREE | npmjs.com |
+| Test PyPI | Testing packages | FREE | test.pypi.org |
+
+### Game Dev (Free)
+| Tool | Purpose | Cost | URL |
+|------|---------|------|-----|
+| Raylib | Simple game library (C) | FREE | raylib.com |
+| Pygame | Python game library | FREE | pygame.org |
+| Godot | Full game engine | FREE | godotengine.org |
+| LÖVE | Lua game framework | FREE | love2d.org |
+| SFML | Simple multimedia library | FREE | sfml-dev.org |
+
+### Community & Marketing (FREE)
+| Platform | Purpose | Cost | URL |
+|----------|---------|------|-----|
+| Reddit | Community discussion | FREE | reddit.com |
+| Hacker News | Tech community | FREE | news.ycombinator.com |
+| Twitter/X | Social media | FREE | x.com |
+| Discord | Community server | FREE | discord.com |
+| Reddit r/gamedev | Game dev community | FREE | reddit.com/r/gamedev |
+| Reddit r/Python | Python community | FREE | reddit.com/r/Python |
+
+### Learning Resources (FREE)
+| Resource | Purpose | Cost | URL |
+|----------|---------|------|-----|
+| Crafting Interpreters | Language design book | FREE | craftinginterpreters.com |
+| Write you a Haskell | Compiler book | FREE | wwwhomersimpson.me |
+| Let's Build a Compiler | Compiler tutorial | FREE | bellatorey.com/languages |
+| Game Programming Patterns | Game dev book | FREE | gameprogrammingpatterns.com |
+| Learn OpenGL | Graphics tutorial | FREE | learnopengl.com |
+
+---
+
+## Implementation Priorities (Manual Work Required)
+
+### Phase 1: Production Ready (v1.3.0)
+1. **VM Test Suite** - Write comprehensive VM tests
+2. **Memory Safety** - Add bounds checking, overflow protection
+3. **Bytecode Serialization** - Compile to .ipbc files
+4. **CLI Flags** - --vm, --no-color, etc.
+
+### Phase 2: Critical Bugs Fixed (v1.3.1) ✅ DONE
+1. **BUG-NEW-C1** - VM for loop fixed ✅
+2. **BUG-NEW-C2** - Runtime error line numbers fixed ✅
+3. **BUG-NEW-C3** - Operator overloading fixed ✅
+
+### Phase 3: Documentation (v1.3.2)
+1. **Language Tutorial** - Getting started guide
+2. **API Reference** - Auto-generate from docstrings
+3. **Examples Repository** - github.com/ipp-lang/examples
+4. **Website** - MkDocs + GitHub Pages (FREE)
+
+### Phase 3: Standard Library (v1.3.2+) ✅ DONE (Set type)
+- [x] `Set` type - Unordered unique elements (BUG-NEW-M6) ✅
+- [ ] Missing Builtins - File I/O, regex, networking
+- [ ] Collection Types - Deque, priority queue, tree, graph
+- [ ] Data Formats - JSON, XML, YAML, TOML parsers
+
+### Notable Bug Fixes (Standard Library)
+- [ ] BUG-NEW-N1: **No access control enforcement** (`__field` name mangling)
+- [ ] BUG-NEW-N2: **No Ipp-level recursion limit** (add `max_depth` config)
+- [ ] BUG-NEW-N5: **Runtime errors lack column info** (add column tracking)
+- [ ] BUG-NEW-N8: **IppList/native list inconsistency** (wrap all list returns)
+
+### Phase 4: Game SDK (v1.3.3)
+1. **Math Library** - vec2, vec3, mat4, quat
+2. **Collision** - AABB, circle, raycast
+3. **Easing** - Animation curves
+4. **Particles** - Basic particle system
+
+### Phase 5: Ecosystem (v1.4.0)
+1. **Package Manager** - ippkg with GitHub Packages
+2. **Editor Extensions** - VS Code, Neovim LSP
+3. **Engine Bindings** - Raylib, Pygame, Godot
+4. **CI/CD Pipeline** - GitHub Actions automated tests
 
 ---
 
 ## Success Metrics
 
-### Technical (by v1.5.0)
-- [ ] All 20 new audit bugs resolved
-- [ ] VM and interpreter produce identical results on 100% of test cases
-- [ ] 200+ test cases with 100% pass rate
-- [ ] Benchmarks published: Ipp within 5x of Lua on common game loops
+### Community Growth
+- [ ] 100 GitHub stars
+- [ ] 50 Discord members
+- [ ] 10 community contributions
+- [ ] 5 example projects
 
-### Community (by v2.0.0)
-- [ ] 500 GitHub stars
-- [ ] 100 Discord members
-- [ ] 25 community contributions
-- [ ] 10 example game projects
-- [ ] 1 YouTube tutorial series (AI-generated or manual)
-- [ ] Featured on Hacker News
+### Technical Quality
+- [ ] 100% regression test coverage
+- [ ] Benchmarks published and updated
+- [ ] Documentation completeness > 90%
+- [ ] Zero critical bugs in production
 
-### Adoption (by v3.0.0)
-- [ ] `ippkg` with 20+ published packages
-- [ ] VS Code extension with 1,000+ installs
-- [ ] 3 shipped games using Ipp scripting
-- [ ] 1 game engine with official Ipp support
+### Adoption
+- [ ] 10 projects using Ipp in production
+- [ ] 3 game projects using Ipp SDK
+- [ ] Featured on Hacker News or Reddit
 
 ---
 
-*Roadmap v3 — 2026-03-28 | Aligned with AUDIT.md v1.3.0 supplement*
+*Last Updated: 2026-03-29 (v1.3.2 DONE - VM upvalues fixed, Set type added! Roadmap cleaned up and merged.)*
