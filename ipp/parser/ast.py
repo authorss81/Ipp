@@ -91,9 +91,17 @@ class UnaryExpr(ASTNode):
     def accept(self, visitor): return visitor.visit_unary_expr(self)
 
 @dataclass
+class NamedArg(ASTNode):
+    """Named argument like f(x=1). FIX: BUG-NEW-M4"""
+    name: str
+    value: ASTNode
+    def accept(self, visitor): return visitor.visit_named_arg(self)
+
+@dataclass
 class CallExpr(ASTNode):
     callee: ASTNode
     arguments: List[ASTNode]
+    named_arguments: List[NamedArg] = field(default_factory=list)
     def accept(self, visitor): return visitor.visit_call_expr(self)
 
 @dataclass
@@ -202,6 +210,13 @@ class VarDecl(ASTNode):
     initializer: Optional[ASTNode]
     type_hint: Optional[str] = None    # FIX: BUG-P2 — store annotation
     def accept(self, visitor): return visitor.visit_var_decl(self)
+
+@dataclass
+class MultiVarDecl(ASTNode):
+    """Multiple variable declaration: var a, b = expr FIX: BUG-NEW-M7"""
+    names: List[str]
+    initializer: ASTNode
+    def accept(self, visitor): return visitor.visit_multi_var_decl(self)
 
 @dataclass
 class LetDecl(ASTNode):

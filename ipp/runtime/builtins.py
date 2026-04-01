@@ -295,12 +295,22 @@ def ipp_values(d):
 
 
 def ipp_items(d):
-    if not isinstance(d, dict):
-        raise RuntimeError("items requires a dict")
-    return list(d.items())
+    # FIX: Handle IppDict objects
+    if hasattr(d, 'items') and callable(d.items):
+        return d.items()
+    if hasattr(d, 'data'):
+        return list(d.data.items())
+    if isinstance(d, dict):
+        return list(d.items())
+    raise RuntimeError("items requires a dict")
 
 
 def ipp_has_key(d, key):
+    # FIX: Handle IppDict objects
+    if hasattr(d, 'has'):
+        return d.has(key)
+    if hasattr(d, 'data'):
+        return key in d.data
     return key in d
 
 
@@ -309,9 +319,7 @@ def ipp_str(s):
         return "nil"
     if isinstance(s, bool):
         return "true" if s else "false"
-    # FIX BUG-N6: call str() which triggers __str__ on IppInstance
-    if hasattr(s, 'ipp_class'):
-        return f"<{s.ipp_class.name} instance>"
+    # FIX BUG-N6: str() triggers IppInstance.__str__ which calls user-defined __str__
     return str(s)
 
 
@@ -890,7 +898,8 @@ def ipp_move_towards(current, target, max_delta):
     diff = target - current
     if abs(diff) <= max_delta:
         return target
-    return current + math.sign(diff) * max_delta
+    sign = -1 if diff < 0 else (1 if diff > 0 else 0)
+    return current + sign * max_delta
 
 
 def ipp_angle(x1, y1, x2, y2):
@@ -1773,9 +1782,54 @@ def ipp_thread_current():
     return threading.current_thread().name
 
 
+# Printf-style formatting FIX: BUG-NEW Standard Library
+def ipp_printf(format_str, *args):
+    """Print with C-style format string"""
+    try:
+        print(format_str % args, end='')
+    except TypeError:
+        print(format_str, end='')
+    return None
+
+def ipp_sprintf(format_str, *args):
+    """Return formatted string"""
+    try:
+        return format_str % args
+    except TypeError:
+        return format_str
+
+def ipp_scanf(format_str):
+    """Read formatted input from stdin"""
+    import re
+    line = input()
+    
+    # Convert format string to regex
+    fmt_pattern = format_str
+    fmt_pattern = fmt_pattern.replace('%d', r'(-?\d+)')
+    fmt_pattern = fmt_pattern.replace('%f', r'(-?\d+\.?\d*)')
+    fmt_pattern = fmt_pattern.replace('%s', r'(\S+)')
+    fmt_pattern = fmt_pattern.replace('%%', r'%')
+    
+    match = re.match(fmt_pattern, line)
+    if not match:
+        return []
+    
+    results = []
+    for g in match.groups():
+        if re.match(r'^-?\d+$', g):
+            results.append(int(g))
+        elif re.match(r'^-?\d+\.?\d*$', g):
+            results.append(float(g))
+        else:
+            results.append(g)
+    return results
+
 
 BUILTINS = {
     "print": ipp_print,
+    "printf": ipp_printf,
+    "sprintf": ipp_sprintf,
+    "scanf": ipp_scanf,
     "len": ipp_len,
     "type": ipp_type,
     "to_number": ipp_to_number,
@@ -1824,7 +1878,9 @@ BUILTINS = {
     "items": ipp_items,
     "has_key": ipp_has_key,
     "read_file": ipp_read_file,
+    "file_read": ipp_read_file,  # Alias FIX: Standard Library
     "write_file": ipp_write_file,
+    "file_write": ipp_write_file,  # Alias FIX: Standard Library
     "append_file": ipp_append_file,
     "file_exists": ipp_file_exists,
     "delete_file": ipp_delete_file,

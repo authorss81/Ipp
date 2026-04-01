@@ -113,6 +113,20 @@ class Parser:
 
     def var_declaration(self):
         name = self.consume(TokenType.IDENTIFIER, "Expect variable name")
+        
+        # Check for multiple variable declaration: var a, b = expr FIX: BUG-NEW-M7
+        if self.match(TokenType.COMMA):
+            names = [name.lexeme]
+            while True:
+                next_name = self.consume(TokenType.IDENTIFIER, "Expect variable name")
+                names.append(next_name.lexeme)
+                if not self.match(TokenType.COMMA):
+                    break
+            self.consume(TokenType.EQUAL, "Expect '=' in multi-variable declaration")
+            initializer = self.expression()
+            return MultiVarDecl(names, initializer)
+        
+        # Single variable declaration
         # FIX: BUG-P2 — actually store the type hint
         type_hint = None
         if self.match(TokenType.COLON):
@@ -476,21 +490,45 @@ class Parser:
             return BinaryExpr(left, "**", right)
         return left
 
+    def _parse_arguments(self):
+        """Parse arguments list supporting both positional and named args. FIX: BUG-NEW-M4"""
+        arguments = []
+        named_arguments = []
+        self.skip_newlines()
+        
+        if not self.check(TokenType.RIGHT_PAREN):
+            while True:
+                self.skip_newlines()
+                
+                # Check if this is a named argument: identifier = expr
+                if self.check(TokenType.IDENTIFIER):
+                    # Peek ahead to see if next token is EQUAL
+                    if self.current + 1 < len(self.tokens) and self.tokens[self.current + 1].type == TokenType.EQUAL:
+                        # Named argument
+                        name_token = self.advance()  # consume identifier
+                        self.advance()  # consume EQUAL
+                        value = self.expression()
+                        named_arguments.append(NamedArg(name_token.lexeme, value))
+                    else:
+                        # Regular positional argument
+                        arguments.append(self.expression())
+                else:
+                    # Regular positional argument
+                    arguments.append(self.expression())
+                
+                self.skip_newlines()
+                if not self.match(TokenType.COMMA):
+                    break
+        
+        return arguments, named_arguments
+    
     def call(self):
         expr = self.primary()
         while True:
             if self.match(TokenType.LEFT_PAREN):
-                arguments = []
-                self.skip_newlines()
-                if not self.check(TokenType.RIGHT_PAREN):
-                    while True:
-                        self.skip_newlines()
-                        arguments.append(self.expression())
-                        self.skip_newlines()
-                        if not self.match(TokenType.COMMA):
-                            break
+                arguments, named_arguments = self._parse_arguments()
                 self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
-                expr = CallExpr(expr, arguments)
+                expr = CallExpr(expr, arguments, named_arguments)
             elif self.match(TokenType.LEFT_BRACKET):
                 index = self.expression()
                 self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after index")
@@ -498,32 +536,17 @@ class Parser:
             elif self.match(TokenType.DOT):
                 name = self.consume(TokenType.IDENTIFIER, "Expect property name")
                 if self.match(TokenType.LEFT_PAREN):
-                    arguments = []
-                    self.skip_newlines()
-                    if not self.check(TokenType.RIGHT_PAREN):
-                        while True:
-                            self.skip_newlines()
-                            arguments.append(self.expression())
-                            self.skip_newlines()
-                            if not self.match(TokenType.COMMA):
-                                break
+                    arguments, named_arguments = self._parse_arguments()
                     self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
-                    expr = CallExpr(GetExpr(expr, name.lexeme), arguments)
+                    expr = CallExpr(GetExpr(expr, name.lexeme), arguments, named_arguments)
                 else:
                     expr = GetExpr(expr, name.lexeme)
             elif self.match(TokenType.QUESTION_DOT):
                 name = self.consume(TokenType.IDENTIFIER, "Expect property name")
                 if self.match(TokenType.LEFT_PAREN):
-                    arguments = []
-                    if not self.check(TokenType.RIGHT_PAREN):
-                        while True:
-                            self.skip_newlines()
-                            arguments.append(self.expression())
-                            self.skip_newlines()
-                            if not self.match(TokenType.COMMA):
-                                break
+                    arguments, named_arguments = self._parse_arguments()
                     self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
-                    expr = CallExpr(OptionalChainingExpr(expr, name.lexeme), arguments)
+                    expr = CallExpr(OptionalChainingExpr(expr, name.lexeme), arguments, named_arguments)
                 else:
                     expr = OptionalChainingExpr(expr, name.lexeme)
             elif self.match(TokenType.PIPE):

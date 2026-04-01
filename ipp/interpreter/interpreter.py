@@ -61,10 +61,8 @@ class IppInstance:
                 interp.environment = old_env
                 interp.return_value = old_return
                 if result is not None:
-                    # FIX BUG-N6: return the actual string, not a fallback
+                    # FIX BUG-N6: return the actual string result
                     return str(result)
-                    if hasattr(result, 'ipp_class'):
-                        return f"<{result.ipp_class.name} instance>"
         return f"<{self.ipp_class.name} instance>"
     
     def _is_private(self, name: str) -> bool:
@@ -553,9 +551,18 @@ class Interpreter:
     def visit_call_expr(self, node: CallExpr):
         callee = node.callee.accept(self)
         
+        # Evaluate positional arguments
         args = [arg.accept(self) for arg in node.arguments]
         
+        # Evaluate named arguments
+        named_args = {}
+        for named_arg in node.named_arguments:
+            named_args[named_arg.name] = named_arg.value.accept(self)
+        
         if callable(callee):
+            # For Python callables, merge positional and named args
+            if named_args:
+                raise RuntimeError("Named arguments not supported for built-in functions")
             return callee(*args)
         
         if isinstance(callee, IppInstance):
@@ -565,16 +572,43 @@ class Interpreter:
             instance = IppInstance(callee)
             init_method = callee.get_method("init")
             if init_method:
-                self.call_function(init_method, [instance] + args)
+                # Match named arguments to init parameters
+                merged_args = self._merge_named_args(init_method, [instance] + args, named_args)
+                self.call_function(init_method, merged_args)
             return instance
         
         if isinstance(callee, IppFunction):
-            return self.call_function(callee, args)
+            # Match named arguments to function parameters
+            merged_args = self._merge_named_args(callee, args, named_args)
+            return self.call_function(callee, merged_args)
         
         if isinstance(callee, BoundMethod):
-            return self.call_function(callee.method, [callee.instance] + args)
+            # Match named arguments to method parameters
+            merged_args = self._merge_named_args(callee.method, [callee.instance] + args, named_args)
+            return self.call_function(callee.method, merged_args)
         
         raise RuntimeError(f"Cannot call {type(callee)}")
+    
+    def _merge_named_args(self, func, positional_args, named_args):
+        """Merge positional and named arguments into a final argument list. FIX: BUG-NEW-M4"""
+        if not named_args:
+            return positional_args
+        
+        params = func.parameters
+        result = list(positional_args)
+        
+        # Fill in named arguments at their parameter positions
+        for name, value in named_args.items():
+            if name in params:
+                param_idx = params.index(name)
+                # Extend result list if needed
+                while len(result) <= param_idx:
+                    result.append(None)
+                result[param_idx] = value
+            else:
+                raise RuntimeError(f"Unknown named argument: {name}")
+        
+        return result
 
     def call_function(self, func: IppFunction, args: List[Any]):
         # FIX BUG-NEW-N2: Check recursion depth
@@ -603,9 +637,8 @@ class Interpreter:
             
             for i in range(param_start, num_params):
                 param = func.parameters[i]
-                # FIX: args[0]=self, args[1]=first user param, ... so index directly by i
+                # args = [self, x, y, ...] so args[i] aligns directly with parameters[i]
                 arg_idx = i
-                arg_idx = i - param_start
                 
                 if arg_idx < num_args:
                     # Use provided argument
@@ -892,6 +925,24 @@ class Interpreter:
         if node.initializer:
             value = node.initializer.accept(self)
         self.environment.define(node.name, value, constant=False)
+
+    def visit_multi_var_decl(self, node: MultiVarDecl):
+        """Multiple variable declaration: var a, b = expr FIX: BUG-NEW-M7"""
+        value = node.initializer.accept(self)
+        
+        # Handle different types of initializers
+        if isinstance(value, (list, tuple)):
+            elements = list(value)
+        elif isinstance(value, IppList):
+            elements = value.elements
+        else:
+            raise RuntimeError(f"Cannot unpack {type(value)} into multiple variables")
+        
+        if len(elements) != len(node.names):
+            raise RuntimeError(f"Expected {len(node.names)} values, got {len(elements)}")
+        
+        for name, elem in zip(node.names, elements):
+            self.environment.define(name, elem, constant=False)
 
     def visit_let_decl(self, node: LetDecl):
         value = None

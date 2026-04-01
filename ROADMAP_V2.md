@@ -31,8 +31,8 @@
 | **v1.2.4** | ✅ DONE | Full VM Class Support |
 | **v1.3.0** | ✅ DONE | REPL Enhancements (`.vars`, `.fns`, `.history`, `.vm`, `\`, Ctrl+C, colors) |
 | **v1.3.1** | ✅ DONE | Critical + Major Bugs Fixed (for-loop, line 0, overload, defaults, int/float, closures) |
-| **v1.3.2** | ⚠️ IN PROGRESS | VM Stabilization (upvalues) + Set type + Class Fix |
-| **v1.3.3** | 📋 PLANNED | Game SDK + StdLib + Bug Fixes |
+| **v1.3.2** | ✅ DONE | VM Stabilization (upvalues) + Set type + Class Fix |
+| **v1.3.3** | ✅ DONE | Bug Fixes + Standard Library + Math + Collections |
 | **v1.4.0** | 📋 PLANNED | Generators + Engine Integration |
 | **v2.0.0** | 📋 PLANNED | Advanced Game Features |
 
