@@ -214,8 +214,8 @@
 - [x] `ftp_connect`, `ftp_disconnect`, `ftp_list`, `ftp_get`, `ftp_put` - FTP client
 - [x] `smtp_connect`, `smtp_disconnect`, `smtp_send` - SMTP email
 - [x] `url_encode`, `url_decode`, `url_query_build`, `url_query_parse` - URL utilities
-- [ ] `http.server` - HTTP server (planned for v1.4.0)
-- [ ] `websocket` - WebSocket client/server (planned for v1.4.0)
+- [ ] `http.server` - HTTP server (planned for v1.3.8)
+- [ ] `websocket` - WebSocket client/server (planned for v1.3.8)
 
 ---
 
@@ -236,55 +236,32 @@
 
 ---
 
-## v1.3.8 — VM Builtin Functions + Dict Access 📋 PLANNED
+## v1.3.8 — Networking + Collections 📋 PLANNED
 
-**Audit reference:** VM-IMPL-B1, VM-IMPL-B2, VM-IMPL-B3
+### HTTP Server ⏳ TODO
+- [ ] `http.serve(handler, host, port)` — Start HTTP server
+- [ ] Request/response objects with headers, body, query params
+- [ ] Routing with pattern matching
+- [ ] Static file serving
+- [ ] Middleware support
 
-### VM-IMPL-B1: Builtin Functions with Arguments ⏳ TODO
-- [ ] Fix `upper("hello")` → currently "Undefined variable"
-- [ ] Fix `print(x)` with variable args in VM
-- [ ] Fix all 130+ builtins to work on VM path
+### WebSocket ⏳ TODO
+- [ ] `websocket.server(handler, host, port)` — Start WebSocket server
+- [ ] `websocket.connect(url)` — WebSocket client
+- [ ] Message send/receive
+- [ ] Connection lifecycle events
 
-### VM-IMPL-B2: Dict Access ⏳ TODO
-- [ ] Fix `d["key"]` → currently "list index out of range"
-- [ ] VM uses wrong opcode path for dict indexing
+### PriorityQueue ⏳ TODO
+- [ ] `PriorityQueue()` — Heap-based priority queue
+- [ ] `push(item, priority)` — Add item with priority
+- [ ] `pop()` — Remove and return highest priority item
+- [ ] `peek()` — View highest priority item without removing
 
-### VM-IMPL-B3: Try/Catch ⏳ TODO
-- [ ] Fix `try { var x = undef } catch e { }` in VM
-- [ ] Currently throws "Undefined variable" instead of catching
-
----
-
-## v1.3.9 — VM Functions + Recursion 📋 PLANNED
-
-**Audit reference:** VM-IMPL-F1, VM-IMPL-F2, VM-IMPL-F3
-
-### VM-IMPL-F1: Function Calls with Arguments ⏳ TODO
-- [ ] Fix `func add(a, b) { return a + b }` → "Cannot call int"
-- [ ] Fix function argument passing in VM CALL handler
-
-### VM-IMPL-F2: Named Arguments ⏳ TODO
-- [ ] Fix `f(y=1, x=10)` → NoneType arithmetic
-- [ ] Named arg parsing in VM compiler
-
-### VM-IMPL-F3: Recursion ⏳ TODO
-- [ ] Fix recursive function calls in VM
-- [ ] Fix class instantiation and property access
-
----
-
-## v1.3.10 — VM For Loops + CLI Flag 📋 PLANNED
-
-**Audit reference:** VM-IMPL-L1, VM-IMPL-C1
-
-### VM-IMPL-L1: For Loops ⏳ TODO
-- [ ] Fix `for i in 0..3 { }` → missing `emit_get_global`
-- [ ] For loop compilation broken in VM
-
-### VM-IMPL-C1: CLI Flag ⏳ TODO
-- [ ] Add `--vm` flag: `python main.py run --vm file.ipp`
-- [ ] Add `--vm` to regression test runner
-- [ ] Full VM regression test pass (all 23 tests on VM path)
+### Tree/Graph ⏳ TODO
+- [ ] `Tree(value, children)` — Tree data structure
+- [ ] `Graph(directed)` — Graph data structure
+- [ ] Tree traversal (pre-order, in-order, post-order, BFS)
+- [ ] Graph algorithms (DFS, BFS, Dijkstra)
 
 ---
 

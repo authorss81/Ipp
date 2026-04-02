@@ -463,12 +463,12 @@ print(PI)
 
 | Version | Focus |
 |---|---|
-| v1.3.0-v1.3.5 | ✅ DONE — REPL, VM, bug fixes, standard library, networking, named params |
-| v1.4.0 | HTTP Server, WebSocket support, PriorityQueue, Tree/Graph |
-| v1.5.0 | Generator functions `yield` |
-| v1.6.0 | Async/await |
-| v2.0.0 | Game engine integration (Physics, Graphics) |
-| v3.0.0 | C API for embedding |
+| v1.3.0-v1.3.7 | ✅ DONE — REPL, VM, bug fixes, standard library, networking, REPL tools |
+| v1.3.8 | HTTP Server, WebSocket, PriorityQueue, Tree/Graph |
+| v1.4.0 | Generators `yield`, Async/Await, Engine integration |
+| v1.4.1 | VM Builtin Functions + Dict Access |
+| v1.4.2 | VM Functions + Recursion + Classes |
+| v1.4.3 | VM For Loops + `--vm` CLI Flag |
 
 ---
 

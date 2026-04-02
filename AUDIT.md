@@ -1158,7 +1158,51 @@ Ordered by severity × frequency of impact:
 
 ---
 
-## v1.3.8 — VM Builtin Functions + Dict Access
+## v1.3.8 — Networking + Collections 📋 PLANNED
+
+### HTTP Server
+- [ ] `http.serve(handler, host, port)` — Start HTTP server
+- [ ] Request/response objects with headers, body, query params
+- [ ] Routing with pattern matching
+- [ ] Static file serving
+
+### WebSocket
+- [ ] `websocket.server(handler, host, port)` — WebSocket server
+- [ ] `websocket.connect(url)` — WebSocket client
+- [ ] Message send/receive
+
+### PriorityQueue
+- [ ] `PriorityQueue()` — Heap-based priority queue
+- [ ] `push(item, priority)` / `pop()` / `peek()`
+
+### Tree/Graph
+- [ ] `Tree(value, children)` — Tree data structure
+- [ ] `Graph(directed)` — Graph data structure
+- [ ] Tree traversal, graph algorithms (DFS, BFS, Dijkstra)
+
+---
+
+## v1.4.0 — Generators + Async/Await + Engine Integration 📋 PLANNED
+
+### Generator Functions
+- [ ] Lex `yield` as keyword
+- [ ] Create `IppGenerator` object
+- [ ] Serialize/resume execution state
+- [ ] `next(gen)` and `for x in gen` iteration
+
+### Async/Await
+- [ ] Implement async/await over generators
+- [ ] Add event loop
+- [ ] Handle `await expr` as `yield wait(expr)`
+
+### Engine Bindings
+- [ ] Pygame integration
+- [ ] Godot GDScript alternative
+- [ ] Raylib binding
+
+---
+
+## v1.4.1 — VM Builtin Functions + Dict Access 📋 PLANNED
 
 ### Current VM Status (v1.3.6)
 
@@ -1195,7 +1239,7 @@ The VM works outside REPL for basic features but has significant gaps. Tested 18
 
 ---
 
-## v1.3.9 — VM Functions + Recursion
+## v1.4.2 — VM Functions + Recursion 📋 PLANNED
 
 ### VM-IMPL-F1: Function Calls with Arguments
 - [ ] Fix function calls with arguments in VM ("Cannot call int" error)
@@ -1205,7 +1249,7 @@ The VM works outside REPL for basic features but has significant gaps. Tested 18
 
 ---
 
-## v1.3.10 — VM For Loops + CLI Flag
+## v1.4.3 — VM For Loops + CLI Flag 📋 PLANNED
 
 ### VM-IMPL-L1: For Loops + CLI
 - [ ] Fix `for` loop compilation (missing `emit_get_global`)

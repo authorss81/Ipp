@@ -324,13 +324,15 @@ class VM:
         self._init_builtins()
 
     def _init_builtins(self):
-        import random, json, datetime, base64, hashlib
+        import random, json, datetime, base64, hashlib, re, os, time as time_mod
+        from ipp.runtime.builtins import BUILTINS as _INTERP_BUILTINS
+        from ipp.interpreter.interpreter import IppDict, IppList
 
         self.globals.update({
             'print': self._builtin_print,
             'len': self._builtin_len,
             'type': self._builtin_type,
-            'set': self._builtin_set,   # FIX BUG-NEW-M6
+            'set': self._builtin_set,
             'abs': abs,
             'min': min,
             'max': max,
@@ -338,24 +340,111 @@ class VM:
             'range': self._builtin_range,
             'random': random.random,
             'randint': random.randint,
+            'randfloat': lambda a, b: random.uniform(a, b),
+            'choice': lambda seq: random.choice(seq),
+            'shuffle': lambda seq: random.shuffle(seq),
             'str': str,
             'int': int,
             'float': float,
             'bool': bool,
+            'to_number': lambda s: float(s) if '.' in str(s) else int(s),
+            'to_int': int,
+            'to_float': float,
+            'to_bool': bool,
+            'to_string': str,
             'sqrt': math.sqrt,
             'pow': pow,
             'sin': math.sin, 'cos': math.cos, 'tan': math.tan,
-            'log': math.log, 'floor': math.floor, 'ceil': math.ceil,
+            'log': math.log, 'log10': math.log10,
+            'floor': math.floor, 'ceil': math.ceil,
             'round': round,
+            'degrees': math.degrees, 'radians': math.radians,
+            'asin': math.asin, 'acos': math.acos, 'atan': math.atan, 'atan2': math.atan2,
+            'pi': lambda: math.pi,
+            'e': lambda: math.e,
             'json_parse': json.loads,
             'json_stringify': json.dumps,
             'md5': lambda s: hashlib.md5(str(s).encode()).hexdigest(),
             'sha256': lambda s: hashlib.sha256(str(s).encode()).hexdigest(),
+            'sha1': lambda s: hashlib.sha1(str(s).encode()).hexdigest(),
+            'sha512': lambda s: hashlib.sha512(str(s).encode()).hexdigest(),
+            'hash': hash,
             'base64_encode': lambda s: base64.b64encode(str(s).encode()).decode(),
             'base64_decode': lambda s: base64.b64decode(str(s).encode()).decode(),
-            'clock': time.perf_counter,
+            'clock': time_mod.perf_counter,
+            'time': time_mod.time,
+            'sleep': time_mod.sleep,
             'input': input,
+            'exit': sys.exit,
             'assert': self._builtin_assert,
+            # String functions
+            'upper': str.upper,
+            'lower': str.lower,
+            'strip': str.strip,
+            'split': str.split,
+            'join': lambda arr, sep: sep.join(str(x) for x in arr),
+            'replace': str.replace,
+            'replace_all': str.replace,
+            'starts_with': str.startswith,
+            'ends_with': str.endswith,
+            'startswith': str.startswith,
+            'endswith': str.endswith,
+            'find': str.find,
+            'index_of': str.find,
+            'char_at': lambda s, i: s[int(i)] if int(i) < len(s) else '',
+            'substring': lambda s, start, length=None: s[int(start):int(start)+int(length)] if length else s[int(start):],
+            'count': lambda s, sub: s.count(sub),
+            'contains': lambda s, sub: sub in s,
+            'split_lines': lambda s: s.split('\n'),
+            'ascii': ord,
+            'from_ascii': chr,
+            # File I/O
+            'read_file': self._builtin_read_file,
+            'file_read': self._builtin_read_file,
+            'write_file': self._builtin_write_file,
+            'file_write': self._builtin_write_file,
+            'append_file': self._builtin_append_file,
+            'file_exists': os.path.exists,
+            'delete_file': os.remove,
+            'list_dir': os.listdir,
+            'mkdir': os.makedirs,
+            # Dict operations
+            'keys': lambda d: list(d.keys()) if isinstance(d, dict) else (list(d.data.keys()) if hasattr(d, 'data') else []),
+            'values': lambda d: list(d.values()) if isinstance(d, dict) else (list(d.data.values()) if hasattr(d, 'data') else []),
+            'items': lambda d: list(d.items()) if isinstance(d, dict) else (list(d.data.items()) if hasattr(d, 'data') else []),
+            'has_key': lambda d, k: k in d if isinstance(d, dict) else (k in d.data if hasattr(d, 'data') else False),
+            # Regex
+            'regex_match': lambda text, pattern: bool(re.match(pattern, text)),
+            'regex_search': lambda text, pattern: (m.group() if (m := re.search(pattern, text)) else ''),
+            'regex_replace': lambda text, pattern, repl: re.sub(pattern, repl, text),
+            # CSV
+            'csv_parse': lambda s: [row.split(',') for row in s.strip().split('\n')],
+            'csv_parse_dict': self._builtin_csv_parse_dict,
+            # URL
+            'url_encode': lambda s: __import__('urllib.parse').parse.quote(str(s)),
+            'url_decode': lambda s: __import__('urllib.parse').parse.unquote(str(s)),
+            # GZIP
+            'gzip_compress': lambda s: base64.b64encode(__import__('gzip').compress(str(s).encode())).decode(),
+            'gzip_decompress': lambda s: __import__('gzip').decompress(base64.b64decode(str(s))).decode(),
+            # UUID
+            'uuid4': lambda: str(__import__('uuid').uuid4()),
+            'uuid1': lambda: str(__import__('uuid').uuid1()),
+            'uuid_nil': lambda: '00000000-0000-0000-0000-000000000000',
+            # OS
+            'os_platform': lambda: os.name,
+            'os_cwd': os.getcwd,
+            'env_get': os.environ.get,
+            # Math helpers
+            'lerp': lambda a, b, t: a + (b - a) * t,
+            'clamp': lambda v, mn, mx: max(mn, min(mx, v)),
+            'sign': lambda n: (n > 0) - (n < 0),
+            'factorial': lambda n: math.factorial(int(n)),
+            'gcd': math.gcd,
+            'hypot': math.hypot,
+            # Complex
+            'complex': complex,
+            # Logging
+            'logger': self._builtin_logger,
         })
 
     # ─── Built-in helpers ─────────────────────────────────────────────────────
@@ -408,6 +497,46 @@ class VM:
         if len(args) == 1:   return list(range(int(args[0])))
         if len(args) == 2:   return list(range(int(args[0]), int(args[1])))
         if len(args) == 3:   return list(range(int(args[0]), int(args[1]), int(args[2])))
+        return []
+
+    def _builtin_read_file(self, path):
+        with open(str(path), 'r', encoding='utf-8') as f:
+            return f.read()
+
+    def _builtin_write_file(self, path, data):
+        with open(str(path), 'w', encoding='utf-8') as f:
+            f.write(str(data))
+        return True
+
+    def _builtin_append_file(self, path, data):
+        with open(str(path), 'a', encoding='utf-8') as f:
+            f.write(str(data))
+        return True
+
+    def _builtin_csv_parse_dict(self, s):
+        lines = s.strip().split('\n')
+        if not lines:
+            return []
+        headers = [h.strip() for h in lines[0].split(',')]
+        result = []
+        for line in lines[1:]:
+            values = [v.strip() for v in line.split(',')]
+            row = {}
+            for i, h in enumerate(headers):
+                if i < len(values):
+                    row[h] = values[i]
+            result.append(row)
+        return result
+
+    def _builtin_logger(self, name="ipp", level="INFO"):
+        import logging
+        logger = logging.getLogger(str(name))
+        logger.setLevel(getattr(logging, str(level).upper(), logging.INFO))
+        if not logger.handlers:
+            handler = logging.StreamHandler()
+            handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+            logger.addHandler(handler)
+        return logger
         return []
 
     def _builtin_assert(self, cond, msg="Assertion failed"):
@@ -738,6 +867,12 @@ class VM:
                 self.stack.append(obj[int(idx)])
             elif isinstance(obj, dict):
                 self.stack.append(obj.get(idx))
+            elif hasattr(obj, 'data'):
+                # IppDict
+                self.stack.append(obj.data.get(idx))
+            elif hasattr(obj, 'elements'):
+                # IppList
+                self.stack.append(obj.elements[int(idx)])
             else:
                 self.stack.append(None)
 
