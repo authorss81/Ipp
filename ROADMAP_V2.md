@@ -307,6 +307,24 @@
 - [x] `.tutorial` — Interactive tutorial mode
 - [x] `.plugin load <file>` — Load plugin files
 
+### Session Management ✅ DONE
+- [x] Session persistence — auto-save/restore across restarts
+- [x] Multiple named sessions (`.session save/load/switch`)
+- [x] Session export — save session as `.ipp` script file
+- [x] `.redo` — redo after `.undo`
+- [x] Expression history — access previous results with `$_1`, `$_2`, etc.
+
+### Customization ✅ DONE
+- [x] Custom themes — color scheme selection (`.theme dark/light/solarized`)
+- [x] Prompt customization — custom prompt format
+- [x] Key bindings — customizable keyboard shortcuts
+- [x] Plugin system — load custom `.ipp` plugins that add REPL commands
+
+### Documentation (Additional Features) ⏳ TODO
+- [ ] Search docs — search builtin documentation with keywords
+- [ ] Contextual help — show relevant help based on current error
+- [ ] Example browser — browse code examples by category
+
 ---
 
 ## v1.4.0 — Generators + Async/Await + Engine Integration 📋 PLANNED
