@@ -35,6 +35,7 @@ TESTS = [
     ("v1.3.4-advanced", "tests/v1_3_4/test_advanced_features.ipp"),
     ("v1.3.7-repl", "tests/v1_3_7/test_repl_enhancements.ipp"),
     ("v1.3.8", "tests/v1_3_8/test_networking_collections.ipp"),
+    ("v1.3.9", "tests/v1_3_9/test_error_handling.ipp"),
 ]
 
 def run_test(version, filepath):

@@ -1,5 +1,0 @@
-# Ensure consistent LF line endings everywhere (stops LF→CRLF warnings on Windows)
-* text=auto eol=lf
-*.py text eol=lf
-*.ipp text eol=lf
-*.md  text eol=lf

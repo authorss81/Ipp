@@ -67,7 +67,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "1.3.8"
+VERSION = "1.3.9"
 
 # ─── Windows ANSI enablement ──────────────────────────────────────────────────
 # Windows 10 supports ANSI but requires ENABLE_VIRTUAL_TERMINAL_PROCESSING.
@@ -206,6 +206,9 @@ _BUILTINS = frozenset([
 
 def highlight(code: str) -> str:
     if not _USE_ANSI:
+        return code
+    # If code already contains ANSI codes, return as-is to avoid corruption
+    if '\033[' in code:
         return code
     lines = code.split('\n')
     out = []
@@ -771,6 +774,59 @@ def _format_val(val, truncate=False):
 def format_output(val) -> str:
     return _format_val(val)
 
+
+def _get_similar_names(name, candidates, max_suggestions=3):
+    """Find similar names to suggest when user makes a typo."""
+    import difflib
+    matches = difflib.get_close_matches(name, candidates, n=max_suggestions, cutoff=0.6)
+    return matches
+
+
+def _suggest_fix(error_msg, interp_manager):
+    """Generate helpful suggestions based on error message."""
+    suggestions = []
+    
+    # Undefined variable suggestions - match both "Undefined variable 'x'" and "Undefined variable: x"
+    m = re.search(r"Undefined variable[': ]+['\"]?(\w+)['\"]?", error_msg)
+    if m:
+        name = m.group(1)
+        try:
+            from ipp.runtime.builtins import BUILTINS
+            all_names = list(BUILTINS.keys()) + list(interp_manager.global_env.keys())
+            similar = _get_similar_names(name, all_names)
+            if similar:
+                suggestions.append(f"  {colour(C_WARN, 'Did you mean:')} {colour(C_OK, ', '.join(similar))}")
+            else:
+                suggestions.append(f"  {colour(C_WARN, 'Tip:')} Use .builtins to see available functions, or .vars to see variables")
+        except Exception:
+            pass
+    elif "Cannot call" in error_msg:
+        suggestions.append(f"  {colour(C_WARN, 'Tip:')} Check that the variable is a function. Use .which <name> to inspect it")
+    elif "not supported" in error_msg or "TypeError" in error_msg:
+        suggestions.append(f"  {colour(C_WARN, 'Tip:')} Check the types of your operands. Use type(<var>) to inspect values")
+    elif "index out of range" in error_msg:
+        suggestions.append(f"  {colour(C_WARN, 'Tip:')} Check the list/dict length with len(<var>) before indexing")
+    elif "not found" in error_msg or "has no attribute" in error_msg:
+        suggestions.append(f"  {colour(C_WARN, 'Tip:')} Use type(<var>) to check the object type, and .doc <builtin> for function docs")
+    elif "recursion" in error_msg.lower():
+        suggestions.append(f"  {colour(C_WARN, 'Tip:')} Check your base case. Infinite recursion exceeds the call depth limit")
+    elif "SyntaxError" in error_msg or "syntax" in error_msg.lower():
+        suggestions.append(f"  {colour(C_WARN, 'Tip:')} Check for missing brackets, parentheses, or semicolons")
+    
+    return suggestions
+
+
+def _format_error_with_suggestions(e, interp_manager):
+    """Format error message with helpful suggestions."""
+    msg = str(e)
+    suggestions = _suggest_fix(msg, interp_manager)
+    m = re.search(r'line (\d+)', msg)
+    loc = f" {colour(DIM, f'(line {m.group(1)})')}" if m else ''
+    cross = 'x' if not _UNI else '✗'
+    lines = [f"  {colour(C_ERROR, cross)} {colour(C_ERROR, msg)}{loc}"]
+    lines.extend(suggestions)
+    return '\n'.join(lines)
+
 # ─── REPL spinner (simple, no threads) ───────────────────────────────────────
 _SPINNER = ['⣾','⣽','⣻','⢿','⡿','⣟','⣯','⣷']
 
@@ -872,6 +928,18 @@ def run_repl():
                 global _USE_ANSI
                 if m.group(1) == 'on':
                     _USE_ANSI = True
+                    # Enable virtual terminal processing on Windows
+                    if sys.platform.startswith('win'):
+                        try:
+                            import ctypes
+                            kernel32 = ctypes.windll.kernel32
+                            h = kernel32.GetStdHandle(-11)
+                            mode = ctypes.c_ulong()
+                            kernel32.GetConsoleMode(h, ctypes.byref(mode))
+                            mode.value |= 4  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
+                            kernel32.SetConsoleMode(h, mode)
+                        except Exception:
+                            pass
                     print(f"  {colour(C_OK, 'Colors enabled')}")
                 else:
                     _USE_ANSI = False
@@ -1141,15 +1209,7 @@ def run_repl():
             else:
                 buf.clear()
                 e = result_val
-                if isinstance(e, (SyntaxError, RuntimeError)):
-                    msg = str(e)
-                    m = re.search(r'line (\d+)', msg)
-                    loc = f" {colour(DIM, f'(line {m.group(1)})')}" if m else ''
-                    cross = 'x' if not _UNI else '✗'
-                    print(f"  {colour(C_ERROR, cross)} {colour(C_ERROR, msg)}{loc}")
-                else:
-                    cross = 'x' if not _UNI else '✗'
-                    print(f"  {colour(C_ERROR, cross)} {colour(C_ERROR, str(e))}")
+                print(_format_error_with_suggestions(e, interp_manager))
 
 # ─── File runner ──────────────────────────────────────────────────────────────
 def run_file(path: str) -> int:

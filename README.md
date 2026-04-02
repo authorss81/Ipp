@@ -2,7 +2,7 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.3.8-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.3.9-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-130+-brightgreen.svg" alt="Builtins">
@@ -463,7 +463,15 @@ print(PI)
 
 | Version | Focus |
 |---|---|
-| v1.3.0-v1.3.8 | ✅ DONE — REPL, VM, bug fixes, standard library, networking, REPL tools, HTTP server, PriorityQueue, Tree, Graph |
+| v1.3.0 | String interpolation, REPL redesign |
+| v1.3.1 | Performance optimization |
+| v1.3.2 | VM upvalues, Set type, bug fixes |
+| v1.3.3 | Bug fixes + Standard Library + Networking (HTTP/FTP/SMTP) |
+| v1.3.4 | Comprehensive stdlib testing (130+ builtins) |
+| v1.3.5 | Regex fix + REPL color fix |
+| v1.3.6 | VM compatibility tests + REPL warning |
+| v1.3.7 | REPL enhancements (.load, .save, .doc, .time, .which, .undo, .profile, .alias, .edit, .last) |
+| v1.3.8 | HTTP Server, PriorityQueue, Tree, Graph |
 | v1.4.0 | Generators `yield`, Async/Await, Engine integration |
 | v1.4.1 | VM Builtin Functions + Dict Access |
 | v1.4.2 | VM Functions + Recursion + Classes |
