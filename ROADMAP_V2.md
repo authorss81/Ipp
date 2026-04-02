@@ -217,7 +217,11 @@
 - [ ] `http.server` - HTTP server (planned for v1.4.0)
 - [ ] `websocket` - WebSocket client/server (planned for v1.4.0)
 
-### REPL Improvements 📋 PLANNED
+---
+
+## v1.3.7 — REPL Enhancements 📋 PLANNED
+
+### REPL Improvements
 - [ ] `.edit` — Open last command in external editor
 - [ ] `.save <file>` — Save session history to file
 - [ ] `.load <file>` — Load and execute file in current session (keep variables)
@@ -236,7 +240,7 @@
 
 ---
 
-## v1.3.7 — VM Builtin Functions + Dict Access 📋 PLANNED
+## v1.3.8 — VM Builtin Functions + Dict Access 📋 PLANNED
 
 **Audit reference:** VM-IMPL-B1, VM-IMPL-B2, VM-IMPL-B3
 
@@ -255,7 +259,7 @@
 
 ---
 
-## v1.3.8 — VM Functions + Recursion 📋 PLANNED
+## v1.3.9 — VM Functions + Recursion 📋 PLANNED
 
 **Audit reference:** VM-IMPL-F1, VM-IMPL-F2, VM-IMPL-F3
 
@@ -273,7 +277,7 @@
 
 ---
 
-## v1.3.9 — VM For Loops + CLI Flag 📋 PLANNED
+## v1.3.10 — VM For Loops + CLI Flag 📋 PLANNED
 
 **Audit reference:** VM-IMPL-L1, VM-IMPL-C1
 
