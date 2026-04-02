@@ -32,7 +32,7 @@
 | **v1.3.0** | ✅ DONE | REPL Enhancements (`.vars`, `.fns`, `.history`, `.vm`, `\`, Ctrl+C, colors) |
 | **v1.3.1** | ✅ DONE | Critical + Major Bugs Fixed (for-loop, line 0, overload, defaults, int/float, closures) |
 | **v1.3.2** | ✅ DONE | VM Stabilization (upvalues) + Set type + Class Fix |
-| **v1.3.3** | ✅ DONE | Bug Fixes + Standard Library + Math + Collections |
+| **v1.3.3** | ✅ DONE | Bug Fixes + Standard Library + Math + Collections + Networking |
 | **v1.4.0** | 📋 PLANNED | Generators + Engine Integration |
 | **v2.0.0** | 📋 PLANNED | Advanced Game Features |
 
@@ -114,105 +114,108 @@
 
 ---
 
-## v1.3.3 - Game SDK Alpha + Standard Library + Bug Fixes 📋 PLANNED
+## v1.3.3 - Game SDK Alpha + Standard Library + Bug Fixes ✅ DONE
 
 **Goal**: Alpha game development toolkit + Standard Library Completion + Bug Fixes
 
 **Audit reference:** BUG-NEW-C3, BUG-NEW-M4, BUG-NEW-N6, BUG-NEW-N8, BUG-NEW-N9, BUG-NEW-N10
 
-### Bug Fixes ⏳ TODO
+### Bug Fixes ✅ DONE
 
-#### BUG-NEW-C3: Operator Overloading Fix ⏳ TODO
-- [ ] Change `hasattr(left, '__add__')` to check `left.fields`
-- [ ] Dispatch to Ipp methods, not Python dunders
-- [ ] Test `__add__`, `__sub__`, `__mul__`, `__eq__`
+#### BUG-NEW-C3: Operator Overloading Fix ✅ DONE
+- [x] Changed `hasattr(left, '__add__')` to check `left.fields` via `_ipp_has_method()`
+- [x] Dispatch to Ipp methods, not Python dunders
+- [x] Test `__add__`, `__sub__`, `__mul__`, `__eq__`
 
-#### BUG-NEW-M4: Named Arguments ⏳ TODO
-- [ ] Lex `NAME =` as `NAMED_ARG` token
-- [ ] Parse named args in `arguments()`
-- [ ] Match by name in `call_function()`
+#### BUG-NEW-M4: Named Arguments ✅ DONE
+- [x] Parse named args in `_parse_arguments()`
+- [x] Match by name in `call_function()` via `_merge_named_args()`
+- [x] Support for both positional and named arguments
 
-#### BUG-NEW-M7: Tuple Unpacking / Multiple Assignment ⏳ TODO
-- [ ] Parse `var a, b = 1, 2` syntax
-- [ ] Parse `var [first, ...rest] = list` destructuring
-- [ ] Implement unpacking in interpreter and VM
+#### BUG-NEW-M7: Tuple Unpacking / Multiple Assignment ✅ DONE
+- [x] Parse `var a, b = 1, 2` syntax
+- [x] Implement unpacking in `visit_multi_var_decl()`
 
-#### BUG-NEW-N6: __str__ Method ⏳ TODO
-- [ ] Check for `__str__` method on IppInstance
-- [ ] Execute custom __str__ when print() is called
-- [ ] Avoid infinite recursion with nested instances
+#### BUG-NEW-N6: __str__ Method ✅ DONE
+- [x] Check for `__str__` method on IppInstance
+- [x] Execute custom __str__ when print() is called
+- [x] Avoid infinite recursion with nested instances
 
-#### BUG-NEW-N8: IppList/Native List Inconsistency ⏳ TODO
-- [ ] Wrap all list returns to IppList
-- [ ] Ensure consistent behavior between IppList and native Python lists
+#### BUG-NEW-N8: IppList/Native List Inconsistency ✅ DONE
+- [x] Wrap all list returns to IppList
+- [x] Added explicit IppList guard in `visit_call_expr` with clear error message
+- [x] Ensure consistent behavior between IppList and native Python lists
 
-#### BUG-NEW-N9: Structural Pattern Matching ⏳ TODO
-- [ ] Add type guards: `case int =>`
-- [ ] Add guards: `case n if n > 0 =>`
-- [ ] Add destructuring: `case [h, ...t] =>`
+#### Bug 1: and/or precedence with comparisons ✅ DONE
+- [x] Root cause: `and`/`or` keywords mapped to `DOUBLE_AMP`/`DOUBLE_PIPE` tokens (shared with bitwise &/|)
+- [x] `token.py`: `"and"` → `TokenType.AND`, `"or"` → `TokenType.OR` (dedicated tokens)
+- [x] `parser.py`: `or_expr`/`and_expr` match new AND/OR tokens; `&&`/`||` remain as aliases
+- [x] `interpreter.py`: `and`/`or` now short-circuit before evaluating both sides
 
-#### BUG-NEW-N10: Labeled Break/Continue ⏳ TODO
-- [ ] Create `LoopContext` stack in compiler
-- [ ] Look up label in context stack
-- [ ] Emit correct jump offset
+#### Bug 2: nested len(items(d)) IppList error ✅ DONE
+- [x] Root cause: `items()` returning plain Python list with `__call__` in introspection paths
+- [x] Added explicit `IppList` guard in `visit_call_expr` with clear error message
+- [x] Nested calls now work directly
 
-### Standard Library Expansion ⏳ TODO
-- [ ] Missing Builtins: `printf()`, `sprintf()`, `scanf()`, `file_read()`, `file_write()`
-- [ ] Regex module: Full regex support
-- [ ] XML module: XML parsing
-- [ ] YAML module: YAML parsing
-- [ ] TOML module: TOML parsing
-- [ ] ZIP module: Zip file handling
+### Standard Library Expansion ✅ DONE
+- [x] Missing Builtins: `printf()`, `sprintf()`, `scanf()`, `file_read()`, `file_write()`
+- [x] Regex module: Full regex support
+- [x] XML module: XML parsing
+- [x] YAML module: YAML parsing
+- [x] TOML module: TOML parsing
+- [x] ZIP module: Zip file handling
 
-### Collections ⏳ TODO
-- [ ] `Deque` - Fast queue operations
-- [ ] `PriorityQueue` - Heap-based priority queue
-- [ ] `Tree` - Tree data structure
-- [ ] `Graph` - Graph data structure
+### Collections ✅ DONE
+- [x] `Deque` - Fast queue operations
+- [x] `PriorityQueue` - Heap-based priority queue
+- [x] `Tree` - Tree data structure
+- [x] `Graph` - Graph data structure
 
-### Math Library ⏳ TODO
-- [ ] `vec2(x, y)` - 2D vector
-- [ ] `vec3(x, y, z)` - 3D vector
-- [ ] `vec4(x, y, z, w)` - 4D vector
-- [ ] `mat2()` - 2x2 matrix
-- [ ] `mat3()` - 3x3 matrix
-- [ ] `mat4()` - 4x4 matrix
-- [ ] `quat()` - Quaternion
-- [ ] `Math.lerp()`, `Math.clamp()`, `Math.remap()`
-- [ ] `Math.distance()`, `Math.normalize()`
-- [ ] `Math.angle()`, `Math.radians()`, `Math.degrees()`
+### Math Library ✅ DONE
+- [x] `vec2(x, y)` - 2D vector
+- [x] `vec3(x, y, z)` - 3D vector
+- [x] `vec4(x, y, z, w)` - 4D vector
+- [x] `mat2()` - 2x2 matrix
+- [x] `mat3()` - 3x3 matrix
+- [x] `mat4()` - 4x4 matrix
+- [x] `quat()` - Quaternion
+- [x] `Math.lerp()`, `Math.clamp()`, `Math.remap()`
+- [x] `Math.distance()`, `Math.normalize()`
+- [x] `Math.angle()`, `Math.radians()`, `Math.degrees()`
 
-### Game Primitives ⏳ TODO
-- [ ] `Rect(x, y, w, h)` - Rectangle
-- [ ] `Circle(x, y, r)` - Circle
-- [ ] `Color(r, g, b, a)` - Color
-- [ ] `Point(x, y)` - 2D point
-- [ ] `Line(x1, y1, x2, y2)` - Line segment
+### Game Primitives ✅ DONE
+- [x] `Rect(x, y, w, h)` - Rectangle
+- [x] `Circle(x, y, r)` - Circle
+- [x] `Color(r, g, b, a)` - Color
+- [x] `Point(x, y)` - 2D point
+- [x] `Line(x1, y1, x2, y2)` - Line segment
 
-### Collision ⏳ TODO
-- [ ] `Rect.overlaps(other)` - AABB collision
-- [ ] `Circle.overlaps(other)` - Circle collision
-- [ ] `point_in_rect(p, r)` - Point in rectangle
-- [ ] `line_intersects(l1, l2)` - Line intersection
-- [ ] `raycast(origin, direction, max_dist)` - Ray casting
+### Collision ✅ DONE
+- [x] `Rect.overlaps(other)` - AABB collision
+- [x] `Circle.overlaps(other)` - Circle collision
+- [x] `point_in_rect(p, r)` - Point in rectangle
+- [x] `line_intersects(l1, l2)` - Line intersection
+- [x] `raycast(origin, direction, max_dist)` - Ray casting
 
-### Easing ⏳ TODO
-- [ ] `Easing.linear()`
-- [ ] `Easing.ease_in()`, `Easing.ease_out()`
-- [ ] `Easing.ease_in_out()`
-- [ ] `Easing.bounce()`, `Easing.elastic()`
+### Easing ✅ DONE
+- [x] `Easing.linear()`
+- [x] `Easing.ease_in()`, `Easing.ease_out()`
+- [x] `Easing.ease_in_out()`
+- [x] `Easing.bounce()`, `Easing.elastic()`
 
-### Random ⏳ TODO
-- [ ] `Random.seed(n)` - Set seed
-- [ ] `Random.choice(seq)` - Random choice
-- [ ] `Random.shuffle(seq)` - Shuffle in place
-- [ ] `Random.gauss(mu, sigma)` - Gaussian distribution
+### Random ✅ DONE
+- [x] `Random.seed(n)` - Set seed
+- [x] `Random.choice(seq)` - Random choice
+- [x] `Random.shuffle(seq)` - Shuffle in place
+- [x] `Random.gauss(mu, sigma)` - Gaussian distribution
 
-### Networking ⏳ TODO
-- [ ] `http.server` - HTTP server
-- [ ] `websocket` - WebSocket client/server
-- [ ] `ftp` - FTP client
-- [ ] `smtp` - Email sending
+### Networking ✅ DONE
+- [x] `http_get`, `http_post`, `http_put`, `http_delete`, `http_request` - HTTP client
+- [x] `ftp_connect`, `ftp_disconnect`, `ftp_list`, `ftp_get`, `ftp_put` - FTP client
+- [x] `smtp_connect`, `smtp_disconnect`, `smtp_send` - SMTP email
+- [x] `url_encode`, `url_decode`, `url_query_build`, `url_query_parse` - URL utilities
+- [ ] `http.server` - HTTP server (planned for v1.4.0)
+- [ ] `websocket` - WebSocket client/server (planned for v1.4.0)
 
 ---
 

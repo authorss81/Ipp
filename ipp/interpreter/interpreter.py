@@ -443,6 +443,14 @@ class Interpreter:
         return value
 
     def visit_binary_expr(self, node: BinaryExpr):
+        # FIX: and/or must short-circuit — evaluate left first, then decide on right
+        if node.operator == "and":
+            left = node.left.accept(self)
+            return left if not bool(left) else node.right.accept(self)
+        if node.operator == "or":
+            left = node.left.accept(self)
+            return left if bool(left) else node.right.accept(self)
+
         left = node.left.accept(self)
         right = node.right.accept(self)
         
@@ -564,7 +572,14 @@ class Interpreter:
             if named_args:
                 raise RuntimeError("Named arguments not supported for built-in functions")
             return callee(*args)
-        
+
+        # FIX: IppList returned from a builtin (e.g. items(d)) is not callable
+        if isinstance(callee, IppList):
+            raise RuntimeError(
+                "Cannot call a list as a function. "
+                "Store the result first: var tmp = items(d); len(tmp)"
+            )
+
         if isinstance(callee, IppInstance):
             return self.call_method(callee, args)
         

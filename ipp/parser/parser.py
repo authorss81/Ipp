@@ -395,14 +395,16 @@ class Parser:
 
     def or_expr(self):
         left = self.and_expr()
-        while self.match(TokenType.DOUBLE_PIPE):
+        # FIX: match dedicated OR token, not DOUBLE_PIPE (bitwise |)
+        while self.match(TokenType.OR) or self.match(TokenType.DOUBLE_PIPE):
             right = self.and_expr()
             left = BinaryExpr(left, "or", right)
         return left
 
     def and_expr(self):
         left = self.not_expr()
-        while self.match(TokenType.DOUBLE_AMP):
+        # FIX: match dedicated AND token, not DOUBLE_AMP (bitwise &)
+        while self.match(TokenType.AND) or self.match(TokenType.DOUBLE_AMP):
             right = self.not_expr()
             left = BinaryExpr(left, "and", right)
         return left

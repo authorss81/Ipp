@@ -156,7 +156,7 @@ KEYWORDS = {
     "with": TokenType.WITH,
     "static": TokenType.STATIC,
     "this": TokenType.SELF,      # alias for self
-    "and": TokenType.DOUBLE_AMP,   # 'and' keyword maps to logical AND
-    "or": TokenType.DOUBLE_PIPE,   # 'or' keyword maps to logical OR
+    "and": TokenType.AND,          # 'and' keyword → dedicated AND token
+    "or": TokenType.OR,            # 'or' keyword  → dedicated OR token
     "not": TokenType.BANG,         # 'not' keyword maps to logical NOT
 }

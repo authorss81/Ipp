@@ -1092,3 +1092,44 @@ Ordered by severity × frequency of impact:
 ### Needs Fix ⚠️
 - **Class instantiation** - Property assignment pushes extra value on stack
 - See `BUGFIX_INSTRUCTIONS.md` for details
+
+---
+
+## v1.3.3 Current Status
+
+**Release:** https://github.com/authorss81/Ipp/releases/tag/v1.3.3
+
+### Fixed ✅
+- **and/or precedence bug** — `1 == 1 and 2 == 2` now correctly returns `true`
+  - Root cause: `and`/`or` keywords mapped to `DOUBLE_AMP`/`DOUBLE_PIPE` tokens (shared with bitwise `&`/`||`)
+  - Fix: Dedicated `TokenType.AND`/`TokenType.OR` tokens, parser updated, short-circuit before left evaluation
+- **Nested `len(items(d))` IppList error** — `len(items(d))` now works directly
+  - Root cause: Plain Python list with `__call__` in introspection confused `callable()` check
+  - Fix: Explicit `IppList` guard in `visit_call_expr` with clear error message
+- **Named arguments** (BUG-NEW-M4) — `f(name="Alice", greeting="Hi")` now works
+- **Tuple unpacking** (BUG-NEW-M7) — `var a, b = [1, 2]` now works
+- **Operator overloading** (BUG-NEW-C3) — `__add__`, `__sub__`, `__mul__`, `__eq__` now dispatch correctly
+- **`__str__` method** (BUG-NEW-N6) — `print(obj)` now calls user-defined `__str__`
+- **IppList consistency** (BUG-NEW-N8) — All list returns wrapped in `IppList`
+
+### New Features ✅
+- **HTTP Client** — `http_get()`, `http_post()`, `http_put()`, `http_delete()`, `http_request()`
+- **FTP Client** — `ftp_connect()`, `ftp_disconnect()`, `ftp_list()`, `ftp_get()`, `ftp_put()`
+- **SMTP Email** — `smtp_connect()`, `smtp_disconnect()`, `smtp_send()`
+- **URL Utilities** — `url_encode()`, `url_decode()`, `url_query_build()`, `url_query_parse()`
+- **Math Library** — `lerp`, `clamp`, `distance`, `normalize`, `dot`, `cross`, `sign`, `smoothstep`, `move_towards`, `angle`, `deg_to_rad`, `rad_to_deg`, `factorial`, `gcd`, `lcm`, `hypot`, `floor_div`
+- **Collections** — `deque`, `ordict`, `set`
+- **Data Formats** — `xml_parse`, `yaml_parse`, `toml_parse`, `csv_parse`, `csv_parse_dict`
+- **Utilities** — `printf`, `sprintf`, `scanf`, `gzip_compress`, `gzip_decompress`, `zip_create`, `zip_extract`
+
+### Regression Tests
+- All 15 test suites pass (v0.5.0 through v1.3.3 including network tests)
+- No regressions introduced
+
+---
+
+*Supplement audit completed: 2026-03-28 | v1.3.0*
+*v1.3.1 completed: 2026-03-29 - Critical bugs fixed*
+*v1.3.2 completed: 2026-03-30 - VM upvalues + Set type*
+*v1.3.3 completed: 2026-04-02 - Bug fixes + Networking + Standard Library*
+*Total new issues found: 20 (3 critical, 7 major, 10 notable)*
