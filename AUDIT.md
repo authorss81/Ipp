@@ -1158,6 +1158,35 @@ Ordered by severity × frequency of impact:
 
 ---
 
+## v1.3.8 — Networking + Collections ✅ DONE
+
+### HTTP Server ✅ DONE
+- [x] `http_serve(handler, host, port)` — Start HTTP server with GET/POST/PUT/DELETE support
+- [x] Request handling with method, path, headers, body
+- [x] Response with status code, headers, body
+
+### PriorityQueue ✅ DONE
+- [x] `PriorityQueue()` — Heap-based priority queue
+- [x] `push(item, priority)` / `pop()` / `peek()` / `is_empty()` / `len()`
+
+### Tree ✅ DONE
+- [x] `Tree(value)` — Tree node with value and children
+- [x] `add_child()`, `remove_child()`, `get_child()`, `len()`
+- [x] `traverse_preorder()`, `traverse_postorder()`, `traverse_bfs()`
+- [x] `find(value)`, `depth()`
+
+### Graph ✅ DONE
+- [x] `Graph(directed)` — Directed/undirected graph
+- [x] `add_node()`, `add_edge()`, `remove_node()`, `remove_edge()`
+- [x] `has_node()`, `has_edge()`, `get_neighbors()`, `node_count()`, `edge_count()`
+- [x] `dfs(start)`, `bfs(start)`, `shortest_path(start, end)` (Dijkstra)
+
+### WebSocket ⏳ TODO
+- [ ] `websocket.server(handler, host, port)` — WebSocket server
+- [ ] `websocket.connect(url)` — WebSocket client
+
+---
+
 ## v1.3.9 — REPL Error Handling ✅ DONE
 
 ### Error Suggestions ✅ DONE
@@ -1369,79 +1398,3 @@ Ordered by severity × frequency of impact:
 - [ ] Image processing
 - [ ] Audio processing
 
----
-
-## v1.4.0 — Generators + Async/Await + Engine Integration 📋 PLANNED
-
-### Generator Functions
-- [ ] Lex `yield` as keyword
-- [ ] Create `IppGenerator` object
-- [ ] Serialize/resume execution state
-- [ ] `next(gen)` and `for x in gen` iteration
-
-### Async/Await
-- [ ] Implement async/await over generators
-- [ ] Add event loop
-- [ ] Handle `await expr` as `yield wait(expr)`
-
-### Engine Bindings
-- [ ] Pygame integration
-- [ ] Godot GDScript alternative
-- [ ] Raylib binding
-
----
-
-## v1.4.1 — VM Builtin Functions + Dict Access 📋 PLANNED
-
-### Current VM Status (v1.3.6)
-
-The VM works outside REPL for basic features but has significant gaps. Tested 18 features:
-
-| Feature | Status | Notes |
-|---------|--------|-------|
-| Basic math (`2 ** 10`) | ✅ OK | |
-| Variables | ✅ OK | |
-| Lists | ✅ OK | |
-| Strings | ✅ OK | |
-| Builtins (no args) | ✅ OK | `upper()` works |
-| Builtins (with args) | ❌ FAIL | `upper("hello")` → undefined |
-| Functions (no args) | ✅ OK | |
-| Functions (with args) | ❌ FAIL | "Cannot call int" |
-| While loops | ✅ OK | |
-| If/else | ✅ OK | |
-| Dict access | ❌ FAIL | `d["a"]` → list index out of range |
-| Classes | ❌ FAIL | Property not found on NoneType |
-| For loops | ❌ FAIL | Missing `emit_get_global` |
-| Ternary | ✅ OK | |
-| Try/catch | ❌ FAIL | "Undefined variable" |
-| Match | ✅ OK | |
-| and/or precedence | ✅ OK | |
-| Named args | ❌ FAIL | NoneType arithmetic |
-| Recursion | ❌ FAIL | "Cannot call int" |
-| Closures | ✅ OK | |
-
-### VM-IMPL-B1: Builtin Functions with Arguments
-- [ ] Fix builtin function calls with arguments in VM (`upper("hello")`, `print(x)`)
-- [ ] Fix dict indexing (`d["key"]`) — currently uses list index path
-- [ ] Fix try/catch in VM — `undef` variable not caught properly
-- [ ] Add VM test suite for all builtins
-
----
-
-## v1.4.2 — VM Functions + Recursion 📋 PLANNED
-
-### VM-IMPL-F1: Function Calls with Arguments
-- [ ] Fix function calls with arguments in VM ("Cannot call int" error)
-- [ ] Fix named arguments in VM
-- [ ] Fix recursion in VM (function call chain broken)
-- [ ] Fix class instantiation and property access
-
----
-
-## v1.4.3 — VM For Loops + CLI Flag 📋 PLANNED
-
-### VM-IMPL-L1: For Loops + CLI
-- [ ] Fix `for` loop compilation (missing `emit_get_global`)
-- [ ] Add `--vm` CLI flag: `python main.py run --vm file.ipp`
-- [ ] Add `--vm` to regression test runner
-- [ ] Full VM regression test pass (all 23 tests on VM path)
