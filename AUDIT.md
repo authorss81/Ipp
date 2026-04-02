@@ -1158,27 +1158,32 @@ Ordered by severity × frequency of impact:
 
 ---
 
-## v1.3.8 — Networking + Collections 📋 PLANNED
+## v1.3.8 — Networking + Collections ✅ DONE
 
-### HTTP Server
-- [ ] `http.serve(handler, host, port)` — Start HTTP server
-- [ ] Request/response objects with headers, body, query params
-- [ ] Routing with pattern matching
-- [ ] Static file serving
+### HTTP Server ✅ DONE
+- [x] `http_serve(handler, host, port)` — Start HTTP server with GET/POST/PUT/DELETE support
+- [x] Request handling with method, path, headers, body
+- [x] Response with status code, headers, body
 
-### WebSocket
+### PriorityQueue ✅ DONE
+- [x] `PriorityQueue()` — Heap-based priority queue
+- [x] `push(item, priority)` / `pop()` / `peek()` / `is_empty()` / `len()`
+
+### Tree ✅ DONE
+- [x] `Tree(value)` — Tree node with value and children
+- [x] `add_child()`, `remove_child()`, `get_child()`, `len()`
+- [x] `traverse_preorder()`, `traverse_postorder()`, `traverse_bfs()`
+- [x] `find(value)`, `depth()`
+
+### Graph ✅ DONE
+- [x] `Graph(directed)` — Directed/undirected graph
+- [x] `add_node()`, `add_edge()`, `remove_node()`, `remove_edge()`
+- [x] `has_node()`, `has_edge()`, `get_neighbors()`, `node_count()`, `edge_count()`
+- [x] `dfs(start)`, `bfs(start)`, `shortest_path(start, end)` (Dijkstra)
+
+### WebSocket ⏳ TODO
 - [ ] `websocket.server(handler, host, port)` — WebSocket server
 - [ ] `websocket.connect(url)` — WebSocket client
-- [ ] Message send/receive
-
-### PriorityQueue
-- [ ] `PriorityQueue()` — Heap-based priority queue
-- [ ] `push(item, priority)` / `pop()` / `peek()`
-
-### Tree/Graph
-- [ ] `Tree(value, children)` — Tree data structure
-- [ ] `Graph(directed)` — Graph data structure
-- [ ] Tree traversal, graph algorithms (DFS, BFS, Dijkstra)
 
 ---
 

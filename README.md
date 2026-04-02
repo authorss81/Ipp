@@ -2,7 +2,7 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.3.7-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.3.8-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-130+-brightgreen.svg" alt="Builtins">
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.3.7** includes 130+ built-in functions, 24 passing regression tests, REPL enhancements (.load, .save, .doc, .time, .which, .undo, .profile, .alias, .edit, .last), networking support, and comprehensive standard library coverage.
+**v1.3.8** includes HTTP server, PriorityQueue, Tree, Graph data structures, 130+ built-in functions, 25 passing regression tests, REPL enhancements, networking support, and comprehensive standard library coverage.
 
 ---
 
@@ -463,8 +463,7 @@ print(PI)
 
 | Version | Focus |
 |---|---|
-| v1.3.0-v1.3.7 | ✅ DONE — REPL, VM, bug fixes, standard library, networking, REPL tools |
-| v1.3.8 | HTTP Server, WebSocket, PriorityQueue, Tree/Graph |
+| v1.3.0-v1.3.8 | ✅ DONE — REPL, VM, bug fixes, standard library, networking, REPL tools, HTTP server, PriorityQueue, Tree, Graph |
 | v1.4.0 | Generators `yield`, Async/Await, Engine integration |
 | v1.4.1 | VM Builtin Functions + Dict Access |
 | v1.4.2 | VM Functions + Recursion + Classes |

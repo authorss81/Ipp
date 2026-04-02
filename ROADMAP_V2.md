@@ -236,32 +236,36 @@
 
 ---
 
-## v1.3.8 — Networking + Collections 📋 PLANNED
+## v1.3.8 — Networking + Collections ✅ DONE
 
-### HTTP Server ⏳ TODO
-- [ ] `http.serve(handler, host, port)` — Start HTTP server
-- [ ] Request/response objects with headers, body, query params
-- [ ] Routing with pattern matching
-- [ ] Static file serving
-- [ ] Middleware support
+### HTTP Server ✅ DONE
+- [x] `http_serve(handler, host, port)` — Start HTTP server
+- [x] Request/response objects with headers, body, query params
+- [x] Routing with pattern matching (via handler function)
+- [x] Supports GET, POST, PUT, DELETE
 
 ### WebSocket ⏳ TODO
-- [ ] `websocket.server(handler, host, port)` — Start WebSocket server
+- [ ] `websocket.server(handler, host, port)` — WebSocket server
 - [ ] `websocket.connect(url)` — WebSocket client
 - [ ] Message send/receive
-- [ ] Connection lifecycle events
 
-### PriorityQueue ⏳ TODO
-- [ ] `PriorityQueue()` — Heap-based priority queue
-- [ ] `push(item, priority)` — Add item with priority
-- [ ] `pop()` — Remove and return highest priority item
-- [ ] `peek()` — View highest priority item without removing
+### PriorityQueue ✅ DONE
+- [x] `PriorityQueue()` — Heap-based priority queue
+- [x] `push(item, priority)` — Add item with priority
+- [x] `pop()` — Remove and return highest priority item
+- [x] `peek()` — View highest priority item without removing
+- [x] `is_empty()` — Check if queue is empty
+- [x] `len()` — Get queue size
 
-### Tree/Graph ⏳ TODO
-- [ ] `Tree(value, children)` — Tree data structure
-- [ ] `Graph(directed)` — Graph data structure
-- [ ] Tree traversal (pre-order, in-order, post-order, BFS)
-- [ ] Graph algorithms (DFS, BFS, Dijkstra)
+### Tree/Graph ✅ DONE
+- [x] `Tree(value, children)` — Tree data structure
+- [x] `Graph(directed)` — Graph data structure
+- [x] Tree traversal (pre-order, post-order, BFS)
+- [x] Graph algorithms (DFS, BFS, Dijkstra shortest path)
+- [x] `Tree.add_child()`, `remove_child()`, `get_child()`, `find()`, `depth()`
+- [x] `Graph.add_node()`, `add_edge()`, `remove_node()`, `remove_edge()`
+- [x] `Graph.has_node()`, `has_edge()`, `get_neighbors()`, `shortest_path()`
+- [x] Directed and undirected graph support
 
 ---
 

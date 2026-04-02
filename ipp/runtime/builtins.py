@@ -1581,6 +1581,67 @@ def ipp_http_post(url, data=None, headers=None):
         raise RuntimeError(f"HTTP POST error: {e}")
 
 
+def ipp_http_put(url, data=None, headers=None):
+    """Make HTTP PUT request"""
+    from ipp.interpreter.interpreter import IppDict
+    try:
+        import urllib.request
+    except ImportError:
+        raise RuntimeError("urllib not available")
+    try:
+        req = urllib.request.Request(url, data=data.encode('utf-8') if data else None, method='PUT')
+        if headers:
+            for k, v in headers.items() if hasattr(headers, 'items') else headers:
+                req.add_header(k, v)
+        if data:
+            req.add_header('Content-Type', 'application/x-www-form-urlencoded')
+        with urllib.request.urlopen(req) as response:
+            return IppDict({
+                "status": response.getcode(),
+                "headers": dict(response.headers),
+                "body": response.read().decode('utf-8')
+            })
+    except Exception as e:
+        raise RuntimeError(f"HTTP PUT error: {e}")
+
+
+def ipp_http_delete(url, headers=None):
+    """Make HTTP DELETE request"""
+    from ipp.interpreter.interpreter import IppDict
+    try:
+        import urllib.request
+    except ImportError:
+        raise RuntimeError("urllib not available")
+    try:
+        req = urllib.request.Request(url, method='DELETE')
+        if headers:
+            for k, v in headers.items() if hasattr(headers, 'items') else headers:
+                req.add_header(k, v)
+        with urllib.request.urlopen(req) as response:
+            return IppDict({
+                "status": response.getcode(),
+                "headers": dict(response.headers),
+                "body": response.read().decode('utf-8')
+            })
+    except Exception as e:
+        raise RuntimeError(f"HTTP DELETE error: {e}")
+
+
+def ipp_http_request(url, method='GET', data=None, headers=None):
+    """Make generic HTTP request"""
+    method = str(method).upper()
+    if method == 'GET':
+        return ipp_http_get(url, headers)
+    elif method == 'POST':
+        return ipp_http_post(url, data, headers)
+    elif method == 'PUT':
+        return ipp_http_put(url, data, headers)
+    elif method == 'DELETE':
+        return ipp_http_delete(url, headers)
+    else:
+        raise RuntimeError(f"Unsupported HTTP method: {method}")
+
+
 # Compression utilities
 import gzip
 import zipfile
@@ -1784,79 +1845,8 @@ def ipp_thread_current():
     return threading.current_thread().name
 
 
-# v1.3.3 Networking functions
-def ipp_http_put(url, data=None, headers=None):
-    """Make HTTP PUT request"""
-    from ipp.interpreter.interpreter import IppDict
-    try:
-        import urllib.request
-        req = urllib.request.Request(url, data=data.encode('utf-8') if data else None, method='PUT')
-        if headers:
-            for k, v in headers.items() if hasattr(headers, 'items') else headers:
-                req.add_header(k, v)
-        if data:
-            req.add_header('Content-Type', 'application/x-www-form-urlencoded')
-        with urllib.request.urlopen(req) as response:
-            return IppDict({
-                "status": response.getcode(),
-                "headers": dict(response.headers),
-                "body": response.read().decode('utf-8')
-            })
-    except Exception as e:
-        raise RuntimeError(f"HTTP PUT error: {e}")
-
-
-def ipp_http_delete(url, headers=None):
-    """Make HTTP DELETE request"""
-    from ipp.interpreter.interpreter import IppDict
-    try:
-        import urllib.request
-        req = urllib.request.Request(url, method='DELETE')
-        if headers:
-            for k, v in headers.items() if hasattr(headers, 'items') else headers:
-                req.add_header(k, v)
-        with urllib.request.urlopen(req) as response:
-            return IppDict({
-                "status": response.getcode(),
-                "headers": dict(response.headers),
-                "body": response.read().decode('utf-8')
-            })
-    except Exception as e:
-        raise RuntimeError(f"HTTP DELETE error: {e}")
-
-
-def ipp_http_request(url, method='GET', data=None, headers=None):
-    """Make generic HTTP request"""
-    method = method.upper()
-    if method == 'GET':
-        return ipp_http_get(url, headers)
-    elif method == 'POST':
-        return ipp_http_post(url, data, headers)
-    elif method == 'PUT':
-        return ipp_http_put(url, data, headers)
-    elif method == 'DELETE':
-        return ipp_http_delete(url, headers)
-    else:
-        raise RuntimeError(f"Unsupported HTTP method: {method}")
-
-
-def ipp_url_encode_builtin(data):
-    """URL encode dictionary"""
-    import urllib.parse
-    if hasattr(data, 'data'):
-        data = data.data
-    return urllib.parse.urlencode(data)
-
-
-def ipp_url_decode_builtin(query_string):
-    """URL decode query string"""
-    import urllib.parse
-    result = dict(urllib.parse.parse_qsl(query_string))
-    return IppDict(result)
-
-
+# v1.3.3 SMTP + FTP
 class IppSMTPClient:
-    """SMTP client wrapper for Ipp"""
     def __init__(self, server, port=587, use_tls=True, username=None, password=None):
         import smtplib
         from email.mime.text import MIMEText
@@ -1909,28 +1899,24 @@ class IppSMTPClient:
 
 
 def ipp_smtp_connect(server, port=587, use_tls=True, username=None, password=None):
-    """Connect to SMTP server"""
     client = IppSMTPClient(server, port, use_tls, username, password)
     client.connect()
     return client
 
 
 def ipp_smtp_disconnect(client):
-    """Disconnect SMTP client"""
     if isinstance(client, IppSMTPClient):
         client.disconnect()
     return True
 
 
 def ipp_smtp_send(client, from_addr, to_addrs, subject, body):
-    """Send email via SMTP"""
     if isinstance(client, IppSMTPClient):
         return client.send(from_addr, to_addrs, subject, body)
     raise RuntimeError("First argument must be an SMTP client")
 
 
 class IppFTPClient:
-    """FTP client wrapper for Ipp"""
     def __init__(self, host, user, password='', port=21):
         from ftplib import FTP
         self.host = host
@@ -1982,38 +1968,330 @@ class IppFTPClient:
 
 
 def ipp_ftp_connect(host, user, password='', port=21):
-    """Connect to FTP server"""
     client = IppFTPClient(host, user, password, port)
     client.connect()
     return client
 
 
 def ipp_ftp_disconnect(client):
-    """Disconnect FTP client"""
     if isinstance(client, IppFTPClient):
         client.disconnect()
     return True
 
 
 def ipp_ftp_list(client, path='.'):
-    """List files via FTP"""
     if isinstance(client, IppFTPClient):
         return client.list_files(path)
     raise RuntimeError("First argument must be an FTP client")
 
 
 def ipp_ftp_get(client, remote_path, local_path):
-    """Download file via FTP"""
     if isinstance(client, IppFTPClient):
         return client.get_file(remote_path, local_path)
     raise RuntimeError("First argument must be an FTP client")
 
 
 def ipp_ftp_put(client, local_path, remote_path):
-    """Upload file via FTP"""
     if isinstance(client, IppFTPClient):
         return client.put_file(local_path, remote_path)
     raise RuntimeError("First argument must be an FTP client")
+
+
+# v1.3.8 Networking + Collections
+def ipp_http_serve(handler, host="localhost", port=8080):
+    """Start a simple HTTP server. handler is a function that takes (method, path, headers, body) and returns (status, headers, body)."""
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+    
+    class IppHandler(BaseHTTPRequestHandler):
+        def _handle(self, method):
+            content_length = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_length).decode('utf-8') if content_length > 0 else ""
+            headers = dict(self.headers)
+            try:
+                status, resp_headers, resp_body = handler(method, self.path, headers, body)
+                self.send_response(int(status))
+                if resp_headers:
+                    for k, v in resp_headers.items() if hasattr(resp_headers, 'items') else resp_headers:
+                        self.send_header(k, v)
+                self.end_headers()
+                self.wfile.write(str(resp_body).encode('utf-8'))
+            except Exception as e:
+                self.send_error(500, str(e))
+        
+        def do_GET(self):
+            self._handle("GET")
+        def do_POST(self):
+            self._handle("POST")
+        def do_PUT(self):
+            self._handle("PUT")
+        def do_DELETE(self):
+            self._handle("DELETE")
+        
+        def log_message(self, format, *args):
+            pass  # Suppress default logging
+    
+    server = HTTPServer((str(host), int(port)), IppHandler)
+    print(f"Server running on http://{host}:{port}")
+    server.serve_forever()
+    return True
+
+
+class IppPriorityQueue:
+    """Priority queue using heapq"""
+    def __init__(self):
+        import heapq
+        self._heap = []
+        self._counter = 0
+        self._heapq = heapq
+    
+    def push(self, item, priority=0):
+        self._heapq.heappush(self._heap, (priority, self._counter, item))
+        self._counter += 1
+        return True
+    
+    def pop(self):
+        if not self._heap:
+            return None
+        priority, counter, item = self._heapq.heappop(self._heap)
+        return item
+    
+    def peek(self):
+        if not self._heap:
+            return None
+        return self._heap[0][2]
+    
+    def is_empty(self):
+        return len(self._heap) == 0
+    
+    def len(self):
+        return len(self._heap)
+    
+    def __repr__(self):
+        items = [str(item[2]) for item in sorted(self._heap)]
+        return f"PriorityQueue([{', '.join(items)}])"
+
+
+def ipp_priority_queue():
+    """Create a new priority queue"""
+    return IppPriorityQueue()
+
+
+class IppTree:
+    """Tree data structure"""
+    def __init__(self, value=None, children=None):
+        self.value = value
+        self.children = children or []
+    
+    def add_child(self, child):
+        if isinstance(child, IppTree):
+            self.children.append(child)
+        else:
+            self.children.append(IppTree(child))
+        return True
+    
+    def remove_child(self, index):
+        if 0 <= index < len(self.children):
+            return self.children.pop(index)
+        return None
+    
+    def get_child(self, index):
+        if 0 <= index < len(self.children):
+            return self.children[index]
+        return None
+    
+    def len(self):
+        return len(self.children)
+    
+    def traverse_preorder(self):
+        result = [self.value]
+        for child in self.children:
+            if isinstance(child, IppTree):
+                result.extend(child.traverse_preorder())
+            else:
+                result.append(child)
+        return result
+    
+    def traverse_postorder(self):
+        result = []
+        for child in self.children:
+            if isinstance(child, IppTree):
+                result.extend(child.traverse_postorder())
+            else:
+                result.append(child)
+        result.append(self.value)
+        return result
+    
+    def traverse_bfs(self):
+        result = []
+        queue = [self]
+        while queue:
+            node = queue.pop(0)
+            result.append(node.value)
+            for child in node.children:
+                if isinstance(child, IppTree):
+                    queue.append(child)
+                else:
+                    queue.append(IppTree(child))
+        return result
+    
+    def find(self, value):
+        if self.value == value:
+            return True
+        for child in self.children:
+            if isinstance(child, IppTree):
+                if child.find(value):
+                    return True
+            elif child == value:
+                return True
+        return False
+    
+    def depth(self):
+        if not self.children:
+            return 1
+        return 1 + max((child.depth() if isinstance(child, IppTree) else 1) for child in self.children)
+    
+    def __repr__(self):
+        return f"Tree({self.value}, {len(self.children)} children)"
+
+
+def ipp_tree(value=None):
+    """Create a new tree node"""
+    return IppTree(value)
+
+
+class IppGraph:
+    """Graph data structure (directed or undirected)"""
+    def __init__(self, directed=False):
+        self.directed = directed
+        self.nodes = {}
+        self.edges = []
+    
+    def add_node(self, node):
+        if node not in self.nodes:
+            self.nodes[node] = []
+        return True
+    
+    def add_edge(self, from_node, to_node, weight=None):
+        self.add_node(from_node)
+        self.add_node(to_node)
+        self.nodes[from_node].append((to_node, weight))
+        if not self.directed:
+            self.nodes[to_node].append((from_node, weight))
+        self.edges.append((from_node, to_node, weight))
+        return True
+    
+    def remove_node(self, node):
+        if node in self.nodes:
+            del self.nodes[node]
+            for n in self.nodes:
+                self.nodes[n] = [(to, w) for to, w in self.nodes[n] if to != node]
+            self.edges = [(f, t, w) for f, t, w in self.edges if f != node and t != node]
+            return True
+        return False
+    
+    def remove_edge(self, from_node, to_node):
+        if from_node in self.nodes:
+            self.nodes[from_node] = [(to, w) for to, w in self.nodes[from_node] if to != to_node]
+        if not self.directed and to_node in self.nodes:
+            self.nodes[to_node] = [(to, w) for to, w in self.nodes[to_node] if to != from_node]
+        self.edges = [(f, t, w) for f, t, w in self.edges if not (f == from_node and t == to_node)]
+        return True
+    
+    def get_neighbors(self, node):
+        if node in self.nodes:
+            return [n for n, w in self.nodes[node]]
+        return []
+    
+    def has_node(self, node):
+        return node in self.nodes
+    
+    def has_edge(self, from_node, to_node):
+        if from_node in self.nodes:
+            return any(to == to_node for to, w in self.nodes[from_node])
+        return False
+    
+    def node_count(self):
+        return len(self.nodes)
+    
+    def edge_count(self):
+        return len(self.edges)
+    
+    def dfs(self, start):
+        visited = set()
+        result = []
+        stack = [start]
+        while stack:
+            node = stack.pop()
+            if node not in visited:
+                visited.add(node)
+                result.append(node)
+                if node in self.nodes:
+                    for neighbor, w in reversed(self.nodes[node]):
+                        if neighbor not in visited:
+                            stack.append(neighbor)
+        return result
+    
+    def bfs(self, start):
+        visited = set()
+        result = []
+        queue = [start]
+        while queue:
+            node = queue.pop(0)
+            if node not in visited:
+                visited.add(node)
+                result.append(node)
+                if node in self.nodes:
+                    for neighbor, w in self.nodes[node]:
+                        if neighbor not in visited:
+                            queue.append(neighbor)
+        return result
+    
+    def shortest_path(self, start, end):
+        import heapq
+        if start not in self.nodes or end not in self.nodes:
+            return None
+        distances = {node: float('inf') for node in self.nodes}
+        distances[start] = 0
+        previous = {node: None for node in self.nodes}
+        pq = [(0, start)]
+        visited = set()
+        
+        while pq:
+            dist, current = heapq.heappop(pq)
+            if current in visited:
+                continue
+            visited.add(current)
+            if current == end:
+                break
+            if current in self.nodes:
+                for neighbor, weight in self.nodes[current]:
+                    if neighbor in visited:
+                        continue
+                    w = weight if weight is not None else 1
+                    new_dist = dist + w
+                    if new_dist < distances.get(neighbor, float('inf')):
+                        distances[neighbor] = new_dist
+                        previous[neighbor] = current
+                        heapq.heappush(pq, (new_dist, neighbor))
+        
+        if distances.get(end, float('inf')) == float('inf'):
+            return None
+        
+        path = []
+        current = end
+        while current is not None:
+            path.append(current)
+            current = previous.get(current)
+        path.reverse()
+        return path
+    
+    def __repr__(self):
+        return f"Graph({self.node_count()} nodes, {self.edge_count()} edges)"
+
+
+def ipp_graph(directed=False):
+    """Create a new graph"""
+    return IppGraph(directed)
 
 
 # Printf-style formatting FIX: BUG-NEW Standard Library
@@ -2249,4 +2527,10 @@ BUILTINS = {
     "thread": ipp_thread,
     "thread_sleep": ipp_thread_sleep,
     "thread_current": ipp_thread_current,
+    
+    # v1.3.8 Networking + Collections
+    "http_serve": ipp_http_serve,
+    "PriorityQueue": ipp_priority_queue,
+    "Tree": ipp_tree,
+    "Graph": ipp_graph,
 }
