@@ -1158,32 +1158,216 @@ Ordered by severity × frequency of impact:
 
 ---
 
-## v1.3.8 — Networking + Collections ✅ DONE
+## v1.3.9 — REPL Error Handling ✅ DONE
 
-### HTTP Server ✅ DONE
-- [x] `http_serve(handler, host, port)` — Start HTTP server with GET/POST/PUT/DELETE support
-- [x] Request handling with method, path, headers, body
-- [x] Response with status code, headers, body
+### Error Suggestions ✅ DONE
+- [x] Smart suggestions — "Did you mean: ..." for typos using difflib fuzzy matching
+- [x] Context-aware tips — different suggestions for different error types
+- [x] Undefined variable → suggests similar builtin/variable names
+- [x] Cannot call → suggests checking if variable is a function
+- [x] TypeError → suggests checking operand types
+- [x] Index out of range → suggests checking length first
+- [x] Recursion depth → suggests checking base case
+- [x] Syntax errors → suggests checking brackets/parentheses
+- [x] Error regex matches both `Undefined variable 'x'` and `Undefined variable: x` formats
+- [x] Deduplicated suggestions (no duplicate names)
 
-### PriorityQueue ✅ DONE
-- [x] `PriorityQueue()` — Heap-based priority queue
-- [x] `push(item, priority)` / `pop()` / `peek()` / `is_empty()` / `len()`
+### Bug Fixes ✅ DONE
+- [x] `highlight()` corruption — checks for existing ANSI codes to prevent double-coloring
+- [x] `.colors on` on Windows — enables virtual terminal processing
+- [x] Moved all stray test files from root to `tests/misc/`
 
-### Tree ✅ DONE
-- [x] `Tree(value)` — Tree node with value and children
-- [x] `add_child()`, `remove_child()`, `get_child()`, `len()`
-- [x] `traverse_preorder()`, `traverse_postorder()`, `traverse_bfs()`
-- [x] `find(value)`, `depth()`
+---
 
-### Graph ✅ DONE
-- [x] `Graph(directed)` — Directed/undirected graph
-- [x] `add_node()`, `add_edge()`, `remove_node()`, `remove_edge()`
-- [x] `has_node()`, `has_edge()`, `get_neighbors()`, `node_count()`, `edge_count()`
-- [x] `dfs(start)`, `bfs(start)`, `shortest_path(start, end)` (Dijkstra)
+## v1.3.10 — REPL Intelligence + Debugging 📋 PLANNED
 
-### WebSocket ⏳ TODO
-- [ ] `websocket.server(handler, host, port)` — WebSocket server
-- [ ] `websocket.connect(url)` — WebSocket client
+### Tab Completion
+- [ ] Tab completion for keywords, builtins, variables
+- [ ] Tab completion for dict keys and file paths
+- [ ] Fuzzy matching for completions
+
+### Code Intelligence
+- [ ] Type hints on hover/tab
+- [ ] Signature help when typing `(`
+- [ ] Auto-formatting on Enter
+- [ ] Bracket matching
+- [ ] Auto-indentation
+
+### Debugging
+- [ ] Step-through debugger (`.debug start/step/next/continue/stop`)
+- [ ] Breakpoints by line number or function name
+- [ ] Watch expressions
+- [ ] Call stack inspection (`.stack`)
+- [ ] Variable inspector
+- [ ] Exception tracing with source code snippets
+
+### Output Improvements
+- [ ] Pretty printing — colorized, indented output
+- [ ] Table output for list of dicts
+- [ ] JSON viewer
+- [ ] Custom formatters per type
+
+### Shell Integration
+- [ ] Shell commands with `!` prefix
+- [ ] Pipe Ipp output to shell commands
+- [ ] File browser commands (`.cd`, `.ls`, `.pwd`)
+
+### Session Management
+- [ ] Session persistence — auto-save/restore
+- [ ] Multiple named sessions
+- [ ] Session export as `.ipp` script
+- [ ] `.redo` — redo after `.undo`
+- [ ] Expression history — `$_1`, `$_2`, etc.
+
+### Customization
+- [ ] Custom themes
+- [ ] Prompt customization
+- [ ] Key bindings
+- [ ] Plugin system
+
+### Documentation
+- [ ] Interactive tutorial
+- [ ] Search docs
+- [ ] Contextual help
+- [ ] Example browser
+
+---
+
+## v1.4.0 — Generators + Async/Await + Engine Integration 📋 PLANNED
+
+### Generator Functions
+- [ ] Lex `yield` as keyword
+- [ ] Create `IppGenerator` object
+- [ ] Serialize/resume execution state
+- [ ] `next(gen)` and `for x in gen` iteration
+
+### Async/Await
+- [ ] Implement async/await over generators
+- [ ] Add event loop
+- [ ] Handle `await expr` as `yield wait(expr)`
+- [ ] Native async/await support in REPL (v1.5.0)
+
+### Engine Bindings
+- [ ] Pygame integration
+- [ ] Godot GDScript alternative
+- [ ] Raylib binding
+- [ ] SFML binding
+- [ ] Love2D integration
+
+### Editor Integration
+- [ ] VSCode extension
+- [ ] Vim/Neovim plugin
+- [ ] Emacs major mode
+- [ ] LSP server (v1.6.0)
+
+---
+
+## v1.4.1 — VM Builtin Functions + Dict Access 📋 PLANNED
+
+### VM-IMPL-B1: Builtin Functions with Arguments
+- [ ] Fix `upper("hello")` → currently "Undefined variable"
+- [ ] Fix `print(x)` with variable args in VM
+- [ ] Fix all 130+ builtins to work on VM path
+
+### VM-IMPL-B2: Dict Access
+- [ ] Fix `d["key"]` → currently "list index out of range"
+- [ ] VM uses wrong opcode path for dict indexing
+
+### VM-IMPL-B3: Try/Catch
+- [ ] Fix `try { var x = undef } catch e { }` in VM
+- [ ] Currently throws "Undefined variable" instead of catching
+
+---
+
+## v1.4.2 — VM Functions + Recursion 📋 PLANNED
+
+### VM-IMPL-F1: Function Calls with Arguments
+- [ ] Fix `func add(a, b) { return a + b }` → "Cannot call int"
+- [ ] Fix function argument passing in VM CALL handler
+
+### VM-IMPL-F2: Named Arguments
+- [ ] Fix `f(y=1, x=10)` → NoneType arithmetic
+- [ ] Named arg parsing in VM compiler
+
+### VM-IMPL-F3: Recursion
+- [ ] Fix recursive function calls in VM
+- [ ] Fix class instantiation and property access
+
+---
+
+## v1.4.3 — VM For Loops + CLI Flag 📋 PLANNED
+
+### VM-IMPL-L1: For Loops
+- [ ] Fix `for` loop compilation (missing `emit_get_global`)
+- [ ] For loop compilation broken in VM
+
+### VM-IMPL-C1: CLI Flag
+- [ ] Add `--vm` CLI flag: `python main.py run --vm file.ipp`
+- [ ] Add `--vm` to regression test runner
+- [ ] Full VM regression test pass (all 23 tests on VM path)
+
+---
+
+## v1.5.0 — REPL Performance + Advanced Features 📋 PLANNED
+
+### Performance & Monitoring
+- [ ] Real-time profiling — CPU/memory stats per command
+- [ ] Benchmark mode — run command N times, show avg/min/max
+- [ ] Hot reload — auto-reload imported modules when files change
+- [ ] Async REPL — handle `async/await` natively in REPL
+- [ ] Background tasks — run long tasks in background
+
+### Advanced REPL Features
+- [ ] Multi-line editor — full editor for multi-line input
+- [ ] Code snippets — predefined templates
+- [ ] Memory profiler — show memory usage per variable/object
+- [ ] REPL server — connect to REPL remotely via network
+- [ ] Code review mode — compare two expressions side-by-side
+- [ ] Macro system — define REPL macros that expand to code
+- [ ] Checkpoint/rollback — save checkpoint, rollback to any point
+
+### Data Visualization
+- [ ] Plot graphs/charts from data (matplotlib integration)
+- [ ] HTML preview — render HTML strings in browser
+
+---
+
+## v1.6.0 — Language Server + IDE Integration 📋 PLANNED
+
+### Language Server Protocol
+- [ ] LSP server for Ipp language
+- [ ] Go-to-definition
+- [ ] Find all references
+- [ ] Rename symbol
+- [ ] Code actions / quick fixes
+- [ ] Diagnostics (linting)
+- [ ] Hover information
+
+### Editor Extensions
+- [ ] VSCode extension
+- [ ] Vim/Neovim plugin
+- [ ] Emacs major mode
+- [ ] Sublime Text package
+
+---
+
+## v2.0.0 — Package Manager + Ecosystem 📋 PLANNED
+
+### Package Manager
+- [ ] `ippkg` CLI tool
+- [ ] Package registry
+- [ ] `ippkg install <package>`
+- [ ] `ippkg publish <package>`
+- [ ] Dependency resolution
+- [ ] Version management
+
+### Standard Library Expansion
+- [ ] HTTP/2 support
+- [ ] GraphQL client
+- [ ] Database drivers (SQLite, PostgreSQL)
+- [ ] WebSocket client/server
+- [ ] Image processing
+- [ ] Audio processing
 
 ---
 

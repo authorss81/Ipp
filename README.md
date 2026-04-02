@@ -472,10 +472,15 @@ print(PI)
 | v1.3.6 | VM compatibility tests + REPL warning |
 | v1.3.7 | REPL enhancements (.load, .save, .doc, .time, .which, .undo, .profile, .alias, .edit, .last) |
 | v1.3.8 | HTTP Server, PriorityQueue, Tree, Graph |
+| v1.3.9 | REPL error handling (smart suggestions, highlight fix, .colors fix) |
+| v1.3.10 | REPL Intelligence (tab completion, debugger, pretty printing, shell integration, themes) |
 | v1.4.0 | Generators `yield`, Async/Await, Engine integration |
 | v1.4.1 | VM Builtin Functions + Dict Access |
 | v1.4.2 | VM Functions + Recursion + Classes |
 | v1.4.3 | VM For Loops + `--vm` CLI Flag |
+| v1.5.0 | REPL Performance + Advanced Features (hot reload, async REPL, multi-line editor) |
+| v1.6.0 | Language Server + IDE Integration (LSP, VSCode, Vim extensions) |
+| v2.0.0 | Package Manager + Ecosystem (`ippkg`, registry, database drivers) |
 
 ---
 

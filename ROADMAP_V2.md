@@ -269,6 +269,61 @@
 
 ---
 
+## v1.3.10 — REPL Intelligence + Debugging 📋 PLANNED
+
+### Tab Completion ⏳ TODO
+- [ ] Tab completion for keywords, builtins, variables
+- [ ] Tab completion for dict keys (`my_dict["<TAB>`)
+- [ ] Tab completion for file paths (`import "<TAB>`)
+- [ ] Fuzzy matching for completions (e.g., `htgt` → `http_get`)
+
+### Code Intelligence ⏳ TODO
+- [ ] Type hints on hover/tab (e.g., `print: (args...) -> nil`)
+- [ ] Signature help when typing `(` (e.g., `http_get(url, headers?)`)
+- [ ] Auto-formatting on Enter (consistent indentation, spacing)
+- [ ] Bracket matching — highlight matching `()`, `{}`, `[]`, `""`
+- [ ] Auto-indentation after `{`, `(`, `[`
+
+### Debugging ⏳ TODO
+- [ ] Step-through debugger (`.debug start/step/next/continue/stop`)
+- [ ] Breakpoints by line number or function name
+- [ ] Watch expressions — monitor variable values in real-time
+- [ ] Call stack inspection (`.stack`)
+- [ ] Variable inspector — deep inspection of nested objects
+- [ ] Exception tracing — full stack trace with source code snippets
+
+### Output Improvements ⏳ TODO
+- [ ] Pretty printing — colorized, indented output for dicts/lists
+- [ ] Table output — display list of dicts as formatted tables
+- [ ] JSON viewer — collapsible, syntax-highlighted JSON output
+- [ ] Custom formatters — user-defined output formatters per type
+
+### Shell Integration ⏳ TODO
+- [ ] Shell commands with `!` prefix (e.g., `!ls`, `!git status`)
+- [ ] Pipe Ipp output to shell commands
+- [ ] File browser commands (`.cd`, `.ls`, `.pwd`)
+
+### Session Management ⏳ TODO
+- [ ] Session persistence — auto-save/restore across restarts
+- [ ] Multiple named sessions (`.session save/load/switch`)
+- [ ] Session export — save session as `.ipp` script file
+- [ ] `.redo` — redo after `.undo`
+- [ ] Expression history — access previous results with `$_1`, `$_2`, etc.
+
+### Customization ⏳ TODO
+- [ ] Custom themes — color scheme selection
+- [ ] Prompt customization — custom prompt format
+- [ ] Key bindings — customizable keyboard shortcuts
+- [ ] Plugin system — load custom `.ipp` plugins that add REPL commands
+
+### Documentation ⏳ TODO
+- [ ] Interactive tutorial — built-in tutorial mode
+- [ ] Search docs — search builtin documentation with keywords
+- [ ] Contextual help — show relevant help based on current error
+- [ ] Example browser — browse code examples by category
+
+---
+
 ## v1.4.0 — Generators + Async/Await + Engine Integration 📋 PLANNED
 
 **Audit reference:** BUG-NEW-N4, BUG-NEW-N7
@@ -327,6 +382,115 @@ for n in fibonacci() |> take(10) {
 - [ ] Public package registry (GitHub Packages, free)
 - [ ] `ippkg install <package>`
 - [ ] `ippkg publish <package>`
+
+---
+
+## v1.4.1 — VM Builtin Functions + Dict Access 📋 PLANNED
+
+### VM-IMPL-B1: Builtin Functions with Arguments ⏳ TODO
+- [ ] Fix `upper("hello")` → currently "Undefined variable"
+- [ ] Fix `print(x)` with variable args in VM
+- [ ] Fix all 130+ builtins to work on VM path
+
+### VM-IMPL-B2: Dict Access ⏳ TODO
+- [ ] Fix `d["key"]` → currently "list index out of range"
+- [ ] VM uses wrong opcode path for dict indexing
+
+### VM-IMPL-B3: Try/Catch ⏳ TODO
+- [ ] Fix `try { var x = undef } catch e { }` in VM
+- [ ] Currently throws "Undefined variable" instead of catching
+
+---
+
+## v1.4.2 — VM Functions + Recursion 📋 PLANNED
+
+### VM-IMPL-F1: Function Calls with Arguments ⏳ TODO
+- [ ] Fix `func add(a, b) { return a + b }` → "Cannot call int"
+- [ ] Fix function argument passing in VM CALL handler
+
+### VM-IMPL-F2: Named Arguments ⏳ TODO
+- [ ] Fix `f(y=1, x=10)` → NoneType arithmetic
+- [ ] Named arg parsing in VM compiler
+
+### VM-IMPL-F3: Recursion ⏳ TODO
+- [ ] Fix recursive function calls in VM
+- [ ] Fix class instantiation and property access
+
+---
+
+## v1.4.3 — VM For Loops + CLI Flag 📋 PLANNED
+
+### VM-IMPL-L1: For Loops ⏳ TODO
+- [ ] Fix `for i in 0..3 { }` → missing `emit_get_global`
+- [ ] For loop compilation broken in VM
+
+### VM-IMPL-C1: CLI Flag ⏳ TODO
+- [ ] Add `--vm` flag: `python main.py run --vm file.ipp`
+- [ ] Add `--vm` to regression test runner
+- [ ] Full VM regression test pass (all 23 tests on VM path)
+
+---
+
+## v1.5.0 — REPL Performance + Advanced Features 📋 PLANNED
+
+### Performance & Monitoring ⏳ TODO
+- [ ] Real-time profiling — CPU/memory stats per command
+- [ ] Benchmark mode — run command N times, show avg/min/max
+- [ ] Hot reload — auto-reload imported modules when files change
+- [ ] Async REPL — handle `async/await` natively in REPL
+- [ ] Background tasks — run long tasks in background, check status later
+
+### Advanced REPL Features ⏳ TODO
+- [ ] Multi-line editor — full editor for multi-line input (like IPython's `%edit`)
+- [ ] Code snippets — predefined templates (e.g., `func` → `func name() { }`)
+- [ ] Memory profiler — show memory usage per variable/object
+- [ ] REPL server — connect to REPL remotely via network
+- [ ] Code review mode — compare two expressions side-by-side
+- [ ] Macro system — define REPL macros that expand to code
+- [ ] Checkpoint/rollback — save checkpoint, rollback to any point
+
+### Data Visualization ⏳ TODO
+- [ ] Plot graphs/charts from data (matplotlib integration)
+- [ ] HTML preview — render HTML strings in browser
+
+---
+
+## v1.6.0 — Language Server + IDE Integration 📋 PLANNED
+
+### Language Server Protocol ⏳ TODO
+- [ ] LSP server for Ipp language
+- [ ] Go-to-definition
+- [ ] Find all references
+- [ ] Rename symbol
+- [ ] Code actions / quick fixes
+- [ ] Diagnostics (linting)
+- [ ] Hover information
+
+### Editor Extensions ⏳ TODO
+- [ ] VSCode extension
+- [ ] Vim/Neovim plugin
+- [ ] Emacs major mode
+- [ ] Sublime Text package
+
+---
+
+## v2.0.0 — Package Manager + Ecosystem 📋 PLANNED
+
+### Package Manager ⏳ TODO
+- [ ] `ippkg` CLI tool
+- [ ] Package registry
+- [ ] `ippkg install <package>`
+- [ ] `ippkg publish <package>`
+- [ ] Dependency resolution
+- [ ] Version management
+
+### Standard Library Expansion ⏳ TODO
+- [ ] HTTP/2 support
+- [ ] GraphQL client
+- [ ] Database drivers (SQLite, PostgreSQL)
+- [ ] WebSocket client/server
+- [ ] Image processing
+- [ ] Audio processing
 - [ ] `ippkg search <query>`
 
 ```ipp
