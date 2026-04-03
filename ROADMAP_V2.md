@@ -278,6 +278,8 @@
 - [x] Fuzzy matching for completions (e.g., `htgt` → `http_get`)
 - [x] REPL command completion (`.help`, `.load`, etc.)
 - [x] Member completion (`obj.<TAB>`)
+- [x] Type hints on hover/tab
+- [x] Signature help when typing `(`
 
 ### Code Intelligence ✅ DONE
 - [x] Auto-indentation after `{`, `(`, `[`
@@ -299,13 +301,15 @@
 
 ### Output Improvements ✅ DONE
 - [x] `.table <var>` — Show list of dicts as formatted table
+- [x] `.json <expr>` — JSON viewer with formatting
+- [x] `.format <expr>` — Auto-format code on Enter
 
-### Customization ✅ DONE
-- [x] `.theme dark/light/solarized` — Custom color themes
-
-### Documentation ✅ DONE
-- [x] `.tutorial` — Interactive tutorial mode
-- [x] `.plugin load <file>` — Load plugin files
+### Shell Integration ✅ DONE
+- [x] `! <cmd>` — Execute shell commands
+- [x] `.pipe <cmd>` — Pipe output to shell command
+- [x] `.cd <dir>` — Change directory
+- [x] `.ls [dir]` — List directory contents
+- [x] `.pwd` — Print working directory
 
 ### Session Management ✅ DONE
 - [x] Session persistence — auto-save/restore across restarts
@@ -313,18 +317,23 @@
 - [x] Session export — save session as `.ipp` script file
 - [x] `.redo` — redo after `.undo`
 - [x] Expression history — access previous results with `$_1`, `$_2`, etc.
+- [x] `.sessions` — List saved sessions
+- [x] `.session export` — Export session as .ipp
 
 ### Customization ✅ DONE
 - [x] Custom themes — color scheme selection (`.theme dark/light/solarized`)
-- [x] Prompt customization — custom prompt format
-- [x] Key bindings — customizable keyboard shortcuts
+- [x] Prompt customization — custom prompt format (`.prompt dir/time/full/ipp`)
+- [x] Key bindings — customizable keyboard shortcuts (`.bind <key> <cmd>`)
 - [x] Plugin system — load custom `.ipp` plugins that add REPL commands
 
-### Documentation (Additional Features) ✅ DONE
-- [x] `.search <keyword>` — Search builtin documentation with keywords
-- [x] `.examples` — Show interactive code examples
+### Documentation ✅ DONE
 - [x] `.tutorial` — Interactive tutorial mode
+- [x] `.plugin load <file>` — Load plugin files
+- [x] `.search <keyword>` — Search builtin documentation with keywords
+- [x] `.examples` — Show interactive code examples (10 examples)
 - [x] Contextual help — show relevant help based on current error
+- [x] `.typehints` — Show type hints
+- [x] `.sighelp` — Show signature help
 
 ---
 
