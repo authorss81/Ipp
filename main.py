@@ -1436,12 +1436,15 @@ def run_repl():
             # .stack — Show call stack
             if stripped == '.stack':
                 interp = interp_manager.get_interpreter()
-                if hasattr(interp, '_call_stack') and interp._call_stack:
-                    print(f"  {colour(C_CMD, 'Call Stack:')}")
-                    for i, frame in enumerate(interp._call_stack):
-                        print(f"  {i}: {frame}")
-                else:
-                    print(f"  {colour(DIM, '(no call stack available)')}")
+                print(f"  {colour(C_CMD, 'Call Stack:')}")
+                # Show current execution context
+                if hasattr(interp, 'call_depth'):
+                    print(f"  {colour(DIM, f'Call depth: {interp.call_depth}')}")
+                if hasattr(interp, 'global_env') and hasattr(interp.global_env, 'values'):
+                    vars_count = len([k for k in interp.global_env.values.keys() if not k.startswith('_')])
+                    print(f"  {colour(DIM, f'Global variables: {vars_count}')}")
+                print(f"  {colour(DIM, f'Command history: {len(_cmd_history)} commands')}")
+                print(f"  {colour(DIM, f'Expression history: {len(_last_results)} results')}")
                 continue
 
             # .session save — Save session state
@@ -1474,7 +1477,7 @@ def run_repl():
                         
                         with open(session_file, 'w') as f:
                             json.dump(session_data, f, indent=2)
-                        print(f"  {colour(C_OK, 'Session saved')}")
+                        print(f"  {colour(C_OK, f'Session saved ({len(session_data["variables"])} variables, {len(session_data["history"])} commands)')}")
                     except Exception as e:
                         print(f"  {colour(C_ERROR, f'Failed to save session: {e}')}")
                 
@@ -1484,9 +1487,28 @@ def run_repl():
                         if os.path.exists(session_file):
                             with open(session_file, 'r') as f:
                                 session_data = json.load(f)
-                            print(f"  {colour(C_OK, 'Session loaded')}")
-                            print(f"  {colour(DIM, f'Variables: {len(session_data.get("variables", {}))}')}")
-                            print(f"  {colour(DIM, f'History: {len(session_data.get("history", []))} commands')}")
+                            
+                            # Actually restore variables by re-executing history
+                            interp = interp_manager.get_interpreter()
+                            history = session_data.get('history', [])
+                            restored = 0
+                            for cmd in history:
+                                try:
+                                    tokens = tokenize(cmd)
+                                    ast = parse(tokens)
+                                    interp.run(ast)
+                                    val = interp.return_value if interp.return_value is not None else interp.last_value
+                                    interp.return_value = None
+                                    interp.last_value = None
+                                    if val is not None:
+                                        _last_result = val
+                                        _last_results.append((len(_last_results) + 1, val))
+                                    restored += 1
+                                except:
+                                    pass
+                            
+                            print(f"  {colour(C_OK, f'Session restored: {restored} commands executed')}")
+                            print(f"  {colour(DIM, f'Variables: {len(session_data.get("variables", {}))} saved')}")
                         else:
                             print(f"  {colour(C_WARN, 'No saved session found')}")
                     except Exception as e:
@@ -1522,11 +1544,12 @@ def run_repl():
                 print(f"  {colour(C_OK, f'Breakpoint set at line {line_num}')}")
                 continue
 
-            # .watch <expr> — Watch expression
+            # .watch <expr> — Watch expression (continuously evaluates)
             m = re.match(r'\.watch\s+(.+)$', stripped)
             if m:
                 expr = m.group(1)
                 try:
+                    # Evaluate and show current value
                     tokens = tokenize(expr)
                     ast = parse(tokens)
                     interp = interp_manager.get_interpreter()
@@ -1535,7 +1558,8 @@ def run_repl():
                     interp.return_value = None
                     interp.last_value = None
                     if val is not None:
-                        print(f"  {colour(C_WARN, f'Watch: {expr} =')} {format_output(val)}")
+                        t = type(val).__name__
+                        print(f"  {colour(C_WARN, f'Watch: {expr}')} = {colour(C_OK, format_output(val))} {colour(DIM, f'({t})')}")
                     else:
                         print(f"  {colour(DIM, f'Watch: {expr} = (no value)')}")
                 except Exception as e:
@@ -1721,14 +1745,19 @@ def run_repl():
             m = re.match(r'\.format\s+(.+)$', stripped)
             if m:
                 expr = m.group(1)
-                # Simple auto-formatting: fix spacing around operators, keywords
+                # Auto-formatting: fix spacing around operators, keywords, braces
                 formatted = expr
                 # Add spaces around operators
                 formatted = re.sub(r'(\w)([=+\-*/<>!&|^%])', r'\1 \2', formatted)
                 formatted = re.sub(r'([=+\-*/<>!&|^%])(\w)', r'\1 \2', formatted)
+                # Add spaces around braces
+                formatted = re.sub(r'(\w)\{', r'\1 {', formatted)
+                formatted = re.sub(r'\}(\w)', r'} \1', formatted)
                 # Fix double spaces
                 formatted = re.sub(r'  +', ' ', formatted)
-                print(f"  {colour(C_KW, 'Formatted:')} {colour(C_RESULT, formatted)}")
+                # Show before/after
+                print(f"  {colour(DIM, 'Before:')} {colour(C_ERROR, expr)}")
+                print(f"  {colour(DIM, 'After: ')} {colour(C_OK, formatted)}")
                 continue
 
             # .export <file> — Export session as .ipp script
@@ -1741,7 +1770,13 @@ def run_repl():
                         f.write(f'// Exported at: {__import__("datetime").datetime.now()}\n\n')
                         for cmd in _cmd_history:
                             f.write(cmd + '\n')
-                    print(f"  {colour(C_OK, f'Exported {len(_cmd_history)} commands to {filepath}')}")
+                    
+                    # Verify exported content
+                    with open(filepath, 'r') as f:
+                        lines = f.readlines()
+                    code_lines = [l for l in lines if l.strip() and not l.startswith('//')]
+                    print(f"  {colour(C_OK, f'Exported {len(code_lines)} commands to {filepath}')}")
+                    print(f"  {colour(DIM, f'File size: {os.path.getsize(filepath)} bytes')}")
                 except Exception as e:
                     print(f"  {colour(C_ERROR, f'Export failed: {e}')}")
                 continue
@@ -1795,11 +1830,15 @@ def run_repl():
                 if _last_result is not None:
                     try:
                         import subprocess
-                        result = subprocess.run(cmd, shell=True, input=str(_last_result), capture_output=True, text=True)
+                        # Convert result to string and pipe to command
+                        input_data = str(_last_result)
+                        result = subprocess.run(cmd, shell=True, input=input_data, capture_output=True, text=True)
                         if result.stdout:
                             print(result.stdout, end='')
                         if result.stderr:
                             print(f"  {colour(C_ERROR, result.stderr)}", end='')
+                        if result.returncode != 0 and not result.stderr:
+                            print(f"  {colour(C_WARN, f'Exit code: {result.returncode}')}")
                     except Exception as e:
                         print(f"  {colour(C_ERROR, f'Pipe failed: {e}')}")
                 else:
@@ -1813,6 +1852,7 @@ def run_repl():
                 cmd = m.group(2).strip()
                 _key_bindings[key] = cmd
                 print(f"  {colour(C_OK, f'Bound {key} → {cmd}')}")
+                print(f"  {colour(DIM, f'Total bindings: {len(_key_bindings)}')}")
                 continue
 
             # .session export — Export session as .ipp
@@ -1849,14 +1889,43 @@ def run_repl():
             # .typehints — Show type hints for current expression
             if stripped == '.typehints':
                 print(f"  {colour(C_CMD, 'Type Hints:')}")
-                print(f"  {colour(DIM, 'Tab completion now shows type information')}")
-                print(f"  {colour(DIM, 'Hover over completions to see types')}")
+                interp = interp_manager.get_interpreter()
+                env = interp.global_env
+                vars_found = {}
+                while env:
+                    if hasattr(env, 'values'):
+                        vars_found.update(env.values)
+                    env = getattr(env, 'parent', None)
+                
+                if vars_found:
+                    for name, val in sorted(vars_found.items()):
+                        if not callable(val) and not name.startswith('_'):
+                            t = type(val).__name__
+                            if hasattr(val, '__class__') and hasattr(val.__class__, '__name__'):
+                                t = val.__class__.__name__
+                            if hasattr(val, 'data'):
+                                t = 'dict'
+                            elif hasattr(val, 'elements'):
+                                t = 'list'
+                            print(f"    {colour(C_KW, name)}: {colour(C_OK, t)} = {colour(DIM, str(val)[:50])}")
+                else:
+                    print(f"  {colour(DIM, '(no variables to show types for)')}")
                 continue
 
-            # .sighelp — Show signature help
+            # .sighelp — Show signature help for builtins
             if stripped == '.sighelp':
-                print(f"  {colour(C_CMD, 'Signature Help:')}")
-                print(f"  {colour(DIM, 'Type ( after a function name to see its signature')}")
+                print(f"  {colour(C_CMD, 'Function Signatures:')}")
+                from ipp.runtime.builtins import BUILTINS
+                sigs = []
+                for name, fn in sorted(BUILTINS.items()):
+                    doc = fn.__doc__ or ""
+                    sig = doc.split('\n')[0] if doc else f"{name}(...)"
+                    sigs.append((name, sig))
+                
+                for name, sig in sigs[:30]:
+                    print(f"    {colour(C_KW, name.ljust(20))} {colour(DIM, sig)}")
+                if len(sigs) > 30:
+                    print(f"  {colour(DIM, f'... and {len(sigs) - 30} more')}")
                 continue
 
             # Check if input is an alias
@@ -1889,9 +1958,7 @@ def run_repl():
 
             # .profile — Profile last command
             if stripped == '.profile':
-                if not _cmd_history:
-                    print(f"  {colour(DIM, '(no history to profile)')}")
-                else:
+                if _cmd_history:
                     last_cmd = _cmd_history[-1]
                     try:
                         import cProfile
@@ -1907,9 +1974,12 @@ def run_repl():
                         s = io.StringIO()
                         ps = pstats.Stats(pr, stream=s).sort_stats('cumulative')
                         ps.print_stats(10)
+                        print(f"  {colour(C_CMD, 'Profile for:')} {colour(DIM, last_cmd)}")
                         print(s.getvalue())
                     except Exception as e:
                         print(f"  {colour(C_ERROR, str(e))}")
+                else:
+                    print(f"  {colour(C_WARN, 'No command history to profile')}")
                 continue
 
         if not stripped and not buf:
