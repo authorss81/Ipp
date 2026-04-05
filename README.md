@@ -2,11 +2,11 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.3.10-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.4.0-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
-<img src="https://img.shields.io/badge/builtins-130+-brightgreen.svg" alt="Builtins">
-<img src="https://img.shields.io/badge/tests-29%20passing-brightgreen.svg" alt="Tests">
+<img src="https://img.shields.io/badge/builtins-132+-brightgreen.svg" alt="Builtins">
+<img src="https://img.shields.io/badge/tests-46%20passing-brightgreen.svg" alt="Tests">
 <img src="https://img.shields.io/badge/status-stable-green.svg" alt="Status">
 
 **A beginner-friendly scripting language for game development.**  
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.3.10** includes 130+ built-in functions, 29 passing regression tests, a world-class REPL with tab completion, debugging, session management, and comprehensive standard library coverage including HTTP/FTP/SMTP networking, data formats, math, collections, and game primitives.
+**v1.4.0** includes 132+ built-in functions, 46 passing regression tests, generator functions (`yield`), a world-class REPL with tab completion, debugging, session management, and comprehensive standard library coverage including HTTP/FTP/SMTP networking, data formats, math, collections, and game primitives.
 
 ---
 
@@ -298,6 +298,59 @@ print(p)  # (3, 4)
 ### Game Types (4)
 `vec2`, `vec3`, `color`, `rect`, `complex`
 
+### Generators (2)
+`next`, `is_generator`
+
+---
+
+## Generators
+
+Ipp supports generator functions using the `yield` keyword:
+
+```ipp
+func count_up() {
+    var i = 0
+    while i < 5 {
+        yield i
+        i = i + 1
+    }
+}
+
+var gen = count_up()
+print(next(gen))  # 0
+print(next(gen))  # 1
+print(next(gen))  # 2
+```
+
+### For-in with Generators
+
+```ipp
+func fibonacci(n) {
+    var a = 0
+    var b = 1
+    var count = 0
+    while count < n {
+        yield a
+        var temp = a
+        a = b
+        b = temp + b
+        count = count + 1
+    }
+}
+
+for n in fibonacci(10) {
+    print(n)  # 0, 1, 1, 2, 3, 5, 8, 13, 21, 34
+}
+```
+
+### Generator Utilities
+
+```ipp
+var gen = count_up()
+print(is_generator(gen))  # true
+print(is_generator(42))   # false
+```
+
 ---
 
 ## Standard Library
@@ -378,8 +431,8 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.3.7 | REPL enhancements (.load, .save, .doc, .time, .which, .undo, .profile, .alias, .edit, .last) |
 | v1.3.8 | HTTP Server, WebSocket, PriorityQueue, Tree, Graph |
 | v1.3.9 | REPL error handling (smart suggestions, highlight fix, .colors fix) |
-| v1.3.10 | REPL Intelligence (tab completion, debugger, pretty printing, shell integration, themes, search, examples) |
-| v1.4.0 | Generators `yield`, Async/Await, Engine integration |
+| v1.3.10 | REPL Intelligence (tab completion, debugger, pretty printing, shell integration, themes) |
+| v1.4.0 | Generator functions (`yield`) |
 | v1.4.1 | VM Builtin Functions + Dict Access |
 | v1.4.2 | VM Functions + Recursion + Classes |
 | v1.4.3 | VM For Loops + `--vm` CLI Flag |
