@@ -548,8 +548,12 @@ def ipp_async_run(coro):
     from ipp.interpreter.interpreter import IppCoroutine, IppEventLoop, _ipp_get_interpreter
     if isinstance(coro, IppCoroutine):
         interp = _ipp_get_interpreter()
+        saved_return = interp.return_value
         loop = IppEventLoop(interp)
-        return loop.run_until_complete(coro)
+        result = loop.run_until_complete(coro)
+        # Restore return_value so main execution continues
+        interp.return_value = saved_return
+        return result
     raise RuntimeError("async_run() expects a coroutine")
 
 def ipp_create_task(coro):
@@ -557,9 +561,12 @@ def ipp_create_task(coro):
     from ipp.interpreter.interpreter import IppCoroutine, IppEventLoop, _ipp_get_interpreter
     if isinstance(coro, IppCoroutine):
         interp = _ipp_get_interpreter()
+        saved_return = interp.return_value
         loop = IppEventLoop(interp)
         loop.create_task(coro)
-        return loop.run_until_complete(coro)
+        result = loop.run_until_complete(coro)
+        interp.return_value = saved_return
+        return result
     raise RuntimeError("create_task() expects a coroutine")
 
 def ipp_is_coroutine(obj):
