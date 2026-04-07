@@ -184,7 +184,7 @@ C_KW      = lambda t: _rgb(100, 200, 255, t)
 C_STR     = lambda t: _rgb(150, 255, 150, t)
 C_NUM     = lambda t: _rgb(255, 180, 100, t)
 C_COMMENT = lambda t: _rgb(120, 120, 140, t)
-C_FN      = lambda t: _rgb(130, 170, 255, t)
+C_FN      = lambda t: _rgb(180, 100, 255, t)  # Purple for function repr
 C_BOOL    = lambda t: _rgb(220, 130, 255, t)
 C_HEADER  = lambda t: _rgb( 80, 200, 255, t)
 C_LOGO1   = lambda t: _fg(51, t)
@@ -835,18 +835,14 @@ def show_builtins():
     for group, names in categories.items():
         available = [n for n in names if n in BUILTINS]
         if available:
-            print(f"  {colour(C_HEADER, group + ':')}")
+            # Category header in cyan
+            print(f"  {colour(C_CMD, group + ':')}")
             for name in sorted(available):
                 fn = BUILTINS[name]
-                fn_type = type(fn).__name__
-                # Color code by type
-                if 'builtin' in fn_type:
-                    type_color = C_OK
-                elif 'Ipp' in fn_type:
-                    type_color = C_FN
-                else:
-                    type_color = C_STR
-                print(f"    {colour(C_KW, name.ljust(20))} {colour(type_color, fn_type)}")
+                # Show full function repr like <function ipp_dot at 0x...>
+                fn_repr = repr(fn)
+                # Builtin name in blue, function repr in purple
+                print(f"    {colour(C_KW, name.ljust(20))} {colour(C_FN, fn_repr)}")
             print()
     print()
 
