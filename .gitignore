@@ -42,6 +42,10 @@ __pycache__/
 # Logs
 *.log
 
+# VSCode Extension
+vscode-extension/node_modules/
+vscode-extension/out/
+
 # Private strategy files
 GROWTH_STRATEGY.md
 MARKETING*.md
