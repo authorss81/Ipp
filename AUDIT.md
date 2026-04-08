@@ -432,19 +432,22 @@ See [ROADMAP_V2.md](ROADMAP_V2.md) for detailed version-by-version plan.
 
 ## Summary
 
-**Current State**: v1.4.0
-- 69.5+/100 overall score
+**Current State**: v1.5.1
+- 70+/100 overall score
 - Most critical features implemented
 - VM infrastructure complete with v1.0.0
 - All 7 VM bugs fixed by contributor
-- Generator functions implemented
-- 132+ built-in functions
-- 34 passing regression tests
+- Generator functions + Async/Await implemented
+- 163+ built-in functions
+- 37 passing regression tests
 - World-class REPL with tab completion, debugging, themes, shell integration
+- VSCode extension with LSP support, snippets, task runner
 
-**v1.5.0 Target State:**
-- REPL Performance + Advanced Features
-- Hot reload, async REPL, multi-line editor
+**v1.5.1 Target State:**
+- VSCode Extension with LSP
+- Code snippets (15 snippets)
+- Task runner for ipp run/check
+- Language server protocol (go-to-definition, completion, hover)
 
 **v2.0.0 Production State:**
 - 85+/100 overall score
@@ -924,7 +927,7 @@ Ordered by severity × frequency of impact:
 *v1.4.2 completed: 2026-04-07 - Tutorial Documentation + Getting Started Guide (TUTORIAL.md, 25 verified examples)*
 *v1.4.3 completed: 2026-04-07 - PyPI Publishing (pyproject.toml, GitHub Actions, ipp-lang package)*
 *v1.5.0 completed: 2026-04-07 - Async/Await + Coroutines + Event Loop + Additional Builtins (31 new builtins)*
-*v1.5.1 planned: VSCode Extension + LSP + Other IDE Extensions*
+*v1.5.1 completed: 2026-04-08 - VSCode Extension + LSP (15 snippets, task runner, LSP server, hover, completion)*
 *v1.5.2 planned: WASM Compilation + Web Playground*
 *v1.5.3 planned: WebGL Integration + 2D Canvas Rendering*
 *v1.5.4 planned: Repl Enhancement*

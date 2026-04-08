@@ -1,0 +1,129 @@
+{
+  "Ipp Function": {
+    "prefix": "func",
+    "body": [
+      "func ${1:name}(${2:params}) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Ipp function declaration"
+  },
+  "Ipp Class": {
+    "prefix": "class",
+    "body": [
+      "class ${1:ClassName} {",
+      "\tfunc init(${2:params}) {",
+      "\t\t$0",
+      "\t}",
+      "}"
+    ],
+    "description": "Ipp class declaration"
+  },
+  "Ipp For Loop": {
+    "prefix": "for",
+    "body": [
+      "for ${1:i} in ${2:0..10} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Ipp for loop"
+  },
+  "Ipp While Loop": {
+    "prefix": "while",
+    "body": [
+      "while ${1:condition} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Ipp while loop"
+  },
+  "Ipp If Statement": {
+    "prefix": "if",
+    "body": [
+      "if ${1:condition} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Ipp if statement"
+  },
+  "Ipp If-Else": {
+    "prefix": "ife",
+    "body": [
+      "if ${1:condition} {",
+      "\t$2",
+      "} else {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Ipp if-else statement"
+  },
+  "Ipp Match Statement": {
+    "prefix": "match",
+    "body": [
+      "match ${1:expr} {",
+      "\tcase ${2:value} => ${3:result},",
+      "\tdefault => $0",
+      "}"
+    ],
+    "description": "Ipp match statement"
+  },
+  "Ipp Try-Catch": {
+    "prefix": "try",
+    "body": [
+      "try {",
+      "\t$1",
+      "} catch ${2:e} {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Ipp try-catch statement"
+  },
+  "Ipp Variable": {
+    "prefix": "var",
+    "body": "var ${1:name} = ${2:value}",
+    "description": "Ipp variable declaration"
+  },
+  "Ipp List": {
+    "prefix": "list",
+    "body": "[${1:item1}, ${2:item2}]",
+    "description": "Ipp list"
+  },
+  "Ipp Dict": {
+    "prefix": "dict",
+    "body": "{\"${1:key}\": ${2:value}}",
+    "description": "Ipp dictionary"
+  },
+  "Ipp Lambda": {
+    "prefix": "lambda",
+    "body": "func(${1:params}) => ${2:expression}",
+    "description": "Ipp lambda function"
+  },
+  "Ipp Async Function": {
+    "prefix": "async",
+    "body": [
+      "async func ${1:name}(${2:params}) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Ipp async function"
+  },
+  "Ipp Enum": {
+    "prefix": "enum",
+    "body": [
+      "enum ${1:EnumName} {",
+      "\t${2:MEMBER1},",
+      "\t${3:MEMBER2}",
+      "}"
+    ],
+    "description": "Ipp enum declaration"
+  },
+  "Ipp Constructor": {
+    "prefix": "init",
+    "body": [
+      "func init(${1:params}) {",
+      "\t$0",
+      "}"
+    ],
+    "description": "Ipp class constructor"
+  }
+}

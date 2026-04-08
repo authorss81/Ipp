@@ -2,7 +2,7 @@
   "name": "ipp-language-support",
   "displayName": "Ipp Language Support",
   "description": "Language support for the Ipp programming language",
-  "version": "0.0.1",
+  "version": "1.5.1",
   "publisher": "authorss81",
   "engines": {
     "vscode": "^1.70.0"
@@ -35,7 +35,58 @@
         "scopeName": "source.ipp",
         "path": "./syntaxes/ipp.tmLanguage.json"
       }
-    ]
+    ],
+    "snippets": [
+      {
+        "language": "ipp",
+        "path": "./snippets/snippets.json"
+      }
+    ],
+    "tasks": [
+      {
+        "type": "ipp",
+        "id": "ipp-run",
+        "title": "Run Ipp Script",
+        "problemMatcher": [],
+        "command": "python",
+        "args": ["${workspaceFolder}/main.py", "run", "${file}"]
+      },
+      {
+        "type": "ipp",
+        "id": "ipp-check",
+        "title": "Check Ipp Syntax",
+        "problemMatcher": [],
+        "command": "python",
+        "args": ["${workspaceFolder}/main.py", "check", "${file}"]
+      }
+    ],
+    "configuration": {
+      "title": "Ipp Language",
+      "properties": {
+        "ipp.enable": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable/disable the Ipp language server"
+        },
+        "ipp.trace.server": {
+          "type": "string",
+          "default": "off",
+          "description": "Trace server communication between VS Code and the language server",
+          "enum": ["off", "messages", "verbose"]
+        },
+        "ipp.runnable": {
+          "type": "object",
+          "title": "Run configuration",
+          "properties": {
+            "command": {
+              "type": "string",
+              "default": "python main.py run",
+              "description": "Command to run Ipp scripts"
+            }
+          }
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",

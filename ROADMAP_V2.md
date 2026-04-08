@@ -1,5 +1,5 @@
 # Ipp Language — Detailed Roadmap v5
-> Last Updated: 2026-04-07 | Reflects audit findings through v1.4.0
+> Last Updated: 2026-04-08 | Reflects audit findings through v1.5.1
 
 ---
 
@@ -45,7 +45,7 @@
 | **v1.4.2** | ✅ DONE | Tutorial Documentation + Getting Started Guide |
 | **v1.4.3** | ✅ DONE | PyPI Publishing + `pip install ipp-lang` |
 | **v1.5.0** | ✅ DONE | Async/Await + Coroutines + Event Loop + Additional Builtins |
-| **v1.5.1** | 🔧 IN PROGRESS | VSCode Extension + LSP |
+| **v1.5.1** | ✅ DONE | VSCode Extension + LSP |
 | **v1.5.2** | 📋 PLANNED | WASM Compilation + Web Playground |
 | **v1.5.3** | 📋 PLANNED | WebGL Integration + 2D Canvas Rendering |
 | **v1.5.4** | 📋 PLANNED | Repl Enhancements| 
@@ -448,27 +448,27 @@
 
 ---
 
-## v1.5.1 — VSCode Extension 📋 PLANNED
+## v1.5.1 — VSCode Extension ✅ DONE
 
-### LSP Server
-- [ ] `ipp lsp` — start LSP server
-- [ ] Go-to-definition
-- [ ] Find all references
-- [ ] Symbol search
-- [ ] Hover information (type, docstring)
-- [ ] Diagnostics (linting, type hints)
-- [ ] Auto-completion
-- [ ] Rename symbol
-- [ ] Code actions / quick fixes
-- [ ] Document symbols (outline)
+### LSP Server ✅ DONE
+- [x] `ipp lsp` — start LSP server
+- [x] Go-to-definition
+- [x] Find all references
+- [x] Symbol search
+- [x] Hover information (type, docstring)
+- [x] Diagnostics (linting, type hints)
+- [x] Auto-completion
+- [x] Rename symbol
+- [x] Code actions / quick fixes
+- [x] Document symbols (outline)
 
-### VSCode Features
-- [ ] Syntax highlighting (TMGrammar)
-- [ ] Snippets (func, class, for, while, etc.)
-- [ ] LSP integration (diagnostics, completion, hover)
-- [ ] Run/Debug Ipp code from VSCode
-- [ ] Integrated REPL panel
-- [ ] Task runner for `ipp run`, `ipp check`
+### VSCode Features ✅ DONE
+- [x] Syntax highlighting (TMGrammar)
+- [x] Snippets (func, class, for, while, etc.)
+- [x] LSP integration (diagnostics, completion, hover)
+- [x] Run/Debug Ipp code from VSCode
+- [x] Integrated REPL panel
+- [x] Task runner for `ipp run`, `ipp check`
 
 ### Other IDE Extensions (included in v1.5.1)
 - [ ] Vim/Neovim plugin

@@ -67,7 +67,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "1.4.0"
+VERSION = "1.5.1"
 
 # ─── Windows ANSI enablement ──────────────────────────────────────────────────
 # Windows 10 supports ANSI but requires ENABLE_VIRTUAL_TERMINAL_PROCESSING.
@@ -2156,6 +2156,7 @@ def print_usage():
         ("check <f>", "Syntax check"),
         ("lint <f>",  "Lint code"),
         ("repl",      "Start REPL (default)"),
+        ("lsp",       "Start LSP server"),
     ]
     print(BOLD("Commands:"))
     for c, d in cmds:
@@ -2174,6 +2175,10 @@ def main():
         print(f"Ipp v{VERSION}"); return 0
     if cmd == 'repl':
         run_repl(); return 0
+    if cmd == 'lsp':
+        from ipp.lsp.server import main as lsp_main
+        lsp_main()
+        return 0
     if cmd == 'run' and len(args) >= 2:
         return run_file(args[1])
     if cmd == 'check' and len(args) >= 2:

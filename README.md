@@ -2,7 +2,7 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.5.0-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.5.1-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-163+-brightgreen.svg" alt="Builtins">
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.5.0** includes 163+ built-in functions, 37 passing regression tests, generator functions (`yield`), async/await with coroutines and event loop, a world-class REPL with tab completion, debugging, session management, and comprehensive standard library coverage including HTTP/FTP/SMTP networking, data formats, math, collections, game primitives, and 31 additional utility builtins.
+**v1.5.1** includes all v1.5.0 features plus VSCode extension with LSP support, 15 code snippets, task runner for running/checking scripts, and full language server protocol implementation for IDE integration.
 
 ---
 
@@ -40,12 +40,35 @@ python main.py
 
 No dependencies required. Python 3.8+ only.
 
-### Install via PyPI (Coming Soon)
+### Install via PyPI
 ```bash
 pip install ipp-lang
 ipp repl
 ipp run hello.ipp
 ```
+
+---
+
+## VSCode Extension
+
+Ipp includes a VSCode extension in `vscode-extension/`:
+
+```bash
+cd vscode-extension
+npm install
+npm run compile
+code .
+```
+
+**Features:**
+- Syntax highlighting
+- 15 code snippets (func, class, for, while, if, match, try, etc.)
+- Task runner for `ipp run` and `ipp check`
+- LSP support: go-to-definition, completion, hover, rename
+
+**Commands:**
+- `ipp lsp` — Start LSP server
+- `F5` — Run current file
 
 ---
 
@@ -61,7 +84,7 @@ Ipp has a world-class REPL with 30+ built-in commands:
   ██║██║     ██║
   ╚═╝╚═╝     ╚═╝
 
-  Ipp  v1.5.0
+  Ipp  v1.5.1
   A scripting language for game development
 ──────────────────────────────────────────
   ❯ var x = 2 ** 10
@@ -490,7 +513,7 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.4.2 | Tutorial Documentation + Getting Started Guide (TUTORIAL.md) |
 | v1.4.3 | PyPI Publishing + `pip install ipp-lang` |
 | v1.5.0 | Async/Await + Coroutines + Event Loop + Additional Builtins (31 new builtins) |
-| v1.5.1 | VSCode Extension + LSP + Other IDE Extensions |
+| v1.5.1 | VSCode Extension + LSP (15 snippets, task runner, LSP server, hover, completion) |
 | v1.5.2 | WASM Compilation + Web Playground |
 | v1.5.3 | WebGL Integration + 2D Canvas Rendering |
 | v1.6.0 | C++ Integration + Native Extensions |
