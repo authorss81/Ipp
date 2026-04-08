@@ -41,3 +41,6 @@ include = ["ipp*"]
 
 [tool.setuptools.package-data]
 ipp = ["*.ipp"]
+
+[tool.setuptools.data-files]
+data_files = [(".", ["main.py"])]

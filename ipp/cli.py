@@ -6,14 +6,12 @@ import os
 
 def main():
     """Main CLI entry point."""
-    # The main.py is at the project root level
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
+    # Import the main module from the project root
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
     # Import and run the CLI
-    from main import cli as ipp_cli
-    ipp_cli()
+    import main as ipp_main
+    sys.exit(ipp_main.main())
 
 if __name__ == "__main__":
     main()
