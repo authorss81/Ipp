@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ipp Language Playground</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            background: #252526;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #3c3c3c;
+        }
+        
+        .logo {
+            font-size: 20px;
+            font-weight: bold;
+            color: #569cd6;
+        }
+        
+        .logo span {
+            color: #4ec9b0;
+        }
+        
+        .toolbar {
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            background: #0e639c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 2px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+        
+        button:hover {
+            background: #1177bb;
+        }
+        
+        button.secondary {
+            background: #3c3c3c;
+        }
+        
+        button.secondary:hover {
+            background: #4c4c4c;
+        }
+        
+        .main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        .editor-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid #3c3c3c;
+        }
+        
+        .editor {
+            flex: 1;
+        }
+        
+        .output-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #1e1e1e;
+        }
+        
+        .output-header {
+            padding: 8px 16px;
+            background: #252526;
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #888;
+            border-bottom: 1px solid #3c3c3c;
+        }
+        
+        .output {
+            flex: 1;
+            padding: 16px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            overflow: auto;
+        }
+        
+        .error {
+            color: #f44747;
+        }
+        
+        .success {
+            color: #4ec9b0;
+        }
+        
+        .status-bar {
+            background: #007acc;
+            color: white;
+            padding: 4px 16px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">Ipp <span>Playground</span></div>
+        <div class="toolbar">
+            <button class="secondary" onclick="clearOutput()">Clear</button>
+            <button onclick="runCode()">Run (F5)</button>
+        </div>
+    </header>
+    
+    <div class="main">
+        <div class="editor-container">
+            <div id="editor" class="editor"></div>
+        </div>
+        <div class="output-container">
+            <div class="output-header">Output</div>
+            <div id="output" class="output">
+                <span class="success">// Click "Run" or press F5 to execute your Ipp code</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="status-bar">
+        <span id="status">Ready</span>
+        <span>v1.5.2b</span>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs/loader.min.js"></script>
+    <script>
+        let editor;
+        
+        // Default Ipp code
+        const defaultCode = `# Ipp Language Playground
+# Write your Ipp code here and press Run
+
+func fibonacci(n) {
+    if n <= 1 {
+        return n
+    }
+    return fibonacci(n - 1) + fibonacci(n - 2)
+}
+
+print("Fibonacci sequence:")
+for i in 0..10 {
+    print(str(i) + ": " + str(fibonacci(i)))
+}
+`;
+
+        require.config({ paths: { vs: 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.44.0/min/vs' }});
+        
+        require(['vs/editor/editor.main'], function() {
+            editor = monaco.editor.create(document.getElementById('editor'), {
+                value: defaultCode,
+                language: 'cpp',  // Use cpp as closest syntax
+                theme: 'vs-dark',
+                fontSize: 14,
+                fontFamily: "'Fira Code', 'Consolas', 'Monaco', monospace",
+                automaticLayout: true,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                lineNumbers: 'on',
+                renderWhitespace: 'selection',
+                tabSize: 4,
+            });
+            
+            // Add F5 keybinding
+            editor.addCommand(monaco.KeyCode.F5, function() {
+                runCode();
+            });
+            
+            document.getElementById('status').textContent = 'Editor loaded';
+        });
+
+        function runCode() {
+            const code = editor.getValue();
+            const output = document.getElementById('output');
+            document.getElementById('status').textContent = 'Running...';
+            output.innerHTML = '<span class="success">Running...</span>\n';
+            
+            // Simulate execution (in real implementation, use WASM)
+            setTimeout(() => {
+                try {
+                    // For now, show a message about WASM
+                    output.innerHTML = `<span class="success">// Code submitted for execution</span>
+<span class="success">// In production, this would run via WASM</span>
+<span class="success">// Ipp v1.5.2b Web Playground</span>
+`;
+                    
+                    // Would call actual Ipp WASM runtime here
+                    // For now, just echo the code structure
+                    const lines = code.split('\n').filter(l => !l.trim().startsWith('#'));
+                    output.innerHTML += '\n<span class="success">// Output would appear here when WASM runtime is connected</span>';
+                    
+                    document.getElementById('status').textContent = 'Ready';
+                } catch (e) {
+                    output.innerHTML = `<span class="error">Error: ${e.message}</span>`;
+                    document.getElementById('status').textContent = 'Error';
+                }
+            }, 100);
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+        }
+
+        // Handle resize
+        window.addEventListener('resize', function() {
+            if (editor) {
+                editor.layout();
+            }
+        });
+    </script>
+</body>
+</html>

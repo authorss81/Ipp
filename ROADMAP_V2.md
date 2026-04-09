@@ -47,7 +47,7 @@
 | **v1.5.0** | ✅ DONE | Async/Await + Coroutines + Event Loop + Additional Builtins |
 | **v1.5.1** | ✅ DONE | VSCode Extension + LSP |
 | **v1.5.2a** | ✅ DONE | WASM Backend Module (`ipp wasm` CLI) |
-| **v1.5.2b** | 📋 PLANNED | Web Playground |
+| **v1.5.2b** | 🔧 IN PROGRESS | Web Playground |
 | **v1.5.3** | 📋 PLANNED | WebGL Integration + 2D Canvas Rendering |
 | **v1.5.4** | 📋 PLANNED | Repl Enhancements| 
 | **v1.5.5** | 📋 PLANNED | 3D Rendering + Scene Graph |
