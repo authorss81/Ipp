@@ -46,10 +46,10 @@
 | **v1.4.3** | ✅ DONE | PyPI Publishing + `pip install ipp-lang` |
 | **v1.5.0** | ✅ DONE | Async/Await + Coroutines + Event Loop + Additional Builtins |
 | **v1.5.1** | ✅ DONE | VSCode Extension + LSP |
-| **v1.5.2a** | ✅ DONE | WASM Backend Module (`ipp wasm` CLI) |
-| **v1.5.2b** | ✅ DONE | Web Playground |
-| **v1.5.3a** | ✅ DONE | 2D Canvas API (rect, circle, line, text, clear) |
-| **v1.5.3b** | 📋 PLANNED | WebGL Bindings |
+| **v1.5.2a** | 🔄 PARTIAL | WASM Backend (basic, needs more work) |
+| **v1.5.2b** | 🔄 PARTIAL | Web Playground (basic, needs more work) |
+| **v1.5.3a** | 🔄 PARTIAL | 2D Canvas (REPL works, needs enhancement) |
+| **v1.5.3b** | 🔧 IN PROGRESS | WebGL Bindings |
 | **v1.5.3** | 📋 PLANNED | WebGL Integration + 2D Canvas Rendering |
 | **v1.5.4** | 📋 PLANNED | Repl Enhancements| 
 | **v1.5.5** | 📋 PLANNED | 3D Rendering + Scene Graph |
@@ -497,16 +497,19 @@
 
 ---
 
-## v1.5.3 — WebGL Integration + 2D Rendering ✅ DONE (v1.5.3a)
+## v1.5.3 — WebGL Integration + 2D Rendering 🔄 PARTIAL
 
-### v1.5.3a: 2D Canvas API ✅ DONE
-- [x] `canvas.rect(x, y, w, h, color)` — draw rectangle
-- [x] `canvas.circle(x, y, r, color)` — draw circle
-- [x] `canvas.line(x1, y1, x2, y2, color)` — draw line
-- [x] `canvas.text(x, y, text, color)` — draw text
-- [x] `canvas.clear(color)` — clear canvas
+### v1.5.3a: 2D Canvas API 🔄 PARTIAL
+- [x] `canvas.rect(x, y, w, h, color)` ✅ REPL works
+- [x] `canvas.circle(x, y, r, color)` ✅ REPL works  
+- [x] `canvas.line(x1, y1, x2, y2, color)` ✅ REPL works
+- [x] `canvas.text(x, y, text, color)` ✅ REPL works
+- [x] `canvas.clear(color)` ✅ REPL works
+- [ ] Enhanced drawing (filled shapes, stroke, etc.)
+- [ ] Animation support
+- [ ] Mouse/keyboard input support
 
-### v1.5.3b: WebGL Bindings 📋 PLANNED
+### v1.5.3b: WebGL Bindings 🔧 IN PROGRESS
 - [ ] `webgl.init(canvas)` — initialize WebGL context
 - [ ] `webgl.create_shader(source, type)` — create shader
 - [ ] `webgl.create_program(vertex, fragment)` — create program

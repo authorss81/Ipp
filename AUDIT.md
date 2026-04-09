@@ -441,16 +441,18 @@ See [ROADMAP_V2.md](ROADMAP_V2.md) for detailed version-by-version plan.
 - 163+ built-in functions
 - 40 passing regression tests
 - World-class REPL with tab completion, debugging, themes, shell integration
-- VSCode extension with LSP support, snippets, task runner (publish coming soon)
-- WASM backend module (v1.5.2a - `ipp wasm` CLI)
-- Web Playground with CodeMirror (v1.5.2b)
-- 2D Canvas API (v1.5.3a - rect, circle, line, text, clear)
+- VSCode extension (publish coming soon)
+- WASM backend (partial - v1.5.2a)
+- Web Playground (partial - v1.5.2b)
+- 2D Canvas in REPL (works with Tkinter - v1.5.3a)
+- WebGL (in progress - v1.5.3b)
 
-**v1.5.3a Target State:**
-- 2D Canvas API ✅ DONE
+**v1.5.3a Current State:**
+- Canvas functions work in REPL with Tkinter
+- Needs: animation, mouse/keyboard input, enhanced drawing
 
 **v1.5.3b Target State:**
-- WebGL Bindings
+- WebGL bindings for browser-based graphics
 - Web playground with Monaco Editor
 
 **v2.0.0 Production State:**

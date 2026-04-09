@@ -2,7 +2,7 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.5.3a-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.5.3b-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-163+-brightgreen.svg" alt="Builtins">
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.5.3a** includes all v1.5.2b features plus 2D Canvas API for drawing shapes in the web playground. Draw rectangles, circles, lines, and text directly in the browser.
+**v1.5.3b** includes WebGL bindings for GPU-accelerated graphics. Previous phases (v1.5.2a, v1.5.2b, v1.5.3a) are partially done and need further enhancement.
 
 ---
 
@@ -86,7 +86,7 @@ Ipp has a world-class REPL with 30+ built-in commands:
   ██║██║     ██║
   ╚═╝╚═╝     ╚═╝
 
-  Ipp  v1.5.3a
+  Ipp  v1.5.3b
   A scripting language for game development
 ──────────────────────────────────────────
   ❯ var x = 2 ** 10
@@ -516,9 +516,10 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.4.3 | PyPI Publishing + `pip install ipp-lang` |
 | v1.5.0 | Async/Await + Coroutines + Event Loop + Additional Builtins (31 new builtins) |
 | v1.5.1 | VSCode Extension + LSP (15 snippets, task runner, LSP server, hover, completion) |
-| v1.5.2a | WASM Backend Module (`ipp wasm` CLI, WASM compiler) |
-| v1.5.2b | Web Playground (Monaco Editor, share via URL) |
-| v1.5.3a | 2D Canvas API (canvas.rect, canvas.circle, canvas.line, canvas.text, canvas.clear) |
+| v1.5.2a | WASM Backend (Partial - needs more work) |
+| v1.5.2b | Web Playground (Partial - needs more work) |
+| v1.5.3a | 2D Canvas API (Partial - Tkinter works, needs enhancement) |
+| v1.5.3b | WebGL Bindings (In Progress) |
 | v1.5.3 | WebGL Integration + 2D Canvas Rendering |
 | v1.6.0 | C++ Integration + Native Extensions |
 | v1.6.1 | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
