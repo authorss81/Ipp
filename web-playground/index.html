@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ipp Language Playground</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/material-darker.min.css">
     <style>
         * {
             margin: 0;
@@ -14,7 +12,7 @@
         }
         
         body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, Oxygen, Ubuntu, sans-serif;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
             background: #0d1117;
             color: #c9d1d9;
             height: 100vh;
@@ -23,15 +21,13 @@
             overflow: hidden;
         }
         
-        /* Header */
         header {
-            background: linear-gradient(180deg, #161b22 0%, #0d1117 100%);
+            background: #161b22;
             padding: 12px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
             border-bottom: 1px solid #30363d;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         }
         
         .logo {
@@ -39,20 +35,20 @@
             font-weight: 700;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
         }
         
         .logo-icon {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #238636, #2ea043);
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
             color: white;
+            font-weight: bold;
+            font-size: 16px;
         }
         
         .logo-text {
@@ -66,7 +62,7 @@
         .version-tag {
             background: #1f6feb;
             color: white;
-            padding: 2px 8px;
+            padding: 2px 10px;
             border-radius: 12px;
             font-size: 11px;
             margin-left: 8px;
@@ -81,7 +77,7 @@
             background: #21262d;
             color: #c9d1d9;
             border: 1px solid #30363d;
-            padding: 8px 16px;
+            padding: 10px 18px;
             border-radius: 6px;
             cursor: pointer;
             font-size: 13px;
@@ -98,21 +94,31 @@
         }
         
         button.primary {
-            background: linear-gradient(135deg, #238636 0%, #2ea043 100%);
+            background: linear-gradient(135deg, #238636, #2ea043);
             border: none;
             color: white;
         }
         
         button.primary:hover {
-            background: linear-gradient(135deg, #2ea043 0%, #3fb950 100%);
+            background: linear-gradient(135deg, #2ea043, #3fb950);
+        }
+
+        button.run-btn {
+            background: #238636;
+            border: none;
+            color: white;
+            padding: 10px 24px;
+            font-weight: 600;
         }
         
-        /* Main Content */
+        button.run-btn:hover {
+            background: #2ea043;
+        }
+        
         .main {
             flex: 1;
             display: flex;
             overflow: hidden;
-            background: #0d1117;
         }
         
         .editor-section {
@@ -125,7 +131,7 @@
         
         .section-header {
             background: #161b22;
-            padding: 8px 16px;
+            padding: 10px 16px;
             font-size: 12px;
             font-weight: 600;
             text-transform: uppercase;
@@ -136,31 +142,29 @@
             align-items: center;
         }
         
-        .section-header .file-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .file-icon {
-            color: #58a6ff;
-        }
-        
         .editor-wrapper {
             flex: 1;
             position: relative;
             overflow: hidden;
         }
         
-        .CodeMirror {
-            height: 100% !important;
+        #editor {
+            width: 100%;
+            height: 100%;
+            background: #0d1117;
+            color: #c9d1d9;
+            border: none;
+            outline: none;
+            padding: 16px;
+            font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
             font-size: 14px;
-            font-family: 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+            line-height: 1.6;
+            resize: none;
+            tab-size: 4;
         }
         
-        .CodeMirror-gutters {
-            background: #0d1117 !important;
-            border-right: 1px solid #30363d !important;
+        #editor::selection {
+            background: #264f78;
         }
         
         .output-section {
@@ -174,62 +178,32 @@
         .output-content {
             flex: 1;
             padding: 16px;
-            font-family: 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;
+            font-family: 'Fira Code', 'Consolas', monospace;
             font-size: 13px;
             overflow: auto;
-            background: #0d1117;
             line-height: 1.6;
         }
         
         .output-line {
-            padding: 2px 0;
+            padding: 3px 0;
             white-space: pre-wrap;
-            word-break: break-all;
         }
         
-        .output-line.error {
-            color: #f85149;
-            background: rgba(248, 81, 73, 0.1);
-            padding: 4px 8px;
-            border-radius: 4px;
-            margin: 4px 0;
-        }
+        .output-line.error { color: #f85149; background: rgba(248,81,73,0.1); padding: 4px 8px; border-radius: 4px; margin: 4px 0; }
+        .output-line.success { color: #3fb950; }
+        .output-line.info { color: #8b949e; font-style: italic; }
         
-        .output-line.success {
-            color: #3fb950;
-        }
-        
-        .output-line.info {
-            color: #8b949e;
-            font-style: italic;
-        }
-        
-        .output-line.result {
-            color: #d2a8ff;
-        }
-        
-        /* Status Bar */
         .status-bar {
             background: #161b22;
             color: #8b949e;
-            padding: 6px 24px;
+            padding: 8px 24px;
             font-size: 12px;
             display: flex;
             justify-content: space-between;
             border-top: 1px solid #30363d;
         }
         
-        .status-left {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
+        .status-left { display: flex; align-items: center; gap: 16px; }
         
         .status-dot {
             width: 8px;
@@ -237,22 +211,11 @@
             border-radius: 50%;
             background: #3fb950;
         }
+        .status-dot.error { background: #f85149; }
+        .status-dot.running { background: #d29922; animation: pulse 1s infinite; }
         
-        .status-dot.error {
-            background: #f85149;
-        }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         
-        .status-dot.running {
-            background: #d29922;
-            animation: pulse 1s infinite;
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        
-        /* Snackbar */
         .snackbar {
             position: fixed;
             bottom: 60px;
@@ -263,23 +226,14 @@
             padding: 12px 24px;
             border-radius: 8px;
             font-size: 14px;
-            font-weight: 500;
             box-shadow: 0 4px 12px rgba(0,0,0,0.4);
             opacity: 0;
-            transition: all 0.3s ease;
+            transition: all 0.3s;
             z-index: 1000;
         }
+        .snackbar.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .snackbar.error { background: #f85149; }
         
-        .snackbar.show {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-        }
-        
-        .snackbar.error {
-            background: #f85149;
-        }
-        
-        /* Welcome Screen */
         .welcome {
             display: flex;
             flex-direction: column;
@@ -288,45 +242,11 @@
             height: 100%;
             color: #8b949e;
             text-align: center;
-            padding: 40px;
         }
-        
-        .welcome h2 {
-            font-size: 24px;
-            margin-bottom: 16px;
-            color: #f0f6fc;
-        }
-        
-        .welcome p {
-            font-size: 14px;
-            max-width: 400px;
-            line-height: 1.6;
-        }
-        
-        .shortcuts {
-            margin-top: 24px;
-            display: flex;
-            gap: 16px;
-        }
-        
-        .shortcut {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: #21262d;
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid #30363d;
-        }
-        
-        .shortcut kbd {
-            background: #0d1117;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-family: monospace;
-            font-size: 12px;
-            border: 1px solid #30363d;
-        }
+        .welcome h2 { font-size: 20px; margin-bottom: 12px; color: #f0f6fc; }
+        .welcome p { font-size: 13px; margin-bottom: 16px; }
+        .shortcuts { display: flex; gap: 12px; }
+        .shortcut { background: #21262d; padding: 6px 12px; border-radius: 4px; border: 1px solid #30363d; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -337,50 +257,37 @@
             <span class="version-tag">v1.5.2b</span>
         </div>
         <div class="toolbar">
-            <button onclick="loadFile()">
-                <span>📁</span> Load
-            </button>
-            <button onclick="saveFile()">
-                <span>💾</span> Save
-            </button>
-            <button onclick="shareLink()">
-                <span>🔗</span> Share
-            </button>
-            <button onclick="clearOutput()">
-                <span>🗑️</span> Clear
-            </button>
-            <button class="primary" onclick="runCode()">
-                <span>▶️</span> Run (F5)
-            </button>
+            <button onclick="loadFile()">📁 Load</button>
+            <button onclick="saveFile()">💾 Save</button>
+            <button onclick="shareLink()">🔗 Share</button>
+            <button onclick="clearOutput()">🗑️ Clear</button>
+            <button class="run-btn" onclick="runCode()">▶️ Run</button>
         </div>
     </header>
     
     <div class="main">
         <div class="editor-section">
             <div class="section-header">
-                <div class="file-info">
-                    <span class="file-icon">📄</span>
-                    <span id="file-name">untitled.ipp</span>
-                </div>
-                <div id="cursor-info">Ln 1, Col 1</div>
+                <span>📄 untitled.ipp</span>
+                <span id="cursor-info">Ln 1, Col 1</span>
             </div>
             <div class="editor-wrapper">
-                <textarea id="editor"></textarea>
+                <textarea id="editor" spellcheck="false"></textarea>
             </div>
         </div>
         
         <div class="output-section">
             <div class="section-header">
-                <span>Output</span>
-                <button onclick="copyOutput()" style="padding: 2px 8px; font-size: 11px;">Copy</button>
+                <span>📟 Output</span>
+                <button onclick="copyOutput()" style="padding:2px 8px;font-size:11px;">Copy</button>
             </div>
             <div class="output-content" id="output">
                 <div class="welcome">
                     <h2>Welcome to Ipp Playground! 🚀</h2>
-                    <p>Write your Ipp code in the editor and press <strong>F5</strong> or click <strong>Run</strong> to execute.</p>
+                    <p>Click <strong>Run</strong> or press <strong>Ctrl+Enter</strong> to execute.</p>
                     <div class="shortcuts">
-                        <div class="shortcut"><kbd>Ctrl</kbd>+<kbd>S</kbd> Save</div>
-                        <div class="shortcut"><kbd>F5</kbd> Run</div>
+                        <span class="shortcut">Ctrl+S Save</span>
+                        <span class="shortcut">Ctrl+Enter Run</span>
                     </div>
                 </div>
             </div>
@@ -389,27 +296,18 @@
     
     <div class="status-bar">
         <div class="status-left">
-            <div class="status-item">
-                <div class="status-dot" id="status-dot"></div>
-                <span id="status-text">Ready</span>
-            </div>
+            <div class="status-dot" id="status-dot"></div>
+            <span id="status-text">Ready</span>
         </div>
-        <div class="status-right">
-            <span>Ipp v1.5.2b | JavaScript Runtime</span>
-        </div>
+        <span>Ipp v1.5.2b | JavaScript Runtime</span>
     </div>
     
     <div id="snackbar" class="snackbar"></div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/matchbrackets.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>
-    
     <script>
-        // Initialize CodeMirror
+        // Default code
         const defaultCode = `# Ipp Language Playground v1.5.2b
-# Write your code here and press Run (F5)
+# Write your code here and click Run
 
 func fibonacci(n) {
     if n <= 1 {
@@ -423,71 +321,49 @@ for i in 0..10 {
     print(str(i) + ": " + str(fibonacci(i)))
 }
 
-# Variables and expressions
+# Variables
 var x = 10
 var y = 20
 print("\\nx + y = " + str(x + y))
 
-# List operations
+# List
 var nums = [1, 2, 3, 4, 5]
-print("\\nList length: " + str(len(nums)))
-print("First element: " + str(nums[0]))
+print("\\nLength: " + str(len(nums)))
 `;
 
-        // Create CodeMirror editor
-        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
-            mode: 'javascript',
-            theme: 'material-darker',
-            lineNumbers: true,
-            matchBrackets: true,
-            autoCloseBrackets: true,
-            tabSize: 4,
-            indentWithTabs: false,
-            lineWrapping: true,
-            styleActiveLine: true,
-            extraKeys: {
-                'F5': 'runCode',
-                'Ctrl-S': 'saveFile',
-                'Ctrl-O': 'loadFile'
-            }
-        });
-
-        // Set default code
-        editor.setValue(getInitialCode() || defaultCode);
+        // Initialize
+        const editor = document.getElementById('editor');
+        editor.value = getInitialCode() || defaultCode;
         
-        // Update cursor info
-        editor.on('cursorActivity', function() {
-            const cursor = editor.getCursor();
-            document.getElementById('cursor-info').textContent = 
-                `Ln ${cursor.line + 1}, Col ${cursor.ch + 1}`;
-        });
+        // Update cursor position
+        editor.addEventListener('click', updateCursor);
+        editor.addEventListener('keyup', updateCursor);
+        
+        function updateCursor() {
+            const text = editor.value.substring(0, editor.selectionStart);
+            const lines = text.split('\n');
+            const line = lines.length;
+            const col = lines[lines.length - 1].length + 1;
+            document.getElementById('cursor-info').textContent = `Ln ${line}, Col ${col}`;
+        }
 
         function getInitialCode() {
             const params = new URLSearchParams(window.location.search);
             const shared = params.get('code');
             if (shared) {
-                try {
-                    return decodeURIComponent(atob(shared));
-                } catch (e) {
-                    console.log('Failed to decode shared code');
-                }
+                try { return decodeURIComponent(atob(shared)); } catch(e) {}
             }
             return null;
         }
 
-        // Ipp Interpreter
+        // Ipp Runtime
         const IppRuntime = {
             env: {},
             output: [],
             
-            reset() {
-                this.env = {};
-                this.output = [];
-            },
+            reset() { this.env = {}; this.output = []; },
             
-            log(...args) {
-                this.output.push({ type: 'success', text: args.map(a => String(a)).join(' ') });
-            },
+            log(...args) { this.output.push({type:'success', text: args.join(' ')}); },
             
             execute(code) {
                 this.reset();
@@ -496,261 +372,139 @@ print("First element: " + str(nums[0]))
                     this.evalAST(ast);
                     return { success: true, output: this.output };
                 } catch (e) {
-                    this.output.push({ type: 'error', text: e.message });
+                    this.output.push({type:'error', text: e.message});
                     return { success: false, error: e.message, output: this.output };
                 }
             },
             
             parse(code) {
-                const lines = code.split('\n');
-                const ast = [];
-                
-                for (let i = 0; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (!line || line.startsWith('#')) continue;
+                const lines = code.split('\n'), ast = [];
+                for (const line of lines) {
+                    const l = line.trim();
+                    if (!l || l.startsWith('#')) continue;
                     
-                    // Print
-                    const printMatch = line.match(/^print\((.+)\)$/);
-                    if (printMatch) {
-                        ast.push({ type: 'print', value: printMatch[1] });
-                        continue;
+                    const printMatch = l.match(/^print\((.+)\)$/);
+                    if (printMatch) { ast.push({type:'print', value: printMatch[1]}); continue; }
+                    
+                    const varMatch = l.match(/^(var|let)\s+(\w+)\s*=\s*(.+)$/);
+                    if (varMatch) { ast.push({type:'var', name:varMatch[2], value:varMatch[3]}); continue; }
+                    
+                    if (l.includes('=') && !l.startsWith('if')) {
+                        const p = l.split('=');
+                        ast.push({type:'assign', name:p[0].trim(), value:p[1].trim()});
                     }
                     
-                    // Variable
-                    const varMatch = line.match(/^(var|let)\s+(\w+)\s*=\s*(.+)$/);
-                    if (varMatch) {
-                        ast.push({ type: 'var', name: varMatch[2], value: varMatch[3] });
-                        continue;
-                    }
-                    
-                    // Assignment
-                    if (line.includes('=') && !line.startsWith('if')) {
-                        const parts = line.split('=');
-                        ast.push({ type: 'assign', name: parts[0].trim(), value: parts[1].trim() });
-                    }
-                    
-                    // For loop
-                    const forMatch = line.match(/^for\s+(\w+)\s+in\s+(\d+)\.\.(\d+)/);
-                    if (forMatch) {
-                        ast.push({ type: 'for', var: forMatch[1], start: parseInt(forMatch[2]), end: parseInt(forMatch[3]) });
-                    }
-                    
-                    // Function def
-                    const funcMatch = line.match(/^func\s+(\w+)\s*\(([^)]*)\)/);
-                    if (funcMatch) {
-                        ast.push({ type: 'func', name: funcMatch[1], params: funcMatch[2].split(',').map(p => p.trim()).filter(p => p) });
-                    }
+                    const forMatch = l.match(/^for\s+(\w+)\s+in\s+(\d+)\.\.(\d+)/);
+                    if (forMatch) { ast.push({type:'for', var:forMatch[1], start:+forMatch[2], end:+forMatch[3]}); }
                 }
                 return ast;
             },
             
             evalAST(ast) {
-                const functions = {};
-                
-                // First pass: collect functions
-                for (const node of ast) {
-                    if (node.type === 'func') {
-                        functions[node.name] = node;
-                    }
-                }
-                
-                // Second pass: execute
                 for (const node of ast) {
                     switch (node.type) {
-                        case 'var':
-                            this.env[node.name] = this.evalExpr(node.value);
-                            break;
-                        case 'print':
-                            this.log(this.evalExpr(node.value));
-                            break;
-                        case 'assign':
-                            this.env[node.name] = this.evalExpr(node.value);
-                            break;
+                        case 'var': this.env[node.name] = this.evalExpr(node.value); break;
+                        case 'print': this.log(this.evalExpr(node.value)); break;
+                        case 'assign': this.env[node.name] = this.evalExpr(node.value); break;
                     }
                 }
             },
             
             evalExpr(expr) {
                 expr = expr.trim();
-                
-                // String
                 if ((expr.startsWith('"') && expr.endsWith('"')) || (expr.startsWith("'") && expr.endsWith("'"))) {
-                    return expr.slice(1, -1).replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+                    return expr.slice(1,-1).replace(/\\n/g,'\n').replace(/\\t/g,'\t');
                 }
-                
-                // Number
-                if (!isNaN(expr) && expr !== '') return parseFloat(expr);
-                
-                // Boolean
+                if (!isNaN(expr) && expr !== '') return +expr;
                 if (expr === 'true') return true;
                 if (expr === 'false') return false;
-                
-                // Variable
                 if (this.env.hasOwnProperty(expr)) return this.env[expr];
                 
-                // String concatenation
-                if (expr.includes(' + ')) {
-                    return expr.split(' + ').map(p => this.evalExpr(p)).join('');
-                }
+                if (expr.includes(' + ') && !expr.includes('"')) return expr.split(' + ').map(p=>this.evalExpr(p)).join('');
+                if (expr.match(/^[\d\s\+\-\*\/]+$/)) return eval(expr.replace(/\s+/g,''));
                 
-                // Arithmetic
-                if (expr.includes(' + ') && !expr.includes('"')) return eval(expr);
-                if (expr.includes(' - ') && !expr.includes('"')) return eval(expr);
-                if (expr.includes(' * ')) return eval(expr);
-                if (expr.includes(' / ')) return eval(expr);
+                if (expr.startsWith('str(')) return String(this.evalExpr(expr.match(/str\((.+)\)/)[1]));
+                if (expr.startsWith('len(')) { const a=this.evalExpr(expr.match(/len\((.+)\)/)[1]); return a.length||String(a).length; }
+                if (expr.startsWith('int(')) return parseInt(this.evalExpr(expr.match(/int\((.+)\)/)[1]));
+                if (expr.startsWith('abs(')) return Math.abs(this.evalExpr(expr.match(/abs\((.+)\)/)[1]));
                 
-                // Function calls
-                if (expr.startsWith('str(')) {
-                    return String(this.evalExpr(expr.match(/str\((.+)\)/)[1]));
-                }
-                if (expr.startsWith('len(')) {
-                    const arr = this.evalExpr(expr.match(/len\((.+)\)/)[1]);
-                    return arr.length || String(arr).length;
-                }
-                if (expr.startsWith('int(')) {
-                    return parseInt(this.evalExpr(expr.match(/int\((.+)\)/)[1]));
-                }
-                if (expr.startsWith('float(')) {
-                    return parseFloat(this.evalExpr(expr.match(/float\((.+)\)/)[1]));
-                }
-                if (expr.startsWith('abs(')) {
-                    return Math.abs(this.evalExpr(expr.match(/abs\((.+)\)/)[1]));
-                }
-                
-                // List literal
                 if (expr.startsWith('[') && expr.endsWith(']')) {
-                    const content = expr.slice(1, -1);
-                    if (content) {
-                        return content.split(',').map(s => this.evalExpr(s.trim()));
-                    }
-                    return [];
+                    const c = expr.slice(1,-1);
+                    return c ? c.split(',').map(s => this.evalExpr(s.trim())) : [];
                 }
                 
-                // Index access
-                const indexMatch = expr.match(/^(.+)\[(\d+)\]$/);
-                if (indexMatch) {
-                    const arr = this.evalExpr(indexMatch[1]);
-                    return arr[parseInt(indexMatch[2])];
-                }
+                const idxMatch = expr.match(/^(.+)\[(\d+)\]$/);
+                if (idxMatch) return this.evalExpr(idxMatch[1])[+idxMatch[2]];
                 
                 return expr;
             }
         };
 
-        // Run code
         function runCode() {
-            const code = editor.getValue();
+            const code = editor.value;
             const output = document.getElementById('output');
             setStatus('running', 'Running...');
             
             setTimeout(() => {
                 const result = IppRuntime.execute(code);
-                
-                let html = '';
-                for (const line of result.output) {
-                    html += `<div class="output-line ${line.type}">${escapeHtml(line.text)}</div>`;
-                }
-                
-                if (result.output.length === 0) {
-                    html = '<div class="output-line info">// No output</div>';
-                }
-                
+                let html = result.output.map(l => `<div class="output-line ${l.type}">${escapeHtml(l.text)}</div>`).join('');
+                if (!html) html = '<div class="output-line info">// No output</div>';
                 output.innerHTML = html;
                 setStatus(result.success ? 'ready' : 'error', result.success ? 'Ready' : 'Error');
             }, 50);
         }
 
         function setStatus(state, text) {
-            const dot = document.getElementById('status-dot');
-            dot.className = 'status-dot ' + state;
+            document.getElementById('status-dot').className = 'status-dot ' + state;
             document.getElementById('status-text').textContent = text;
         }
 
-        function escapeHtml(text) {
-            return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        }
-
-        function clearOutput() {
-            document.getElementById('output').innerHTML = '<div class="output-line info">// Click Run or press F5 to execute code</div>';
-        }
-
+        function escapeHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+        
+        function clearOutput() { document.getElementById('output').innerHTML = '<div class="output-line info">// Click Run to execute</div>'; }
+        
         function saveFile() {
-            const code = editor.getValue();
-            const blob = new Blob([code], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
+            const blob = new Blob([editor.value], {type:'text/plain'});
             const a = document.createElement('a');
-            a.href = url;
-            a.download = 'program.ipp';
-            a.click();
-            URL.revokeObjectURL(url);
-            showSnackbar('Code saved to program.ipp');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'program.ipp'; a.click();
+            showSnackbar('Saved to program.ipp');
         }
-
+        
         function loadFile() {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = '.ipp,.txt';
-            input.onchange = (e) => {
-                const file = e.target.files[0];
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    editor.setValue(e.target.result);
-                    document.getElementById('file-name').textContent = file.name;
-                    showSnackbar('Loaded: ' + file.name);
-                };
-                reader.readAsText(file);
+            input.onchange = e => {
+                const r = new FileReader();
+                r.onload = ev => { editor.value = ev.target.result; showSnackbar('File loaded'); };
+                r.readAsText(e.target.files[0]);
             };
             input.click();
         }
-
+        
         function shareLink() {
-            const code = editor.getValue();
-            const encoded = btoa(encodeURIComponent(code));
-            const url = `${window.location.origin}${window.location.pathname}?code=${encoded}`;
-            
-            navigator.clipboard.writeText(url).then(() => {
-                showSnackbar('Share URL copied to clipboard!');
-            }).catch(() => {
-                prompt('Copy this link:', url);
-            });
+            const url = `${location.origin}${location.pathname}?code=${btoa(encodeURIComponent(editor.value))}`;
+            navigator.clipboard.writeText(url).then(() => showSnackbar('Link copied!')).catch(() => prompt('Copy:', url));
         }
-
-        function copyOutput() {
-            const output = document.getElementById('output');
-            const text = output.innerText;
-            navigator.clipboard.writeText(text).then(() => {
-                showSnackbar('Output copied!');
-            });
-        }
-
-        function showSnackbar(message, isError = false) {
-            const snackbar = document.getElementById('snackbar');
-            snackbar.textContent = message;
-            snackbar.className = 'snackbar' + (isError ? ' error' : '');
-            snackbar.classList.add('show');
-            setTimeout(() => snackbar.classList.remove('show'), 3000);
+        
+        function copyOutput() { navigator.clipboard.writeText(document.getElementById('output').innerText).then(() => showSnackbar('Copied!')); }
+        
+        function showSnackbar(msg, err=false) {
+            const s = document.getElementById('snackbar');
+            s.textContent = msg; s.className = 'snackbar' + (err?' error':'') + ' show';
+            setTimeout(() => s.classList.remove('show'), 3000);
         }
 
         // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'F5') {
-                e.preventDefault();
-                runCode();
-            }
-            if (e.ctrlKey && e.key === 's') {
-                e.preventDefault();
-                saveFile();
-            }
-            if (e.ctrlKey && e.key === 'o') {
-                e.preventDefault();
-                loadFile();
-            }
+        document.addEventListener('keydown', e => {
+            if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); runCode(); }
+            if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveFile(); }
+            if (e.ctrlKey && e.key === 'o') { e.preventDefault(); loadFile(); }
         });
 
         // Check for shared code
-        if (new URLSearchParams(window.location.search).get('code')) {
-            showSnackbar('Shared code loaded!');
-        }
+        if (new URLSearchParams(location.search).get('code')) showSnackbar('Shared code loaded!');
     </script>
 </body>
 </html>
