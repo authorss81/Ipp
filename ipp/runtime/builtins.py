@@ -1,6 +1,10 @@
 import math
 import random
 import json
+from ipp.runtime.canvas import (
+    ipp_canvas_open, ipp_canvas_rect, ipp_canvas_circle,
+    ipp_canvas_line, ipp_canvas_text, ipp_canvas_clear, ipp_canvas_show
+)
 
 
 def ipp_print(*args):
@@ -3019,4 +3023,12 @@ BUILTINS = {
     "flood_fill": ipp_flood_fill,
     "assert_eq": ipp_assert_eq,
     "inspect": ipp_inspect,
+    # Canvas 2D Drawing (v1.5.3a) - Tkinter based
+    "canvas_open": ipp_canvas_open,
+    "canvas_rect": ipp_canvas_rect,
+    "canvas_circle": ipp_canvas_circle,
+    "canvas_line": ipp_canvas_line,
+    "canvas_text": ipp_canvas_text,
+    "canvas_clear": ipp_canvas_clear,
+    "canvas_show": ipp_canvas_show,
 }
