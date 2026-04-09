@@ -67,7 +67,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "1.5.4"
+VERSION = "1.5.4.2"
 
 # ─── Windows ANSI enablement ──────────────────────────────────────────────────
 # Windows 10 supports ANSI but requires ENABLE_VIRTUAL_TERMINAL_PROCESSING.
@@ -628,6 +628,10 @@ def print_help():
         (".profile",        "Profile last command"),
         (".alias n cmd",    "Create command alias"),
         (".mem",            "Show memory usage"),
+        (".reload [file]", "Reload/reload imported module"),
+        (".checkpoint [n]","Save checkpoint (default: 5)"),
+        (".restore [n]",   "Restore checkpoint (default: latest)"),
+        (".macro n exp",   "Define macro"),
     ]
     for cmd, desc in tools:
         c_cmd  = colour(C_CMD, cmd.ljust(16))
@@ -1166,6 +1170,8 @@ def run_repl():
     _undo_stack = []  # For .redo
     _aliases = {}  # For .alias
     _key_bindings = {}  # For .bind
+    _checkpoints = []  # For .checkpoint/.restore
+    _macros = {}  # For .macro
     _PROMPT_FORMAT = "ipp"  # Default prompt format
     _PROMPT_ARROW = "❯" if _UNI else ">>>"  # Default prompt arrow
     _current_dir = os.getcwd()  # Track current directory for .cd
@@ -1692,10 +1698,10 @@ def run_repl():
                     _current_theme = theme
                     t = themes[theme]
                     print(f"  {colour(C_OK, f'✓ Theme set to {theme}')}")
-                    print(f"    {colour(C_PROMPT, f'Prompt:  RGB({t[\"prompt\"]})')}")
-                    print(f"    {colour(C_ERROR, f'Error:   RGB({t[\"error\"]})')}")
-                    print(f"    {colour(C_OK,    f'OK:      RGB({t[\"ok\"]})')}")
-                    print(f"    {colour(C_WARN,  f'Warn:    RGB({t[\"warn\"]})')}")
+                    print(f"    {colour(C_PROMPT, 'Prompt:  RGB(' + t['prompt'] + ')')}")
+                    print(f"    {colour(C_ERROR, 'Error:   RGB(' + t['error'] + ')')}")
+                    print(f"    {colour(C_OK,    'OK:      RGB(' + t['ok'] + ')')}")
+                    print(f"    {colour(C_WARN,  'Warn:    RGB(' + t['warn'] + ')')}")
                 else:
                     print(f"  {colour(C_WARN, f'Unknown theme: {theme}')}")
                     print(f"  {colour(DIM, f'Available: {", ".join(themes.keys())}')}")
@@ -2075,6 +2081,87 @@ def run_repl():
                 except Exception as e:
                     print(f"  {colour(C_ERROR, str(e))}")
                 continue
+
+            # .reload [module] — Reload imported module
+            m = re.match(r'\.reload(?:\s+(.+))?$', stripped)
+            if m:
+                module_name = m.group(1)
+                try:
+                    interp = interp_manager.get_interpreter()
+                    if hasattr(interp, '_loaded_modules') and interp._loaded_modules:
+                        if module_name:
+                            for path in list(interp._loaded_modules.keys()):
+                                if module_name in path:
+                                    del interp._loaded_modules[path]
+                                    print(f"  {colour(C_OK, f'Cleared: {path}')}")
+                        else:
+                            interp._loaded_modules.clear()
+                            print(f"  {colour(C_OK, 'All cached modules cleared')}")
+                    else:
+                        print(f"  {colour(C_WARN, 'No modules loaded yet')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
+                continue
+
+            # .checkpoint [n] — Save state checkpoint
+            m = re.match(r'\.checkpoint(?:\s+(\d+))?$', stripped)
+            if m:
+                n = int(m.group(1)) if m.group(1) else 5
+                try:
+                    interp = interp_manager.get_interpreter()
+                    env = interp.global_env.values.copy()
+                    checkpoint = {'env': env, 'history': _cmd_history.copy()}
+                    _checkpoints.append(checkpoint)
+                    if len(_checkpoints) > n:
+                        _checkpoints.pop(0)
+                    print(f"  {colour(C_OK, f'Checkpoint saved (total: ' + str(len(_checkpoints)) + ')')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
+                continue
+
+            # .restore [n] — Restore checkpoint
+            m = re.match(r'\.restore(?:\s+(\d+))?$', stripped)
+            if m:
+                idx = int(m.group(1)) - 1 if m.group(1) else -1
+                try:
+                    if _checkpoints:
+                        if idx < 0:
+                            idx = len(_checkpoints) + idx
+                        if 0 <= idx < len(_checkpoints):
+                            checkpoint = _checkpoints[idx]
+                            interp = interp_manager.get_interpreter()
+                            interp.global_env.values = checkpoint['env'].copy()
+                            _cmd_history = checkpoint['history'].copy()
+                            print(f"  {colour(C_OK, f'Restored checkpoint {idx+1}')}")
+                        else:
+                            print(f"  {colour(C_WARN, f'Invalid checkpoint: {idx+1}')}")
+                    else:
+                        print(f"  {colour(C_WARN, 'No checkpoints saved')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
+                continue
+
+            # .macro <name> <expansion> — Define macro
+            m = re.match(r'\.macro\s+(\w+)\s+(.+)$', stripped)
+            if m:
+                name = m.group(1)
+                expansion = m.group(2)
+                _macros[name] = expansion
+                print(f"  {colour(C_OK, f'Macro {name} defined: {expansion}')}")
+                continue
+
+            # Expand macros (only for non-command inputs)
+            if not stripped.startswith('.'):
+                for name, expansion in _macros.items():
+                    if stripped == name or stripped.startswith(name + ' '):
+                        if stripped != name:
+                            args = stripped[len(name):].strip()
+                            for i, arg in enumerate(args.split(), 1):
+                                expansion = expansion.replace(f'${i}', arg)
+                        print(f"  {colour(DIM, f'Expanded: {expansion}')}")
+                        stripped = expansion
+                        buf = [expansion]
+                        break
 
         if not stripped and not buf:
             continue
