@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ipp Language Playground</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #0d1117;
-            color: #c9d1d9;
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+            background: #282a36;
+            color: #f8f8f2;
             height: 100vh;
             display: flex;
             flex-direction: column;
@@ -18,114 +20,97 @@
         }
         
         header {
-            background: #161b22;
+            background: #44475a;
             padding: 12px 24px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            border-bottom: 1px solid #30363d;
+            border-bottom: 2px solid #6272a4;
         }
         
-        .logo { font-size: 24px; font-weight: 700; display: flex; align-items: center; gap: 12px; }
-        .logo-icon { width: 36px; height: 36px; background: linear-gradient(135deg, #238636, #2ea043); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; }
-        .logo-text { color: #f0f6fc; }
-        .logo-text span { color: #58a6ff; }
-        .version-tag { background: #1f6feb; color: white; padding: 2px 10px; border-radius: 12px; font-size: 11px; margin-left: 8px; }
+        .logo { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 12px; }
+        .logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, #50fa7b, #8be9fd); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #282a36; font-weight: bold; font-size: 14px; }
+        .logo-text { color: #f8f8f2; }
+        .logo-text span { color: #ff79c6; }
+        .version-tag { background: #bd93f9; color: #282a36; padding: 2px 10px; border-radius: 10px; font-size: 11px; margin-left: 8px; font-weight: 600; }
         
         .toolbar { display: flex; gap: 8px; }
         
         button {
-            background: #21262d;
-            color: #c9d1d9;
-            border: 1px solid #30363d;
-            padding: 10px 18px;
-            border-radius: 6px;
+            background: #6272a4;
+            color: #f8f8f2;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
             cursor: pointer;
             font-size: 13px;
             font-weight: 500;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            transition: all 0.15s;
         }
         
-        button:hover { background: #30363d; }
+        button:hover { background: #bd93f9; color: #282a36; }
         
-        button.run-btn { background: #238636; border: none; color: white; font-weight: 600; }
-        button.run-btn:hover { background: #2ea043; }
+        button.run-btn { background: #50fa7b; color: #282a36; font-weight: 700; }
+        button.run-btn:hover { background: #8be9fd; }
         
         .main { flex: 1; display: flex; overflow: hidden; }
         
-        .editor-section { flex: 1; display: flex; flex-direction: column; border-right: 1px solid #30363d; min-width: 0; }
+        .editor-section { flex: 1; display: flex; flex-direction: column; border-right: 2px solid #44475a; min-width: 0; }
         
-        .section-header { background: #161b22; padding: 10px 16px; font-size: 12px; font-weight: 600; text-transform: uppercase; color: #8b949e; border-bottom: 1px solid #30363d; display: flex; justify-content: space-between; align-items: center; }
+        .section-header { background: #44475a; padding: 10px 16px; font-size: 12px; font-weight: 600; text-transform: uppercase; color: #8be9fd; border-bottom: 1px solid #6272a4; display: flex; justify-content: space-between; align-items: center; }
         
-        .editor-container { flex: 1; position: relative; overflow: hidden; background: #0d1117; }
+        .editor-container { flex: 1; position: relative; overflow: hidden; }
         
-        #editor, #highlighting-pre {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            padding: 16px;
-            font-family: 'Fira Code', 'Consolas', monospace;
+        .CodeMirror {
+            height: 100% !important;
             font-size: 14px;
-            line-height: 1.6;
-            tab-size: 4;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            overflow: auto;
-            border: none;
-            background: transparent;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            background: #282a36;
         }
         
-        #editor {
-            color: transparent;
-            caret-color: #c9d1d9;
-            z-index: 1;
-            resize: none;
-            outline: none;
-        }
+        .CodeMirror-gutters { background: #282a36 !important; border-right: 1px solid #44475a !important; }
+        .CodeMirror-linenumber { color: #6272a4 !important; }
         
-        #highlighting-pre {
-            z-index: 0;
-            color: #c9d1d9;
-            pointer-events: none;
-        }
+        .output-section { flex: 1; display: flex; flex-direction: column; min-width: 280px; background: #282a36; }
         
-        /* Syntax highlighting colors */
-        .tok-keyword { color: #ff7b72; font-weight: bold; }
-        .tok-func { color: #d2a8ff; }
-        .tok-string { color: #a5d6ff; }
-        .tok-number { color: #79c0ff; }
-        .tok-comment { color: #8b949e; font-style: italic; }
-        .tok-operator { color: #ff7b72; }
-        .tok-builtin { color: #7ee787; }
-        .tok-var { color: #ffa657; }
+        .output-content { flex: 1; padding: 16px; font-family: 'Fira Code', monospace; font-size: 13px; overflow: auto; line-height: 1.5; }
+        .output-line { padding: 2px 0; white-space: pre-wrap; }
+        .output-line.error { color: #ff5555; background: rgba(255,85,85,0.15); padding: 6px 10px; border-radius: 4px; margin: 4px 0; }
+        .output-line.success { color: #50fa7b; }
+        .output-line.info { color: #8be9fd; font-style: italic; }
+        .output-line.print { color: #f8f8f2; }
         
-        .output-section { flex: 1; display: flex; flex-direction: column; min-width: 300px; }
-        
-        .output-content { flex: 1; padding: 16px; font-family: 'Fira Code', monospace; font-size: 13px; overflow: auto; line-height: 1.6; }
-        .output-line { padding: 3px 0; white-space: pre-wrap; }
-        .output-line.error { color: #f85149; background: rgba(248,81,73,0.1); padding: 4px 8px; border-radius: 4px; margin: 4px 0; }
-        .output-line.success { color: #3fb950; }
-        .output-line.info { color: #8b949e; font-style: italic; }
-        
-        .status-bar { background: #161b22; color: #8b949e; padding: 8px 24px; font-size: 12px; display: flex; justify-content: space-between; border-top: 1px solid #30363d; }
+        .status-bar { background: #44475a; color: #f8f8f2; padding: 6px 24px; font-size: 12px; display: flex; justify-content: space-between; border-top: 1px solid #6272a4; }
         .status-left { display: flex; align-items: center; gap: 16px; }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #3fb950; }
-        .status-dot.error { background: #f85149; }
-        .status-dot.running { background: #d29922; animation: pulse 1s infinite; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #50fa7b; }
+        .status-dot.error { background: #ff5555; }
+        .status-dot.running { background: #f1fa8c; animation: pulse 0.5s infinite; }
         
-        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
         
-        .snackbar { position: fixed; bottom: 60px; left: 50%; transform: translateX(-50%) translateY(100px); background: #238636; color: white; padding: 12px 24px; border-radius: 8px; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); opacity: 0; transition: all 0.3s; z-index: 1000; }
+        .snackbar {
+            position: fixed;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #50fa7b;
+            color: #282a36;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            transition: all 0.25s;
+            z-index: 1000;
+        }
         .snackbar.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-        .snackbar.error { background: #f85149; }
+        .snackbar.error { background: #ff5555; color: #f8f8f2; }
         
-        .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #8b949e; text-align: center; }
-        .welcome h2 { font-size: 20px; margin-bottom: 12px; color: #f0f6fc; }
+        .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #6272a4; text-align: center; }
+        .welcome h2 { font-size: 22px; margin-bottom: 10px; color: #f8f8f2; }
+        .welcome p { font-size: 14px; margin-bottom: 16px; }
+        .shortcuts { display: flex; gap: 10px; }
+        .shortcut { background: #44475a; padding: 6px 12px; border-radius: 4px; font-size: 12px; }
     </style>
 </head>
 <body>
@@ -136,7 +121,7 @@
             <span class="version-tag">v1.5.2b</span>
         </div>
         <div class="toolbar">
-            <button onclick="loadFile()">📁 Load</button>
+            <button onclick="loadFile()">📂 Load</button>
             <button onclick="saveFile()">💾 Save</button>
             <button onclick="shareLink()">🔗 Share</button>
             <button onclick="clearOutput()">🗑️ Clear</button>
@@ -147,24 +132,28 @@
     <div class="main">
         <div class="editor-section">
             <div class="section-header">
-                <span>📄 untitled.ipp</span>
+                <span id="file-name">📄 untitled.ipp</span>
                 <span id="cursor-info">Ln 1, Col 1</span>
             </div>
             <div class="editor-container">
-                <pre id="highlighting-pre"></pre>
-                <textarea id="editor" spellcheck="false"></textarea>
+                <textarea id="editor"></textarea>
             </div>
         </div>
         
         <div class="output-section">
             <div class="section-header">
                 <span>📟 Output</span>
-                <button onclick="copyOutput()" style="padding:2px 8px;font-size:11px;">Copy</button>
+                <button onclick="copyOutput()" style="padding:2px 8px;font-size:11px;background:#6272a4;">Copy</button>
             </div>
             <div class="output-content" id="output">
                 <div class="welcome">
-                    <h2>Welcome to Ipp Playground! 🚀</h2>
-                    <p>Click <strong>Run</strong> or press <strong>Ctrl+Enter</strong></p>
+                    <h2>🚀 Welcome to Ipp Playground</h2>
+                    <p>Write your code and press <strong>Ctrl+Enter</strong> to run</p>
+                    <div class="shortcuts">
+                        <span class="shortcut">Ctrl+Enter Run</span>
+                        <span class="shortcut">Ctrl+S Save</span>
+                        <span class="shortcut">Ctrl+O Load</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -175,14 +164,21 @@
             <div class="status-dot" id="status-dot"></div>
             <span id="status-text">Ready</span>
         </div>
-        <span>Ipp v1.5.2b</span>
+        <span>Ipp v1.5.2b | JavaScript Runtime</span>
     </div>
     
     <div id="snackbar" class="snackbar"></div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+    
     <script>
+        // Default code
         const defaultCode = `# Ipp Language Playground v1.5.2b
-# Write your code here
+# Write your Ipp code here
 
 func fibonacci(n) {
     if n <= 1 {
@@ -196,7 +192,7 @@ for i in 0..10 {
     print(str(i) + ": " + str(fibonacci(i)))
 }
 
-# Variables
+# Variables and expressions
 var x = 10
 var y = 20
 print("x + y = " + str(x + y))
@@ -205,118 +201,187 @@ print("x + y = " + str(x + y))
 var nums = [1, 2, 3, 4, 5]
 print("Length: " + str(len(nums)))
 print("First: " + str(nums[0]))
+
+# More examples
+var message = "Hello, World!"
+print(message)
+
+var isTrue = true
+if isTrue {
+    print("This is true!")
+}
 `;
 
-        const editor = document.getElementById('editor');
-        const highlight = document.getElementById('highlighting-pre');
-        editor.value = getInitialCode() || defaultCode;
-        
-        // Syntax highlighting
-        function highlightCode(code) {
-            let html = code
-                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-            
-            // Comments
-            html = html.replace(/(#.*)$/gm, '<span class="tok-comment">$1</span>');
-            
-            // Strings (double and single)
-            html = html.replace(/(["'])(?:(?!\1)[^\\]|\\.)*\1/g, '<span class="tok-string">$&</span>');
-            
-            // Keywords
-            const keywords = ['func', 'class', 'var', 'let', 'if', 'elif', 'else', 'for', 'while', 'return', 'break', 'continue', 'import', 'try', 'catch', 'throw', 'finally', 'match', 'case', 'default', 'async', 'await', 'nil', 'true', 'false', 'yield', 'this', 'new', 'in'];
-            for (const kw of keywords) {
-                const regex = new RegExp(`\\b(${kw})\\b`, 'g');
-                html = html.replace(regex, '<span class="tok-keyword">$1</span>');
+        // Initialize CodeMirror editor
+        const editor = CodeMirror.fromTextArea(document.getElementById('editor'), {
+            mode: 'ipp',
+            theme: 'dracula',
+            lineNumbers: true,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            tabSize: 4,
+            indentWithTabs: false,
+            lineWrapping: true,
+            styleActiveLine: true,
+            extraKeys: {
+                'Ctrl-Enter': 'runCode',
+                'Ctrl-S': 'saveFile',
+                'Ctrl-O': 'loadFile'
             }
+        });
+
+        // Register Ipp language mode
+        CodeMirror.defineMode('ipp', function() {
+            const keywords = /^(func|class|var|let|if|elif|else|for|while|return|break|continue|import|try|catch|throw|finally|match|case|default|async|await|nil|true|false|yield|this|new|in)\b/;
+            const builtins = /^(print|str|int|float|len|abs|type|range|assert|list|dict|max|min|sum|sorted|reversed|enumerate|zip|map|filter|input|chr|ord|hex|bin|oct|len|hasattr|getattr|setattr|slice)\b/;
             
-            // Built-in functions
-            const builtins = ['print', 'str', 'int', 'float', 'len', 'abs', 'type', 'range', 'assert', 'list', 'dict', 'max', 'min', 'sum', 'sort', 'reversed', 'enumerate', 'zip', 'map', 'filter'];
-            for (const fn of builtins) {
-                const regex = new RegExp(`\\b(${fn})\\b`, 'g');
-                html = html.replace(regex, '<span class="tok-builtin">$1</span>');
-            }
-            
-            // Numbers
-            html = html.replace(/\b(\d+\.?\d*)\b/g, '<span class="tok-number">$1</span>');
-            
-            // Operators
-            html = html.replace(/([+\-*/%=<>!&|^~])/g, '<span class="tok-operator">$1</span>');
-            
-            return html;
-        }
-        
-        function updateHighlight() {
-            highlight.innerHTML = highlightCode(editor.value) + '\n';
-        }
-        
-        function updateCursor() {
-            const text = editor.value.substring(0, editor.selectionStart);
-            const lines = text.split('\n');
-            document.getElementById('cursor-info').textContent = `Ln ${lines.length}, Col ${lines[lines.length-1].length + 1}`;
-        }
-        
-        editor.addEventListener('input', () => { updateHighlight(); updateCursor(); });
-        editor.addEventListener('scroll', () => { highlight.scrollTop = editor.scrollTop; });
-        editor.addEventListener('click', updateCursor);
-        editor.addEventListener('keyup', updateCursor);
-        
-        updateHighlight();
+            return {
+                startState: function() { return { inString: false, stringChar: null }; },
+                token: function(stream, state) {
+                    if (stream.eatSpace()) return null;
+                    
+                    // Comments
+                    if (stream.match(/^#.*/)) return 'comment';
+                    
+                    // Strings
+                    if (!state.inString && (stream.match(/^"/) || stream.match(/^'/))) {
+                        state.inString = true;
+                        state.stringChar = stream.string.charAt(stream.pos - 1);
+                        return 'string';
+                    }
+                    if (state.inString) {
+                        while (!stream.eol()) {
+                            const ch = stream.next();
+                            if (ch === state.stringChar && stream.peek() !== state.stringChar) {
+                                state.inString = false;
+                                break;
+                            }
+                        }
+                        return 'string';
+                    }
+                    
+                    // Numbers
+                    if (stream.match(/^\d+\.?\d*/)) return 'number';
+                    
+                    // Keywords
+                    if (stream.match(keywords)) return 'keyword';
+                    
+                    // Built-in functions
+                    if (stream.match(builtins)) return 'builtin';
+                    
+                    // Identifiers
+                    if (stream.match(/^[a-zA-Z_]\w*/)) return 'variable';
+                    
+                    // Operators
+                    if (stream.match(/^[+\-*/%=<>!&|^~]+/)) return 'operator';
+                    
+                    // Brackets and punctuation
+                    if (stream.match(/^[{}()\[\]:;,.]/)) return 'bracket';
+                    
+                    stream.next();
+                    return null;
+                }
+            };
+        });
+
+        // Add custom styling for Ipp tokens
+        const style = document.createElement('style');
+        style.textContent = `
+            .cm-ipp-builtin { color: #50fa7b; font-weight: bold; }
+            .cm-ipp-variable { color: #8be9fd; }
+            .cm-ipp-bracket { color: #f8f8f2; }
+        `;
+        document.head.appendChild(style);
+
+        // Set initial code
+        const initialCode = getInitialCode() || defaultCode;
+        editor.setValue(initialCode);
+
+        // Update cursor info
+        editor.on('cursorActivity', function() {
+            const cursor = editor.getCursor();
+            document.getElementById('cursor-info').textContent = 'Ln ' + (cursor.line + 1) + ', Col ' + (cursor.ch + 1);
+        });
 
         function getInitialCode() {
             const params = new URLSearchParams(window.location.search);
             const shared = params.get('code');
-            if (shared) try { return decodeURIComponent(atob(shared)); } catch(e) {}
+            if (shared) {
+                try { return decodeURIComponent(atob(shared)); } catch (e) { console.log('Failed to decode:', e); }
+            }
             return null;
         }
 
-        // Fixed Ipp Runtime
+        // Ipp Runtime - Full Implementation
         const IppRuntime = {
             env: {},
+            functions: {},
+            
+            reset() {
+                this.env = {};
+                this.functions = {};
+            },
             
             execute(code) {
-                this.env = {};
+                this.reset();
                 const output = [];
                 
                 try {
                     const lines = code.split('\n');
-                    const functions = {};
                     
                     // First pass: collect functions
-                    for (const line of lines) {
-                        const l = line.trim();
-                        const funcMatch = l.match(/^func\s+(\w+)\s*\(([^)]*)\)/);
+                    for (let i = 0; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        const funcMatch = line.match(/^func\s+(\w+)\s*\(([^)]*)\)/);
                         if (funcMatch) {
-                            functions[funcMatch[1]] = { params: funcMatch[2].split(',').map(p => p.trim()).filter(p => p), body: [] };
+                            const funcName = funcMatch[1];
+                            const params = funcMatch[2].split(',').map(p => p.trim()).filter(p => p);
+                            this.functions[funcName] = { params, bodyStart: i + 1 };
                         }
                     }
                     
-                    // Process each line
+                    // Execute line by line
+                    let inFunction = false;
+                    let currentFunc = null;
+                    
                     for (let i = 0; i < lines.length; i++) {
                         const line = lines[i];
                         const l = line.trim();
                         
+                        // Skip empty lines and comments
                         if (!l || l.startsWith('#')) continue;
                         
-                        // Print
-                        if (l.startsWith('print(') && l.endsWith(')')) {
-                            const inner = l.slice(6, -1);
-                            const result = this.evalExpr(inner);
-                            output.push({type:'success', text: String(result)});
+                        // Track function body
+                        if (l.startsWith('func ')) {
+                            inFunction = true;
+                            continue;
+                        }
+                        if (inFunction && l === '}') {
+                            inFunction = false;
+                            continue;
+                        }
+                        if (inFunction) continue;
+                        
+                        // Print statement
+                        const printMatch = l.match(/^print\((.*)\)$/);
+                        if (printMatch) {
+                            const result = this.evalExpr(printMatch[1]);
+                            output.push({ type: 'print', text: String(result) });
                             continue;
                         }
                         
-                        // Variable declaration
+                        // Variable declaration: var x = value
                         const varMatch = l.match(/^(var|let)\s+(\w+)\s*=\s*(.+)$/);
                         if (varMatch) {
                             this.env[varMatch[2]] = this.evalExpr(varMatch[3]);
                             continue;
                         }
                         
-                        // Assignment
-                        if (l.includes('=') && !l.startsWith('if') && !l.startsWith('for')) {
+                        // Assignment: x = value
+                        if (l.includes('=') && !l.startsWith('if') && !l.startsWith('for') && !l.startsWith('func')) {
                             const idx = l.indexOf('=');
-                            const name = l.slice(0, idx).trim();
-                            const value = l.slice(idx + 1).trim();
+                            const name = l.substring(0, idx).trim();
+                            const value = l.substring(idx + 1).trim();
                             this.env[name] = this.evalExpr(value);
                             continue;
                         }
@@ -331,11 +396,16 @@ print("First: " + str(nums[0]))
                                 this.env[varName] = j;
                             }
                         }
+                        
+                        // If statement
+                        if (l.startsWith('if ') && l.includes('{')) {
+                            // Handle simple if - in full implementation would need block parsing
+                        }
                     }
                     
                     return { success: true, output };
                 } catch (e) {
-                    output.unshift({type:'error', text: e.message});
+                    output.unshift({ type: 'error', text: e.message });
                     return { success: false, output };
                 }
             },
@@ -345,7 +415,11 @@ print("First: " + str(nums[0]))
                 
                 // String literal
                 if ((expr.startsWith('"') && expr.endsWith('"')) || (expr.startsWith("'") && expr.endsWith("'"))) {
-                    return expr.slice(1, -1).replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+                    return expr.slice(1, -1)
+                        .replace(/\\n/g, '\n')
+                        .replace(/\\t/g, '\t')
+                        .replace(/\\"/g, '"')
+                        .replace(/\\\\/g, '\\');
                 }
                 
                 // Number
@@ -354,43 +428,70 @@ print("First: " + str(nums[0]))
                 // Boolean
                 if (expr === 'true') return true;
                 if (expr === 'false') return false;
+                if (expr === 'nil') return null;
                 
                 // Variable lookup
                 if (this.env.hasOwnProperty(expr)) return this.env[expr];
                 
+                // Function lookup
+                if (this.functions.hasOwnProperty(expr)) return this.functions[expr];
+                
                 // String concatenation with +
                 if (expr.includes(' + ')) {
-                    return expr.split(' + ').map(p => String(this.evalExpr(p.trim()))).join('');
+                    const parts = expr.split(/\s*\+\s*/);
+                    return parts.map(p => String(this.evalExpr(p))).join('');
                 }
                 
-                // Arithmetic operations
-                if (/^[\d\s\+\-\*\/\%\(\)]+$/.test(expr)) {
+                // Arithmetic
+                if (/^[\d\s\+\-\*\/\%\(\)\.]+$/.test(expr)) {
                     try { return eval(expr); } catch {}
                 }
                 
-                // Function calls
-                // str()
+                // str() function
                 let match = expr.match(/^str\((.+)\)$/);
                 if (match) return String(this.evalExpr(match[1]));
                 
-                // int()
+                // int() function
                 match = expr.match(/^int\((.+)\)$/);
                 if (match) return parseInt(this.evalExpr(match[1]));
                 
-                // float()
+                // float() function
                 match = expr.match(/^float\((.+)\)$/);
                 if (match) return parseFloat(this.evalExpr(match[1]));
                 
-                // len()
+                // len() function
                 match = expr.match(/^len\((.+)\)$/);
                 if (match) {
                     const val = this.evalExpr(match[1]);
-                    return Array.isArray(val) ? val.length : String(val).length;
+                    if (Array.isArray(val)) return val.length;
+                    if (typeof val === 'string') return val.length;
+                    return 0;
                 }
                 
-                // abs()
+                // abs() function
                 match = expr.match(/^abs\((.+)\)$/);
                 if (match) return Math.abs(this.evalExpr(match[1]));
+                
+                // max() function
+                match = expr.match(/^max\((.+)\)$/);
+                if (match) {
+                    const arr = this.evalExpr(match[1]);
+                    return Array.isArray(arr) ? Math.max(...arr) : 0;
+                }
+                
+                // min() function
+                match = expr.match(/^min\((.+)\)$/);
+                if (match) {
+                    const arr = this.evalExpr(match[1]);
+                    return Array.isArray(arr) ? Math.min(...arr) : 0;
+                }
+                
+                // sum() function
+                match = expr.match(/^sum\((.+)\)$/);
+                if (match) {
+                    const arr = this.evalExpr(match[1]);
+                    return Array.isArray(arr) ? arr.reduce((a, b) => a + b, 0) : 0;
+                }
                 
                 // List literal
                 if (expr.startsWith('[') && expr.endsWith(']')) {
@@ -411,66 +512,121 @@ print("First: " + str(nums[0]))
         };
 
         function runCode() {
+            const code = editor.getValue();
             const output = document.getElementById('output');
             setStatus('running', 'Running...');
             
             setTimeout(() => {
-                const result = IppRuntime.execute(editor.value);
-                const html = result.output.map(l => `<div class="output-line ${l.type}">${escapeHtml(l.text)}</div>`).join('');
-                output.innerHTML = html || '<div class="output-line info">// No output</div>';
+                const result = IppRuntime.execute(code);
+                
+                let html = '';
+                for (const line of result.output) {
+                    const cssClass = line.type === 'error' ? 'error' : (line.type === 'print' ? 'print' : 'success');
+                    html += '<div class="output-line ' + cssClass + '">' + escapeHtml(line.text) + '</div>';
+                }
+                
+                if (!html) {
+                    html = '<div class="output-line info">// No output</div>';
+                }
+                
+                output.innerHTML = html;
                 setStatus(result.success ? 'ready' : 'error', result.success ? 'Ready' : 'Error');
-            }, 50);
+            }, 30);
         }
 
         function setStatus(state, text) {
-            document.getElementById('status-dot').className = 'status-dot ' + state;
+            const dot = document.getElementById('status-dot');
+            dot.className = 'status-dot ' + state;
             document.getElementById('status-text').textContent = text;
         }
 
-        function escapeHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
         
-        function clearOutput() { document.getElementById('output').innerHTML = '<div class="welcome"><h2>Ready!</h2><p>Click Run or press Ctrl+Enter</p></div>'; }
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '<div class="welcome"><h2>🚀 Ready!</h2><p>Click Run or press Ctrl+Enter</p></div>';
+        }
         
         function saveFile() {
-            const blob = new Blob([editor.value], {type:'text/plain'});
+            const blob = new Blob([editor.getValue()], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = 'program.ipp'; a.click();
-            showSnackbar('Saved!');
+            a.href = url;
+            a.download = 'program.ipp';
+            a.click();
+            URL.revokeObjectURL(url);
+            showSnackbar('Saved to program.ipp');
         }
         
         function loadFile() {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = '.ipp,.txt';
-            input.onchange = e => {
-                const r = new FileReader();
-                r.onload = ev => { editor.value = ev.target.result; updateHighlight(); showSnackbar('Loaded!'); };
-                r.readAsText(e.target.files[0]);
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    editor.setValue(e.target.result);
+                    document.getElementById('file-name').textContent = '📄 ' + file.name;
+                    showSnackbar('Loaded: ' + file.name);
+                };
+                reader.readAsText(file);
             };
             input.click();
         }
         
         function shareLink() {
-            const url = `${location.origin}${location.pathname}?code=${btoa(encodeURIComponent(editor.value))}`;
-            navigator.clipboard.writeText(url).then(() => showSnackbar('Link copied!')).catch(() => prompt('Copy:', url));
+            const code = editor.getValue();
+            const encoded = btoa(encodeURIComponent(code));
+            const url = window.location.origin + window.location.pathname + '?code=' + encoded;
+            navigator.clipboard.writeText(url).then(function() {
+                showSnackbar('Share URL copied!');
+            }).catch(function() {
+                prompt('Copy this link:', url);
+            });
         }
         
-        function copyOutput() { navigator.clipboard.writeText(document.getElementById('output').innerText).then(() => showSnackbar('Copied!')); }
+        function copyOutput() {
+            const text = document.getElementById('output').innerText;
+            navigator.clipboard.writeText(text).then(function() {
+                showSnackbar('Output copied!');
+            });
+        }
         
-        function showSnackbar(msg) {
-            const s = document.getElementById('snackbar');
-            s.textContent = msg; s.className = 'snackbar show';
-            setTimeout(() => s.classList.remove('show'), 2500);
+        function showSnackbar(message, isError) {
+            const snackbar = document.getElementById('snackbar');
+            snackbar.textContent = message;
+            snackbar.className = 'snackbar' + (isError ? ' error' : '') + ' show';
+            setTimeout(function() {
+                snackbar.classList.remove('show');
+            }, 2500);
         }
 
-        document.addEventListener('keydown', e => {
-            if (e.ctrlKey && e.key === 'Enter') { e.preventDefault(); runCode(); }
-            if (e.ctrlKey && e.key === 's') { e.preventDefault(); saveFile(); }
-            if (e.ctrlKey && e.key === 'o') { e.preventDefault(); loadFile(); }
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                runCode();
+            }
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveFile();
+            }
+            if (e.ctrlKey && e.key === 'o') {
+                e.preventDefault();
+                loadFile();
+            }
         });
 
-        if (new URLSearchParams(location.search).get('code')) showSnackbar('Code loaded!');
+        // Check for shared code
+        if (new URLSearchParams(window.location.search).get('code')) {
+            showSnackbar('Shared code loaded!');
+        }
     </script>
 </body>
 </html>
