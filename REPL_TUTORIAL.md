@@ -514,6 +514,17 @@ Ipp REPL includes 50+ commands. Here are all of them:
 .mem                    # Show memory usage
 ```
 
+### Session State (v1.5.4.2)
+```ipp
+.reload                 # Clear cached modules
+.reload module          # Clear specific module
+.checkpoint             # Save checkpoint (stores env + history)
+.checkpoint 10          # Save up to 10 checkpoints
+.restore                # Restore latest checkpoint
+.restore 2              # Restore checkpoint #2
+.macro name expansion   # Define macro: .macro hi print("hello")
+```
+
 ### Debugging
 ```ipp
 .debug start            # Start step-through debugger

@@ -936,7 +936,7 @@ Ordered by severity × frequency of impact:
 *v1.5.1 completed: 2026-04-08 - VSCode Extension + LSP (15 snippets, task runner, LSP server, hover, completion)*
 *v1.5.2 planned: WASM Compilation + Web Playground (Partial)*
 *v1.5.3 planned: WebGL Integration + 2D Canvas Rendering (Partial)*
-*v1.5.4 completed: 2026-04-09 - REPL Performance + Advanced Features (.bench, .mem, memory_info, theme, fixed elif bug)*
+*v1.5.4 completed: 2026-04-09 - REPL Performance + Advanced Features (.bench, .mem, .reload, .checkpoint, .restore, .macro, memory_info, theme, elif fix)*
 *v1.5.5 planned: 3D Rendering + Scene Graph*
 *v1.6.0 planned: C++ Integration + Native Extensions*
 *v1.6.1 planned: Cross-Platform (iOS, macOS, Linux, Windows)*

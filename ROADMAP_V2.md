@@ -50,8 +50,7 @@
 | **v1.5.2b** | 🔄 PARTIAL | Web Playground (basic, needs more work) |
 | **v1.5.3a** | 🔄 PARTIAL | 2D Canvas (Tkinter works, needs enhancement) |
 | **v1.5.3b** | 🔄 PARTIAL | WebGL Bindings (needs browser integration) |
-| **v1.5.4** | ✅ DONE | REPL Performance + Advanced Features |
-| **v1.5.5** | 📋 PLANNED | 3D Rendering + Scene Graph | 
+| **v1.5.4** | ✅ DONE | REPL Performance + Advanced Features (v1.5.4.2) |
 | **v1.5.5** | 📋 PLANNED | 3D Rendering + Scene Graph |
 | **v1.6.0** | 📋 PLANNED | C++ Integration + Native Extensions |
 | **v1.6.1** | 📋 PLANNED | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
@@ -518,7 +517,7 @@
 
 ---
 
-## v1.5.4 — REPL Performance + Advanced Features ✅ DONE
+## v1.5.4 — REPL Performance + Advanced Features ✅ DONE (v1.5.4.2)
 
 ### Implemented Features
 - [x] Real-time profiling — `.profile` command with cProfile
@@ -530,15 +529,15 @@
 - [x] Theme support — `.theme` command (dark/light/solarized/monokai/gruvbox)
 - [x] Command aliases — `.alias` command
 - [x] Step-through debugger — `.debug start/stop`
+- [x] Hot reload — `.reload` command to clear cached modules
+- [x] Macro system — `.macro` command to define macros
+- [x] Checkpoint/rollback — `.checkpoint` and `.restore` commands
 
 ### Planned but Not Yet Implemented
-- [ ] Hot reload — auto-reload imported modules when files change
 - [ ] Async REPL — handle `async/await` natively in REPL
 - [ ] Background tasks — run long tasks in background
 - [ ] REPL server — connect to REPL remotely via network
 - [ ] Code review mode — compare two expressions side-by-side
-- [ ] Macro system — define REPL macros that expand to code
-- [ ] Checkpoint/rollback — save checkpoint, rollback to any point
 - [ ] Plot/charts — matplotlib integration for data visualization
 - [ ] HTML preview — render HTML strings in browser
 

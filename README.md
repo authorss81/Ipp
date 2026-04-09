@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.5.4** includes REPL Performance + Advanced Features (.bench, .mem, memory_info(), fixed elif bug, theme support). Previous phases (v1.5.2a, v1.5.2b, v1.5.3a, v1.5.3b) are partially done and need further enhancement.
+**v1.5.4.2** includes REPL Performance + Advanced Features (.bench, .mem, .reload, .checkpoint, .restore, .macro, memory_info(), fixed elif bug, theme support). Previous phases (v1.5.2a, v1.5.2b, v1.5.3a, v1.5.3b) are partially done and need further enhancement.
 
 ---
 
@@ -86,7 +86,7 @@ Ipp has a world-class REPL with 30+ built-in commands:
   ██║██║     ██║
   ╚═╝╚═╝     ╚═╝
 
-  Ipp  v1.5.4
+  Ipp  v1.5.4.2
   A scripting language for game development
 ──────────────────────────────────────────
   ❯ var x = 2 ** 10
@@ -520,7 +520,7 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.5.2b | Web Playground (Partial - needs more work) |
 | v1.5.3a | 2D Canvas API (Partial - Tkinter works, needs enhancement) |
 | v1.5.3b | WebGL Bindings (Partial - needs browser integration) |
-| v1.5.4 | REPL Performance + Advanced Features (.bench, .mem, memory_info, theme, fixed elif) |
+| v1.5.4.2 | REPL Performance (.bench, .mem, .reload, .checkpoint, .restore, .macro, theme, elif fix) |
 | v1.5.5 | 3D Rendering + Scene Graph (Planned) |
 | v1.6.0 | C++ Integration + Native Extensions |
 | v1.6.1 | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
