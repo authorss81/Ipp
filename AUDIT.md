@@ -432,23 +432,25 @@ See [ROADMAP_V2.md](ROADMAP_V2.md) for detailed version-by-version plan.
 
 ## Summary
 
-**Current State**: v1.5.2a
+**Current State**: v1.5.3a
 - 70+/100 overall score
 - Most critical features implemented
 - VM infrastructure complete with v1.0.0
 - All 7 VM bugs fixed by contributor
 - Generator functions + Async/Await implemented
 - 163+ built-in functions
-- 39 passing regression tests
+- 40 passing regression tests
 - World-class REPL with tab completion, debugging, themes, shell integration
 - VSCode extension with LSP support, snippets, task runner (publish coming soon)
 - WASM backend module (v1.5.2a - `ipp wasm` CLI)
+- Web Playground with CodeMirror (v1.5.2b)
+- 2D Canvas API (v1.5.3a - rect, circle, line, text, clear)
 
-**v1.5.2a Target State:**
-- WASM backend module ✅ DONE
-- `ipp wasm <file>` CLI command ✅ DONE
+**v1.5.3a Target State:**
+- 2D Canvas API ✅ DONE
 
-**v1.5.2b Target State:**
+**v1.5.3b Target State:**
+- WebGL Bindings
 - Web playground with Monaco Editor
 
 **v2.0.0 Production State:**

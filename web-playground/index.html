@@ -80,6 +80,10 @@
         .output-line.info { color: #8be9fd; font-style: italic; }
         .output-line.print { color: #f8f8f2; }
         
+        .canvas-section { flex: 1; display: flex; flex-direction: column; min-width: 280px; background: #282a36; border-left: 2px solid #44475a; }
+        .canvas-container { flex: 1; display: flex; align-items: center; justify-content: center; background: #1a1a2e; padding: 16px; }
+        .canvas-container canvas { border: 2px solid #6272a4; border-radius: 4px; background: #000; }
+        
         .status-bar { background: #44475a; color: #f8f8f2; padding: 6px 24px; font-size: 12px; display: flex; justify-content: space-between; border-top: 1px solid #6272a4; }
         .status-left { display: flex; align-items: center; gap: 16px; }
         .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #50fa7b; }
@@ -155,6 +159,16 @@
                         <span class="shortcut">Ctrl+O Load</span>
                     </div>
                 </div>
+            </div>
+        </div>
+        
+        <div class="canvas-section">
+            <div class="section-header">
+                <span>🎨 Canvas</span>
+                <button onclick="clearCanvas()" style="padding:2px 8px;font-size:11px;background:#6272a4;">Clear</button>
+            </div>
+            <div class="canvas-container">
+                <canvas id="ippCanvas" width="400" height="300"></canvas>
             </div>
         </div>
     </div>
@@ -493,6 +507,48 @@ if isTrue {
                     return Array.isArray(arr) ? arr.reduce((a, b) => a + b, 0) : 0;
                 }
                 
+                // Canvas functions
+                // canvas(w, h) - create canvas object
+                match = expr.match(/^canvas\((\d+),\s*(\d+)\)$/);
+                if (match) {
+                    return { _type: 'canvas', width: parseInt(match[1]), height: parseInt(match[2]) };
+                }
+                
+                // canvas.rect(x, y, w, h, color)
+                match = expr.match(/^canvas\.rect\((\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*"?([^"]+)"?\)$/);
+                if (match) {
+                    drawRect(parseInt(match[1]), parseInt(match[2]), parseInt(match[3]), parseInt(match[4]), match[5]);
+                    return 'rect drawn';
+                }
+                
+                // canvas.circle(x, y, r, color)
+                match = expr.match(/^canvas\.circle\((\d+),\s*(\d+),\s*(\d+),\s*"?([^"]+)"?\)$/);
+                if (match) {
+                    drawCircle(parseInt(match[1]), parseInt(match[2]), parseInt(match[3]), match[4]);
+                    return 'circle drawn';
+                }
+                
+                // canvas.line(x1, y1, x2, y2, color)
+                match = expr.match(/^canvas\.line\((\d+),\s*(\d+),\s*(\d+),\s*(\d+),\s*"?([^"]+)"?\)$/);
+                if (match) {
+                    drawLine(parseInt(match[1]), parseInt(match[2]), parseInt(match[3]), parseInt(match[4]), match[5]);
+                    return 'line drawn';
+                }
+                
+                // canvas.text(x, y, text, color)
+                match = expr.match(/^canvas\.text\((\d+),\s*(\d+),\s*"([^"]+)",\s*"?([^"]+)"?\)$/);
+                if (match) {
+                    drawText(parseInt(match[1]), parseInt(match[2]), match[3], match[4]);
+                    return 'text drawn';
+                }
+                
+                // canvas.clear(color)
+                match = expr.match(/^canvas\.clear\(("?[^"]+"?)\)$/);
+                if (match) {
+                    clearCanvas(match[1].replace(/"/g, ''));
+                    return 'canvas cleared';
+                }
+                
                 // List literal
                 if (expr.startsWith('[') && expr.endsWith(']')) {
                     const content = expr.slice(1, -1);
@@ -622,6 +678,45 @@ if isTrue {
                 loadFile();
             }
         });
+        
+        // Canvas drawing functions
+        const canvas = document.getElementById('ippCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        function drawRect(x, y, w, h, color) {
+            ctx.fillStyle = color || '#50fa7b';
+            ctx.fillRect(x, y, w, h);
+        }
+        
+        function drawCircle(x, y, r, color) {
+            ctx.fillStyle = color || '#ff79c6';
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        function drawLine(x1, y1, x2, y2, color) {
+            ctx.strokeStyle = color || '#8be9fd';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+        
+        function drawText(x, y, text, color) {
+            ctx.fillStyle = color || '#f8f8f2';
+            ctx.font = '16px Fira Code, monospace';
+            ctx.fillText(text, x, y);
+        }
+        
+        function clearCanvas(color) {
+            ctx.fillStyle = color || '#000000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // Initialize canvas with black background
+        clearCanvas('#000000');
 
         // Check for shared code
         if (new URLSearchParams(window.location.search).get('code')) {

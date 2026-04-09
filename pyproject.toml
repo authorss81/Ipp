@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ipp-lang"
-version = "1.5.2b"
+version = "1.5.3a"
 description = "A beginner-friendly scripting language for game development"
 readme = "README.md"
 license = {text = "MIT"}

@@ -47,7 +47,9 @@
 | **v1.5.0** | ✅ DONE | Async/Await + Coroutines + Event Loop + Additional Builtins |
 | **v1.5.1** | ✅ DONE | VSCode Extension + LSP |
 | **v1.5.2a** | ✅ DONE | WASM Backend Module (`ipp wasm` CLI) |
-| **v1.5.2b** | 🔧 IN PROGRESS | Web Playground |
+| **v1.5.2b** | ✅ DONE | Web Playground |
+| **v1.5.3a** | ✅ DONE | 2D Canvas API (rect, circle, line, text, clear) |
+| **v1.5.3b** | 📋 PLANNED | WebGL Bindings |
 | **v1.5.3** | 📋 PLANNED | WebGL Integration + 2D Canvas Rendering |
 | **v1.5.4** | 📋 PLANNED | Repl Enhancements| 
 | **v1.5.5** | 📋 PLANNED | 3D Rendering + Scene Graph |
@@ -495,18 +497,16 @@
 
 ---
 
-## v1.5.3 — WebGL Integration + 2D Rendering 📋 PLANNED
+## v1.5.3 — WebGL Integration + 2D Rendering ✅ DONE (v1.5.3a)
 
-### 2D Canvas API
-- [ ] `canvas(width, height)` — create canvas
-- [ ] `canvas.draw_rect(x, y, w, h, color)`
-- [ ] `canvas.draw_circle(x, y, r, color)`
-- [ ] `canvas.draw_line(x1, y1, x2, y2, color)`
-- [ ] `canvas.draw_text(x, y, text, font, size, color)`
-- [ ] `canvas.clear(color)`
-- [ ] `canvas.render()` — display canvas
+### v1.5.3a: 2D Canvas API ✅ DONE
+- [x] `canvas.rect(x, y, w, h, color)` — draw rectangle
+- [x] `canvas.circle(x, y, r, color)` — draw circle
+- [x] `canvas.line(x1, y1, x2, y2, color)` — draw line
+- [x] `canvas.text(x, y, text, color)` — draw text
+- [x] `canvas.clear(color)` — clear canvas
 
-### WebGL Bindings
+### v1.5.3b: WebGL Bindings 📋 PLANNED
 - [ ] `webgl.init(canvas)` — initialize WebGL context
 - [ ] `webgl.create_shader(source, type)` — create shader
 - [ ] `webgl.create_program(vertex, fragment)` — create program
