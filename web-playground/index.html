@@ -191,34 +191,33 @@
     
     <script>
         // Default code
-        const defaultCode = `# Ipp Language Playground v1.5.2b
+        const defaultCode = `# Ipp Language Playground v1.5.3a
 # Write your Ipp code here
 
-func fibonacci(n) {
-    if n <= 1 {
-        return n
-    }
-    return fibonacci(n - 1) + fibonacci(n - 2)
-}
+# Canvas Drawing Demo
+canvas.clear("white")
 
-print("=== Fibonacci Sequence ===")
-for i in 0..10 {
-    print(str(i) + ": " + str(fibonacci(i)))
-}
+# Draw a red rectangle
+canvas.rect(10, 10, 150, 50, "red")
 
-# Variables and expressions
+# Draw a blue circle
+canvas.circle(200, 80, 30, "blue")
+
+# Draw a green line
+canvas.line(10, 150, 300, 150, "green")
+
+# Draw some text
+canvas.text(50, 120, "Hello Ipp!", "black")
+
+# Print output
+print("Canvas drawing complete!")
+print("Check the Canvas panel on the right!")
+
+# Variables
 var x = 10
 var y = 20
 print("x + y = " + str(x + y))
-
-# Lists
-var nums = [1, 2, 3, 4, 5]
-print("Length: " + str(len(nums)))
-print("First: " + str(nums[0]))
-
-# More examples
-var message = "Hello, World!"
-print(message)
+`;
 
 var isTrue = true
 if isTrue {
@@ -721,8 +720,9 @@ if isTrue {
             ctx.fillRect(0, 0, canvas.width, canvas.height);
         }
         
-        // Initialize canvas with black background
-        clearCanvas('#000000');
+        // Initialize canvas with white background (not black)
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         // Check for shared code
         if (new URLSearchParams(window.location.search).get('code')) {
