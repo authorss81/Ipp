@@ -520,17 +520,27 @@
 
 ## v1.5.4 — REPL Performance + Advanced Features ✅ DONE
 
-### Performance & Monitoring
+### Implemented Features
 - [x] Real-time profiling — `.profile` command with cProfile
 - [x] Benchmark mode — `.bench [N] <expr>` run N times, show avg/min/max
 - [x] Memory profiler — `.mem` command and `memory_info()` builtin
 - [x] `now()` builtin — current timestamp in milliseconds
-### Advanced REPL Features
 - [x] Multi-line editor — `.edit` command for multi-line input
 - [x] Code snippets — predefined templates in `.help commands`
 - [x] Theme support — `.theme` command (dark/light/solarized/monokai/gruvbox)
 - [x] Command aliases — `.alias` command
 - [x] Step-through debugger — `.debug start/stop`
+
+### Planned but Not Yet Implemented
+- [ ] Hot reload — auto-reload imported modules when files change
+- [ ] Async REPL — handle `async/await` natively in REPL
+- [ ] Background tasks — run long tasks in background
+- [ ] REPL server — connect to REPL remotely via network
+- [ ] Code review mode — compare two expressions side-by-side
+- [ ] Macro system — define REPL macros that expand to code
+- [ ] Checkpoint/rollback — save checkpoint, rollback to any point
+- [ ] Plot/charts — matplotlib integration for data visualization
+- [ ] HTML preview — render HTML strings in browser
 
 ### Bug Fixes
 - [x] **elif keyword bug** — Fixed interpreter logic for elif/else branches
