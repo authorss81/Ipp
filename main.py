@@ -67,7 +67,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "1.5.4.5"
+VERSION = "1.5.4.6"
 
 # ─── Windows ANSI enablement ──────────────────────────────────────────────────
 # Windows 10 supports ANSI but requires ENABLE_VIRTUAL_TERMINAL_PROCESSING.
@@ -456,10 +456,25 @@ class IppCompleter:
                 cands = self._get_all_candidates()
                 # Exact prefix matches first
                 exact = sorted(c for c in cands if c.startswith(text))
-                # Then fuzzy matches using difflib
-                import difflib
-                fuzzy = difflib.get_close_matches(text, [c for c in cands if c not in exact], n=10, cutoff=0.4)
-                self.matches = exact + fuzzy
+                
+                # Try ML-based matching if available, otherwise use difflib
+                remaining = [c for c in cands if c not in exact]
+                if remaining:
+                    try:
+                        from sklearn.feature_extraction.text import TfidfVectorizer
+                        from sklearn.metrics.pairwise import cosine_similarity
+                        vectorizer = TfidfVectorizer(analyzer='char', ngram_range=(2, 4))
+                        corpus = [text] + remaining
+                        tfidf = vectorizer.fit_transform(corpus)
+                        sims = cosine_similarity(tfidf[0:1], tfidf[1:])[0]
+                        scored = list(zip(remaining, sims))
+                        scored.sort(key=lambda x: -x[1])
+                        fuzzy = [s[0] for s in scored[:10] if s[1] > 0.1]
+                    except ImportError:
+                        import difflib
+                        fuzzy = difflib.get_close_matches(text, remaining, n=10, cutoff=0.4)
+                
+                self.matches = exact + fuzzy[:10]
         
         try:
             return self.matches[state]

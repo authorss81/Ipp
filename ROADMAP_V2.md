@@ -54,7 +54,7 @@
 | **v1.5.4.3** | ✅ DONE | Easy Enhancements (.html, .hist, better errors) |
 | **v1.5.4.4** | ✅ DONE | Medium Features (.bg, .jobs, .plot, .async) |
 | **v1.5.4.5** | ✅ DONE | Advanced Features (.serve, .compare, REPL server) |
-| **v1.5.4.6** | 📋 PLANNED | Expert Features (Plugins, ML autocomplete) |
+| **v1.5.4.6** | ✅ DONE | Expert Features (Plugins, ML autocomplete) |
 | **v1.5.5** | 📋 PLANNED | 3D Rendering + Scene Graph |
 | **v1.6.0** | 📋 PLANNED | C++ Integration + Native Extensions |
 | **v1.6.1** | 📋 PLANNED | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
@@ -562,9 +562,9 @@
 
 ---
 
-## v1.5.4.6 — Expert Features 📋 PLANNED
-- [ ] **REPL plugins** — Load external Python plugin modules
-- [ ] **ML-based autocomplete** — AI-powered code suggestions (optional dependency)
+## v1.5.4.6 — Expert Features ✅ DONE
+- [x] **REPL plugins** — Load external Python plugin modules
+- [x] **ML-based autocomplete** — AI-powered code suggestions (optional dependency)
 
 ---
 

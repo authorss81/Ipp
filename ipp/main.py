@@ -67,7 +67,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "1.5.3b"
+VERSION = "1.5.4.6"
 
 # ─── Windows ANSI enablement ──────────────────────────────────────────────────
 # Windows 10 supports ANSI but requires ENABLE_VIRTUAL_TERMINAL_PROCESSING.
@@ -195,6 +195,43 @@ C_LOGO5   = lambda t: _fg(27, t)
 
 def colour(fn, text):
     return fn(text)   # lambdas already no-op when IS_TTY=False
+
+def _serve_accept_loop(server_socket):
+    """Accept loop for REPL server - defined at module level to avoid closure issues"""
+    from ipp.parser.parser import parse
+    from ipp.lexer.lexer import tokenize
+    from ipp.interpreter.interpreter import Interpreter
+    
+    def handle_client(client_socket, addr):
+        try:
+            client_socket.send(b"Ipp REPL v1.5.4.5\r\nType 'exit' to quit\r\n\r\n")
+            while True:
+                client_socket.send(b">>> ")
+                data = client_socket.recv(1024).decode().strip()
+                if not data or data == 'exit':
+                    break
+                try:
+                    tokens = tokenize(data)
+                    ast = parse(tokens)
+                    interp = Interpreter()
+                    interp.run(ast)
+                    result = str(interp.last_value) if interp.last_value else "nil"
+                    client_socket.send((result + "\r\n").encode())
+                except Exception as e:
+                    client_socket.send((f"Error: {str(e)}\r\n").encode())
+        except:
+            pass
+        finally:
+            client_socket.close()
+    
+    import threading
+    while True:
+        try:
+            client_socket, addr = server_socket.accept()
+            t = threading.Thread(target=handle_client, args=(client_socket, addr), daemon=True)
+            t.start()
+        except:
+            break
 
 def strip_ansi(s):
     return re.sub(r'\033\[[0-9;]*m', '', s)
@@ -619,6 +656,7 @@ def print_help():
         (".save <file>",    "Save command history to file"),
         (".doc <fn>",       "Show builtin documentation"),
         (".time <expr>",    "Benchmark expression"),
+        (".bench [N] <expr>","Benchmark N times (default 10), show avg/min/max"),
         (".which <name>",   "Check if builtin/var/function"),
         (".last / $_",      "Reference last result"),
         (".undo",           "Undo last command"),
@@ -626,6 +664,11 @@ def print_help():
         (".edit",           "Edit last command in editor"),
         (".profile",        "Profile last command"),
         (".alias n cmd",    "Create command alias"),
+        (".mem",            "Show memory usage"),
+        (".reload [file]", "Reload/reload imported module"),
+        (".checkpoint [n]","Save checkpoint (default: 5)"),
+        (".restore [n]",   "Restore checkpoint (default: latest)"),
+        (".macro n exp",   "Define macro"),
     ]
     for cmd, desc in tools:
         c_cmd  = colour(C_CMD, cmd.ljust(16))
@@ -637,6 +680,7 @@ def print_help():
         (".pretty <expr>",  "Pretty print complex data"),
         (".stack",          "Show call stack"),
         (".history $_",     "Show expression history"),
+        (".hist",           "Show last 10 results ($_1, $_2...)"),
         ("! <cmd>",         "Execute shell command"),
         (".session save",   "Save session state"),
         (".session load",   "Load saved session"),
@@ -661,6 +705,13 @@ def print_help():
         (".locals",         "Show local variables"),
         (".table <var>",    "Show list of dicts as table"),
         (".theme <name>",   "Set color theme (dark/light/solarized)"),
+        (".html <expr>",    "Preview HTML in browser"),
+        (".plot <data>",   "Plot data with matplotlib"),
+        (".bg <expr>",     "Run in background"),
+        (".jobs",          "Show background jobs"),
+        (".async <expr>",  "Run async expression"),
+        (".serve [port]",  "Start REPL server on port"),
+        (".compare a b",   "Compare two expressions"),
         ("Tab",             "Auto-complete (builtins, vars, keys)"),
         ("(",               "Signature help when typing"),
     ]
@@ -1164,6 +1215,11 @@ def run_repl():
     _undo_stack = []  # For .redo
     _aliases = {}  # For .alias
     _key_bindings = {}  # For .bind
+    _checkpoints = []  # For .checkpoint/.restore
+    _macros = {}  # For .macro
+    _bg_jobs = []  # For .bg/.jobs
+    _repl_server = None  # For .serve
+    _repl_accept_thread = None  # For .serve accept loop
     _PROMPT_FORMAT = "ipp"  # Default prompt format
     _PROMPT_ARROW = "❯" if _UNI else ">>>"  # Default prompt arrow
     _current_dir = os.getcwd()  # Track current directory for .cd
@@ -1352,8 +1408,34 @@ def run_repl():
                     interp.return_value = None
                     interp.last_value = None
                     if val is not None:
-                        print(f"  {colour(DIM, '→')} {format_output(val)}")
+                        print(f"  {colour(DIM, '>')} {format_output(val)}")
                     print(f"  {colour(DIM, f'  {elapsed*1000:.2f}ms')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
+                continue
+
+            # .bench <expr> — Run benchmark N times, show avg/min/max
+            m = re.match(r'\.bench\s+(\d+)?\s+(.+)$', stripped)
+            if m:
+                try:
+                    runs = int(m.group(1)) if m.group(1) else 10
+                    expr = m.group(2)
+                    tokens = tokenize(expr)
+                    ast = parse(tokens)
+                    interp = interp_manager.get_interpreter()
+                    times = []
+                    for _ in range(runs):
+                        t_start = time.perf_counter()
+                        interp.run(ast)
+                        elapsed = time.perf_counter() - t_start
+                        times.append(elapsed * 1000)
+                        interp.return_value = None
+                        interp.last_value = None
+                    avg = sum(times) / len(times)
+                    min_t = min(times)
+                    max_t = max(times)
+                    print(f"  {colour(DIM, f'Benchmark: {runs} runs')}")
+                    print(f"    {colour(C_OK, 'avg:')} {avg:.2f}ms  {colour(C_OK, 'min:')} {min_t:.2f}ms  {colour(C_OK, 'max:')} {max_t:.2f}ms")
                 except Exception as e:
                     print(f"  {colour(C_ERROR, str(e))}")
                 continue
@@ -1428,6 +1510,16 @@ def run_repl():
                     print(f"  {colour(DIM, '(no expression history yet)')}")
                 else:
                     for i, (idx, val) in enumerate(_last_results[-10:], max(1, len(_last_results) - 9)):
+                        print(f"  {colour(DIM, f'$_{idx}:')} {format_output(val)}")
+                continue
+
+            # .hist — Quick show last results
+            if stripped == '.hist':
+                if not _last_results:
+                    print(f"  {colour(DIM, '(no results yet)')}")
+                else:
+                    print(f"  {colour(C_CMD, 'Last Results:')}")
+                    for idx, val in reversed(_last_results[-10:]):
                         print(f"  {colour(DIM, f'$_{idx}:')} {format_output(val)}")
                 continue
 
@@ -1653,14 +1745,220 @@ def run_repl():
             if m:
                 theme = m.group(1).lower()
                 themes = {
-                    'dark': {'prompt': '\033[38;2;100;200;255m', 'error': '\033[38;2;255;100;100m'},
-                    'light': {'prompt': '\033[38;2;0;100;200m', 'error': '\033[38;2;200;0;0m'},
-                    'solarized': {'prompt': '\033[38;2;100;150;200m', 'error': '\033[38;2;200;100;50m'},
+                    'dark': {'prompt': '100,200,255', 'error': '255,100,100', 'ok': '80,220,120', 'warn': '255,200,80'},
+                    'light': {'prompt': '0,100,200', 'error': '200,0,0', 'ok': '0,150,0', 'warn': '200,100,0'},
+                    'solarized': {'prompt': '100,150,200', 'error': '200,100,50', 'ok': '100,200,100', 'warn': '180,150,0'},
+                    'monokai': {'prompt': '249,38,114', 'error': '249,38,114', 'ok': '166,226,46', 'warn': '253,151,31'},
+                    'gruvbox': {'prompt': '191,145,0', 'error': '204,46,46', 'ok': '142,191,107', 'warn': '215,133,18'},
                 }
+                global _current_theme
                 if theme in themes:
-                    print(f"  {colour(C_OK, f'Theme set to {theme}')}")
+                    _current_theme = theme
+                    t = themes[theme]
+                    print(f"  {colour(C_OK, f'✓ Theme set to {theme}')}")
+                    print(f"    {colour(C_PROMPT, 'Prompt:  RGB(' + t['prompt'] + ')')}")
+                    print(f"    {colour(C_ERROR, 'Error:   RGB(' + t['error'] + ')')}")
+                    print(f"    {colour(C_OK,    'OK:      RGB(' + t['ok'] + ')')}")
+                    print(f"    {colour(C_WARN,  'Warn:    RGB(' + t['warn'] + ')')}")
                 else:
-                    print(f"  {colour(C_WARN, f'Unknown theme: {theme}. Available: {", ".join(themes.keys())}')}")
+                    print(f"  {colour(C_WARN, f'Unknown theme: {theme}')}")
+                    print(f"  {colour(DIM, f'Available: {", ".join(themes.keys())}')}")
+                continue
+
+            # .html <expr> — Preview HTML in browser
+            m = re.match(r'\.html\s+(.+)$', stripped)
+            if m:
+                expr = m.group(1)
+                try:
+                    tokens = tokenize(expr)
+                    ast = parse(tokens)
+                    interp = interp_manager.get_interpreter()
+                    result = interp.run(ast)
+                    val = interp.return_value if interp.return_value is not None else interp.last_value
+                    if val is not None:
+                        html_content = str(val)
+                        import tempfile
+                        import webbrowser
+                        with tempfile.NamedTemporaryFile(mode='w', suffix='.html', delete=False, encoding='utf-8') as f:
+                            f.write(f"<html><body><pre>{html_content}</pre></body></html>")
+                            temp_path = f.name
+                        webbrowser.open('file://' + temp_path)
+                        print(f"  {colour(C_OK, '✓ Opened HTML in browser')}")
+                    else:
+                        print(f"  {colour(C_WARN, 'Expression returned nil')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
+                continue
+
+            # .plot <data> — Plot data with matplotlib
+            m = re.match(r'\.plot\s+(.+)$', stripped)
+            if m:
+                expr = m.group(1)
+                try:
+                    import matplotlib.pyplot as plt
+                    import matplotlib
+                    matplotlib.use('Agg')
+                    tokens = tokenize(expr)
+                    ast = parse(tokens)
+                    interp = interp_manager.get_interpreter()
+                    result = interp.run(ast)
+                    val = interp.return_value if interp.return_value is not None else interp.last_value
+                    if val is None:
+                        print(f"  {colour(C_WARN, 'Expression returned nil')}")
+                    elif isinstance(val, list):
+                        plt.plot(val)
+                        plt.title('Ipp Data')
+                        plt.xlabel('Index')
+                        plt.ylabel('Value')
+                        import tempfile
+                        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as f:
+                            plt.savefig(f.name)
+                            plt.close()
+                            import webbrowser
+                            webbrowser.open('file://' + f.name)
+                        print(f"  {colour(C_OK, '✓ Plot opened in browser')}")
+                    else:
+                        print(f"  {colour(C_WARN, 'Data must be a list')}")
+                except ImportError:
+                    print(f"  {colour(C_WARN, 'matplotlib not installed')}")
+                    print(f"  {colour(DIM, 'Install with: pip install matplotlib')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
+                continue
+
+            # .bg <expr> — Run in background
+            _bg_jobs = []  # Add this at the top of the file
+            m = re.match(r'\.bg\s+(.+)$', stripped)
+            if m:
+                expr = m.group(1)
+                import threading
+                import queue
+                result_queue = queue.Queue()
+                def run_bg():
+                    try:
+                        tokens = tokenize(expr)
+                        ast = parse(tokens)
+                        interp = interp_manager.get_interpreter()
+                        interp.run(ast)
+                        val = interp.return_value if interp.return_value is not None else interp.last_value
+                        result_queue.put(('ok', val))
+                    except Exception as e:
+                        result_queue.put(('error', str(e)))
+                t = threading.Thread(target=run_bg)
+                t.start()
+                job_id = len(_bg_jobs) + 1
+                _bg_jobs.append({'thread': t, 'expr': expr[:30], 'queue': result_queue})
+                print(f"  {colour(C_OK, f'Job #{job_id} started in background')}")
+                continue
+
+            # .jobs — Show background jobs
+            if stripped == '.jobs':
+                if not _bg_jobs:
+                    print(f"  {colour(DIM, '(no background jobs)')}")
+                else:
+                    print(f"  {colour(C_CMD, 'Background Jobs:')}")
+                    for i, job in enumerate(_bg_jobs, 1):
+                        if job['thread'].is_alive():
+                            status = colour(C_OK, 'running')
+                        else:
+                            try:
+                                status, val = job['queue'].get_nowait()
+                                status = colour(C_OK, 'done') if status == 'ok' else colour(C_ERROR, 'error')
+                            except:
+                                status = colour(C_WARN, 'unknown')
+                        print(f"  {colour(DIM, f'{i}:')} {job['expr']}... {status}")
+                continue
+
+            # .async <expr> — Run async expression
+            m = re.match(r'\.async\s+(.+)$', stripped)
+            if m:
+                expr = m.group(1)
+                try:
+                    from ipp.runtime.builtins import BUILTINS
+                    if 'async_run' in BUILTINS:
+                        async_run_fn = BUILTINS['async_run']
+                        # Create a simple async wrapper
+                        code = f'''
+func __async_task__() {{
+    return {expr}
+}}
+'''
+                        tokens = tokenize(code)
+                        ast = parse(tokens)
+                        interp = interp_manager.get_interpreter()
+                        interp.run(ast)
+                        if hasattr(interp, 'last_value') and interp.last_value:
+                            coro = interp.last_value
+                            result = async_run_fn(coro)
+                            print(f"  {colour(C_OK, 'Async result:')} {format_output(result)}")
+                        else:
+                            print(f"  {colour(C_WARN, 'Expression is not async')}")
+                    else:
+                        print(f"  {colour(C_WARN, 'async_run not available')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
+                continue
+
+            # .serve [port] — Start REPL server
+            m = re.match(r'\.serve(?:\s+(\d+))?$', stripped)
+            if m:
+                port = int(m.group(1)) if m.group(1) else 8080
+                server_running = False
+                
+                if _repl_server is not None:
+                    try:
+                        if _repl_server.fileno() != -1:
+                            server_running = True
+                    except:
+                        _repl_server = None
+                
+                if not server_running:
+                    import socket
+                    import threading
+                    _repl_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    _repl_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    _repl_server.bind(('0.0.0.0', port))
+                    _repl_server.listen(5)
+                    print(f"  {colour(C_OK, f'REPL server started on port {port}')}")
+                    print(f"  {colour(DIM, 'Connect with: telnet localhost ' + str(port))}")
+                
+                # Start accept loop if not already running
+                if _repl_accept_thread is None or not _repl_accept_thread.is_alive():
+                    import threading
+                    _repl_accept_thread = threading.Thread(target=lambda: _serve_accept_loop(_repl_server), daemon=True)
+                    _repl_accept_thread.start()
+                
+                print(f"  {colour(DIM, 'Server running in background')}")
+                continue
+
+            # .compare a b — Compare two expressions
+            m = re.match(r'\.compare\s+(.+)\s+(.+)$', stripped)
+            if m:
+                expr1 = m.group(1)
+                expr2 = m.group(2)
+                try:
+                    tokens1 = tokenize(expr1)
+                    ast1 = parse(tokens1)
+                    interp1 = Interpreter()
+                    interp1.run(ast1)
+                    result1 = interp1.last_value
+                    
+                    tokens2 = tokenize(expr2)
+                    ast2 = parse(tokens2)
+                    interp2 = Interpreter()
+                    interp2.run(ast2)
+                    result2 = interp2.last_value
+                    
+                    print(f"  {colour(C_CMD, 'Expression 1:')} {expr1}")
+                    print(f"    = {format_output(result1)}")
+                    print(f"  {colour(C_CMD, 'Expression 2:')} {expr2}")
+                    print(f"    = {format_output(result2)}")
+                    if result1 == result2:
+                        print(f"  {colour(C_OK, 'Results are equal')}")
+                    else:
+                        print(f"  {colour(C_WARN, 'Results differ')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
                 continue
 
             # .tutorial — Start interactive tutorial
@@ -2021,6 +2319,103 @@ def run_repl():
                 else:
                     print(f"  {colour(C_WARN, 'No command history to profile')}")
                 continue
+
+            # .mem — Show memory usage
+            if stripped == '.mem':
+                try:
+                    from ipp.runtime.builtins import ipp_memory_info
+                    mem = ipp_memory_info()
+                    if "error" in mem:
+                        print(f"  {colour(C_WARN, mem['error'])}")
+                        print(f"  {colour(DIM, 'Install psutil: pip install psutil')}")
+                    else:
+                        print(f"  {colour(C_OK, 'Memory Usage:')}")
+                        print(f"    RSS:  {mem['rss_mb']:.2f} MB")
+                        print(f"    VMS:  {mem['vms_mb']:.2f} MB")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
+                continue
+
+            # .reload [module] — Reload imported module
+            m = re.match(r'\.reload(?:\s+(.+))?$', stripped)
+            if m:
+                module_name = m.group(1)
+                try:
+                    interp = interp_manager.get_interpreter()
+                    if hasattr(interp, '_loaded_modules') and interp._loaded_modules:
+                        if module_name:
+                            for path in list(interp._loaded_modules.keys()):
+                                if module_name in path:
+                                    del interp._loaded_modules[path]
+                                    print(f"  {colour(C_OK, f'Cleared: {path}')}")
+                        else:
+                            interp._loaded_modules.clear()
+                            print(f"  {colour(C_OK, 'All cached modules cleared')}")
+                    else:
+                        print(f"  {colour(C_WARN, 'No modules loaded yet')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
+                continue
+
+            # .checkpoint [n] — Save state checkpoint
+            m = re.match(r'\.checkpoint(?:\s+(\d+))?$', stripped)
+            if m:
+                n = int(m.group(1)) if m.group(1) else 5
+                try:
+                    interp = interp_manager.get_interpreter()
+                    env = interp.global_env.values.copy()
+                    checkpoint = {'env': env, 'history': _cmd_history.copy()}
+                    _checkpoints.append(checkpoint)
+                    if len(_checkpoints) > n:
+                        _checkpoints.pop(0)
+                    print(f"  {colour(C_OK, f'Checkpoint saved (total: ' + str(len(_checkpoints)) + ')')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
+                continue
+
+            # .restore [n] — Restore checkpoint
+            m = re.match(r'\.restore(?:\s+(\d+))?$', stripped)
+            if m:
+                idx = int(m.group(1)) - 1 if m.group(1) else -1
+                try:
+                    if _checkpoints:
+                        if idx < 0:
+                            idx = len(_checkpoints) + idx
+                        if 0 <= idx < len(_checkpoints):
+                            checkpoint = _checkpoints[idx]
+                            interp = interp_manager.get_interpreter()
+                            interp.global_env.values = checkpoint['env'].copy()
+                            _cmd_history = checkpoint['history'].copy()
+                            print(f"  {colour(C_OK, f'Restored checkpoint {idx+1}')}")
+                        else:
+                            print(f"  {colour(C_WARN, f'Invalid checkpoint: {idx+1}')}")
+                    else:
+                        print(f"  {colour(C_WARN, 'No checkpoints saved')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
+                continue
+
+            # .macro <name> <expansion> — Define macro
+            m = re.match(r'\.macro\s+(\w+)\s+(.+)$', stripped)
+            if m:
+                name = m.group(1)
+                expansion = m.group(2)
+                _macros[name] = expansion
+                print(f"  {colour(C_OK, f'Macro {name} defined: {expansion}')}")
+                continue
+
+            # Expand macros (only for non-command inputs)
+            if not stripped.startswith('.'):
+                for name, expansion in _macros.items():
+                    if stripped == name or stripped.startswith(name + ' '):
+                        if stripped != name:
+                            args = stripped[len(name):].strip()
+                            for i, arg in enumerate(args.split(), 1):
+                                expansion = expansion.replace(f'${i}', arg)
+                        print(f"  {colour(DIM, f'Expanded: {expansion}')}")
+                        stripped = expansion
+                        buf = [expansion]
+                        break
 
         if not stripped and not buf:
             continue
