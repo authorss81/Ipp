@@ -2,7 +2,7 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.5.4.6-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.5.4.7-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-163+-brightgreen.svg" alt="Builtins">
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.5.4.6** includes Expert Features (Plugins, ML-based autocomplete). Previous phases (v1.5.2a, v1.5.2b, v1.5.3a, v1.5.3b) are partially done and need further enhancement.
+**v1.5.4.7** includes Performance Optimizations (Bytecode Cache, .cache command). Previous phases (v1.5.2a, v1.5.2b, v1.5.3a, v1.5.3b) are partially done and need further enhancement.
 
 ---
 

@@ -67,7 +67,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "1.5.4.6"
+VERSION = "1.5.4.7"
 
 # ─── Windows ANSI enablement ──────────────────────────────────────────────────
 # Windows 10 supports ANSI but requires ENABLE_VIRTUAL_TERMINAL_PROCESSING.
@@ -668,6 +668,7 @@ def print_help():
     _section("REPL Tools (v1.3.7)")
     tools = [
         (".load <file>",    "Load and execute file (keeps variables)"),
+        (".cache <file>",   "Compile and cache bytecode (.ipc)"),
         (".save <file>",    "Save command history to file"),
         (".doc <fn>",       "Show builtin documentation"),
         (".time <expr>",    "Benchmark expression"),
@@ -1390,6 +1391,26 @@ def run_repl():
                     print(f"  {colour(C_OK, f'Saved {len(_cmd_history)} commands to {filepath}')}")
                 except Exception as e:
                     print(f"  {colour(C_ERROR, f'Failed to save: {e}')}")
+                continue
+
+            # .cache <file> — Compile and cache bytecode (.ipc file)
+            m = re.match(r'\.cache\s+(.+)$', stripped)
+            if m:
+                filepath = m.group(1).strip().strip('"').strip("'")
+                try:
+                    cache_path = filepath + 'c'
+                    with open(filepath, 'r', encoding='utf-8') as f:
+                        source = f.read()
+                    tokens = tokenize(source)
+                    ast = parse(tokens)
+                    from ipp.vm.compiler import Compiler
+                    compiler = Compiler()
+                    chunk = compiler.compile(ast)
+                    with open(cache_path, 'wb') as f:
+                        f.write(chunk.serialize())
+                    print(f"  {colour(C_OK, f'Cached bytecode to {cache_path}')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, f'Cache failed: {e}')}")
                 continue
 
             # .doc <function> — Show docstring/help for builtin
@@ -2501,6 +2522,29 @@ func __async_task__() {{
 
 # ─── File runner ──────────────────────────────────────────────────────────────
 def run_file(path: str) -> int:
+    cache_path = path + 'c'
+    use_cache = False
+    
+    try:
+        cache_mtime = os.path.getmtime(cache_path)
+        src_mtime = os.path.getmtime(path)
+        if cache_mtime >= src_mtime:
+            use_cache = True
+    except:
+        pass
+    
+    if use_cache:
+        try:
+            with open(cache_path, 'rb') as f:
+                from ipp.vm.bytecode import Chunk
+                chunk = Chunk.deserialize(f.read())
+            from ipp.vm.vm import VM
+            vm = VM()
+            result = vm.run(chunk)
+            return 0
+        except Exception:
+            use_cache = False
+    
     try:
         with open(path, 'r', encoding='utf-8') as f:
             source = f.read()

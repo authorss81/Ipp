@@ -327,3 +327,24 @@ class Chunk:
 
     def __repr__(self):
         return f"Chunk(code={len(self.code)}, constants={len(self.constants)})"
+
+    def serialize(self) -> bytes:
+        """Serialize chunk to bytes for caching."""
+        import pickle
+        data = {
+            'code': self.code,
+            'constants': self.constants,
+            'lines': self.lines
+        }
+        return pickle.dumps(data)
+
+    @staticmethod
+    def deserialize(data: bytes) -> 'Chunk':
+        """Deserialize chunk from bytes."""
+        import pickle
+        data = pickle.loads(data)
+        chunk = Chunk()
+        chunk.code = data['code']
+        chunk.constants = data['constants']
+        chunk.lines = data['lines']
+        return chunk

@@ -55,7 +55,13 @@
 | **v1.5.4.4** | ✅ DONE | Medium Features (.bg, .jobs, .plot, .async) |
 | **v1.5.4.5** | ✅ DONE | Advanced Features (.serve, .compare, REPL server) |
 | **v1.5.4.6** | ✅ DONE | Expert Features (Plugins, ML autocomplete) |
-| **v1.5.5** | 📋 PLANNED | 3D Rendering + Scene Graph |
+| **v1.5.4.7** | ✅ DONE | Performance Optimizations (Bytecode Cache, .cache command) |
+| **v1.5.5.0** | 📋 PLANNED | 3D Math Basics (vec4, mat4, multiply) |
+| **v1.5.5.1** | 📋 PLANNED | Matrix Operations (perspective, look_at, transform) |
+| **v1.5.5.2** | 📋 PLANNED | Quaternion (create, slerp, to_mat4) |
+| **v1.5.5.3** | 📋 PLANNED | Scene Graph Classes (Scene, Node, Camera, Mesh, Light) |
+| **v1.5.5.4** | 📋 PLANNED | Basic Renderer (wireframe/projection render) |
+| **v1.5.5.5** | 📋 PLANNED | OpenGL Renderer (optional, requires OpenGL) |
 | **v1.6.0** | 📋 PLANNED | C++ Integration + Native Extensions |
 | **v1.6.1** | 📋 PLANNED | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
 | **v2.0.0** | 📋 PLANNED | Package Manager + Full Ecosystem + Game Engine |
@@ -568,20 +574,52 @@
 
 ---
 
-## v1.5.5 — 3D Rendering + Scene Graph 📋 PLANNED
-### 3D Math
-- [ ] `mat4()` — 4x4 matrix operations
-- [ ] `vec4()` — 4D vector
-- [ ] `quat()` — quaternion operations (slerp, rotate)
-- [ ] `perspective(fov, aspect, near, far)` — perspective matrix
-- [ ] `look_at(eye, target, up)` — view matrix
-### Scene Graph
+## v1.5.4.7 — Performance Optimizations ✅ DONE
+- [x] **Bytecode cache** — Compile Ipp to .ipc files for faster loading
+- [x] **.cache command** — Manually compile and cache bytecode
+- [x] **Auto-cache loading** — .ipc files load automatically when available
+
+---
+
+## v1.5.5 — 3D Rendering + Scene Graph
+
+### v1.5.5.0 - 3D Math Basics (vec4, mat4)
+- [ ] `vec4(x, y, z, w)` — 4D vector
+- [ ] `mat4()` — 4x4 matrix (identity)
+- [ ] `mat4_identity()` — create identity matrix
+- [ ] `mat4_multiply(a, b)` — matrix multiplication
+
+### v1.5.5.1 - Matrix Operations
+- [ ] `mat4_perspective(fov, aspect, near, far)` — perspective matrix
+- [ ] `mat4_look_at(eye, target, up)` — view matrix
+- [ ] `mat4_translate(m, x, y, z)` — translation
+- [ ] `mat4_rotate(m, angle, axis)` — rotation
+- [ ] `mat4_scale(m, x, y, z)` — scale
+
+### v1.5.5.2 - Quaternion
+- [ ] `quat(x, y, z, w)` — quaternion creation
+- [ ] `quat_from_axis_angle(axis, angle)` — from axis-angle
+- [ ] `quat_multiply(a, b)` — quaternion multiplication
+- [ ] `quat_slerp(a, b, t)` — spherical interpolation
+- [ ] `quat_to_mat4(q)` — convert to rotation matrix
+
+### v1.5.5.3 - Scene Graph (Classes)
 - [ ] `Scene()` — scene container
-- [ ] `Node()` — scene node with transform
-- [ ] `Camera(fov, aspect)` — camera node
+- [ ] `Node()` — scene node with transform (position, rotation, scale)
+- [ ] `Camera(fov, aspect, near, far)` — camera node
 - [ ] `Mesh(vertices, indices)` — mesh node
 - [ ] `Light(type, color, intensity)` — light node
-- [ ] `scene.render()` — render scene
+- [ ] `scene.add(node)` — add node to scene
+
+### v1.5.5.4 - Scene Graph (Basic Renderer)
+- [ ] `scene.render()` — basic render (simple 3D->2D projection)
+- [ ] `node.look_at(target)` — node looks at target
+- [ ] Basic wireframe or point rendering via canvas
+
+### v1.5.5.5 - Scene Graph (OpenGL Renderer) [OPTIONAL]
+- [ ] OpenGL-based renderer
+- [ ] Shader support
+- [ ] Smooth shading
 ---
 
 ## v1.6.0 — C++ Integration 📋 PLANNED
