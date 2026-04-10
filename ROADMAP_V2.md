@@ -51,6 +51,10 @@
 | **v1.5.3a** | 🔄 PARTIAL | 2D Canvas (Tkinter works, needs enhancement) |
 | **v1.5.3b** | 🔄 PARTIAL | WebGL Bindings (needs browser integration) |
 | **v1.5.4** | ✅ DONE | REPL Performance + Advanced Features (v1.5.4.2) |
+| **v1.5.4.3** | 📋 PLANNED | Easy Enhancements (HTML preview, better errors) |
+| **v1.5.4.4** | 📋 PLANNED | Medium Features (Async REPL, Background tasks, Charts) |
+| **v1.5.4.5** | 📋 PLANNED | Advanced Features (REPL server, Code review) |
+| **v1.5.4.6** | 📋 PLANNED | Expert Features (Plugins, ML autocomplete) |
 | **v1.5.5** | 📋 PLANNED | 3D Rendering + Scene Graph |
 | **v1.6.0** | 📋 PLANNED | C++ Integration + Native Extensions |
 | **v1.6.1** | 📋 PLANNED | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
@@ -533,16 +537,34 @@
 - [x] Macro system — `.macro` command to define macros
 - [x] Checkpoint/rollback — `.checkpoint` and `.restore` commands
 
-### Planned but Not Yet Implemented
-- [ ] Async REPL — handle `async/await` natively in REPL
-- [ ] Background tasks — run long tasks in background
-- [ ] REPL server — connect to REPL remotely via network
-- [ ] Code review mode — compare two expressions side-by-side
-- [ ] Plot/charts — matplotlib integration for data visualization
-- [ ] HTML preview — render HTML strings in browser
-
 ### Bug Fixes
 - [x] **elif keyword bug** — Fixed interpreter logic for elif/else branches
+
+---
+
+## v1.5.4.3 — Easy Enhancements 📋 PLANNED
+- [ ] **HTML preview** — Render HTML strings in default browser
+- [ ] **Expression history** — Better `$_1`, `$_2` handling with persistent history
+- [ ] **Better error messages** — More descriptive parse/runtime errors with location hints
+
+---
+
+## v1.5.4.4 — Medium Features 📋 PLANNED
+- [ ] **Async REPL** — Handle `async/await` natively in REPL
+- [ ] **Background tasks** — Run long tasks in background without blocking REPL
+- [ ] **Plot/charts** — matplotlib integration for data visualization (`plot([1,2,3])`)
+
+---
+
+## v1.5.4.5 — Advanced Features 📋 PLANNED
+- [ ] **REPL server** — Connect to REPL remotely via TCP network
+- [ ] **Code review mode** — Compare two expressions side-by-side
+
+---
+
+## v1.5.4.6 — Expert Features 📋 PLANNED
+- [ ] **REPL plugins** — Load external Python plugin modules
+- [ ] **ML-based autocomplete** — AI-powered code suggestions (optional dependency)
 
 ---
 
