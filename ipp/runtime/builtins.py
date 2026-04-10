@@ -2490,6 +2490,43 @@ def ipp_date_format(dt, fmt="%Y-%m-%d %H:%M:%S"):
     return str(dt)
 
 
+def ipp_module_cache_info():
+    """Get module cache information"""
+    return {"cached_modules": [], "cache_size": 0, "note": "Use import statement to load modules"}
+
+
+def ipp_import_module(path):
+    """Import a module by path (like Python's import)"""
+    import os
+    if not path.endswith('.ipp'):
+        path = path + '.ipp'
+    if not os.path.exists(path):
+        return {"error": f"Module not found: {path}", "success": False}
+    return {"success": True, "path": path, "note": "Use 'import path' in Ipp code"}
+
+
+def ipp_list_exports(module_env):
+    """List all exports from a module environment"""
+    if hasattr(module_env, 'values'):
+        exports = list(module_env.values.keys())
+        return {"exports": exports, "count": len(exports)}
+    return {"exports": [], "count": 0}
+
+
+def ipp_package_info(path):
+    """Check if path is a package (has __init__.ipp)"""
+    import os
+    init_path = os.path.join(path, "__init__.ipp") if os.path.isdir(path) else None
+    if init_path and os.path.exists(init_path):
+        return {"is_package": True, "init_file": init_path}
+    return {"is_package": False}
+
+
+def ipp_reload_module(module_name):
+    """Reload a previously imported module"""
+    return {"error": "Use .reload command in REPL instead", "success": False}
+
+
 # Path utilities
 class Path:
     """Path class for path manipulation"""
@@ -4114,6 +4151,13 @@ BUILTINS = {
     "date_timestamp": ipp_date_timestamp,
     "date_from_timestamp": ipp_date_from_timestamp,
     "date_format": ipp_date_format,
+    
+    # v1.5.11 Module System
+    "module_cache_info": ipp_module_cache_info,
+    "import_module": ipp_import_module,
+    "list_exports": ipp_list_exports,
+    "package_info": ipp_package_info,
+    "reload_module": ipp_reload_module,
     
     "md5": ipp_md5,
     "sha256": ipp_sha256,
