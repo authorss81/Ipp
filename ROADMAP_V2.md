@@ -630,7 +630,8 @@ Based on audit2.md findings - Critical bugs that break basic functionality:
 ## v1.5.16 — VM/Performance 📋 PLANNED
 
 ### VM Fixes
-- [ ] Fix for-loop bug in VM mode (returns 0 instead of correct value)
+- [x] Fix for-loop bug in VM mode (returns 0 instead of correct value) - FIXED
+- [ ] **VM Returns None** - Fix VM interpreter to return actual values instead of None
 - [ ] Add 3D functions to VM mode
 
 ### New Features

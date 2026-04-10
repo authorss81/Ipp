@@ -2,7 +2,7 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.5.13-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.5.14-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-163+-brightgreen.svg" alt="Builtins">
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.5.9** includes OpenGL renderer (glfw/tkinter), shaders, triangles, lines, points drawing + Error Handling & Debugging. Previous phases are partially done.
+**v1.5.4.5** includes REPL Advanced Features (.serve, .compare, REPL server, code review). Previous phases (v1.5.2a, v1.5.2b, v1.5.3a, v1.5.3b) are partially done and need further enhancement.
 
 ---
 
@@ -521,24 +521,8 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.5.3a | 2D Canvas API (Partial - Tkinter works, needs enhancement) |
 | v1.5.3b | WebGL Bindings (Partial - needs browser integration) |
 | v1.5.4.2 | REPL Performance (.bench, .mem, .reload, .checkpoint, .restore, .macro, theme, elif fix) |
-| v1.5.4.3 | Easy Enhancements (.html, .hist, better errors) |
-| v1.5.4.4 | Medium Features (.bg, .jobs, .plot, .async) |
-| v1.5.4.5 | Advanced Features (.serve, .compare, REPL server) |
-| v1.5.4.6 | Expert Features (Plugins, ML autocomplete) |
-| v1.5.4.7 | Performance Optimizations (Bytecode Cache, .cache) |
-| v1.5.5.0 | 3D Math Basics (vec4, mat4, multiply) |
-| v1.5.5.1 | Matrix Operations (perspective, look_at, translate, rotate, scale) |
-| v1.5.5.2 | Quaternion (quat, slerp, to_mat4) |
-| v1.5.5.3 | Scene Graph Classes (Scene, Node, Camera, Mesh, Light) |
-| v1.5.5.4 | Basic Renderer (3D->2D projection) |
-| v1.5.6 | 3D Primitives (mesh_cube, mesh_sphere, mesh_plane) |
-| v1.5.7 | 3D Visualization (wireframe, point cloud rendering) |
-| v1.5.8 | Performance & Profiling + Full OpenGL |
-| v1.5.9 | Error Handling & Debugging (stack_trace, error_info, breakpoints) |
-| v1.5.10 | Standard Library (math_degrees, math_gcd, fs_exists, fs_copy, date_timestamp) |
-| v1.5.11 | Module System (module_cache_info, import_module, list_exports, package_info) |
-| v1.5.12 | Documentation & Testing (doc, apidoc, test_run, benchmark_full, examples_list) |
-| v1.5.13 | Final Polish (cleanup_check, perf_tips, health_check, version_info) |
+| v1.5.5 - v1.5.13 | 3D Graphics, OpenGL, Error Handling, Standard Library, Module System (Done) |
+| v1.5.14 | Critical Bug Fixes (append, pop, insert, remove, clear + VM global_env fix) |
 | v1.6.0 | C++ Integration + Native Extensions |
 | v1.6.1 | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
 | v2.0.0 | Package Manager + Full Ecosystem + Game Engine |
