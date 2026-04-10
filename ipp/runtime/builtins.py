@@ -1908,12 +1908,180 @@ def ipp_cache_info():
 
 
 def ipp_opengl_available():
-    """Check if OpenGL is available (optional)"""
+    """Check if OpenGL is available"""
     try:
         from OpenGL import GL
         return True
     except ImportError:
         return False
+
+
+def ipp_opengl_init(window_title="Ipp OpenGL"):
+    """Initialize OpenGL context (requires PyOpenGL: pip install PyOpenGL)"""
+    try:
+        import glfw
+        if not glfw.init():
+            return {"error": "GLFW init failed", "success": False}
+        window = glfw.create_window(800, 600, window_title, None, None)
+        if not window:
+            glfw.terminate()
+            return {"error": "Window creation failed", "success": False}
+        glfw.make_context_current(window)
+        return {"success": True, "window": window, "library": "glfw"}
+    except ImportError:
+        try:
+            import tkinter as tk
+            from tkinter import Canvas
+            root = tk.Tk()
+            root.title(window_title)
+            canvas = Canvas(root, width=800, height=600, bg="black")
+            canvas.pack()
+            root.update()
+            return {"success": True, "canvas": canvas, "root": root, "library": "tkinter"}
+        except ImportError:
+            return {"error": "No OpenGL backend (install glfw or tkinter + PyOpenGL)", "success": False}
+
+
+def ipp_opengl_clear(r=0, g=0, b=0, a=1):
+    """Clear OpenGL buffer with color"""
+    try:
+        from OpenGL.GL import glClearColor, glClear, GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT
+        glClearColor(r, g, b, a)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e), "success": False}
+
+
+def ipp_opengl_draw_triangles(vertices):
+    """Draw triangles from flat vertex list [x,y,z,x,y,z,...]"""
+    try:
+        from OpenGL.GL import glBegin, glEnd, glVertex3f, GL_TRIANGLES
+        glBegin(GL_TRIANGLES)
+        for i in range(0, len(vertices), 3):
+            glVertex3f(vertices[i], vertices[i+1], vertices[i+2])
+        glEnd()
+        return {"success": True, "triangles": len(vertices) // 3}
+    except Exception as e:
+        return {"error": str(e), "success": False}
+
+
+def ipp_opengl_draw_lines(vertices, width=1):
+    """Draw lines from flat vertex list"""
+    try:
+        from OpenGL.GL import glBegin, glEnd, glVertex3f, glLineWidth, GL_LINES
+        glLineWidth(width)
+        glBegin(GL_LINES)
+        for i in range(0, len(vertices), 3):
+            glVertex3f(vertices[i], vertices[i+1], vertices[i+2])
+        glEnd()
+        return {"success": True, "vertices": len(vertices) // 2}
+    except Exception as e:
+        return {"error": str(e), "success": False}
+
+
+def ipp_opengl_draw_points(vertices, size=1):
+    """Draw points from flat vertex list"""
+    try:
+        from OpenGL.GL import glBegin, glEnd, glVertex3f, glPointSize, GL_POINTS
+        glPointSize(size)
+        glBegin(GL_POINTS)
+        for i in range(0, len(vertices), 3):
+            glVertex3f(vertices[i], vertices[i+1], vertices[i+2])
+        glEnd()
+        return {"success": True, "points": len(vertices) // 3}
+    except Exception as e:
+        return {"error": str(e), "success": False}
+
+
+def ipp_opengl_set_color(r, g=255, b=255, a=255):
+    """Set current drawing color (0-255 or 0-1)"""
+    try:
+        from OpenGL.GL import glColor4f
+        if r <= 1 and g <= 1 and b <= 1 and a <= 1:
+            glColor4f(r, g, b, a)
+        else:
+            glColor4f(r/255, g/255, b/255, a/255)
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e), "success": False}
+
+
+def ipp_opengl_create_shader(shader_type, source):
+    """Create shader: type = 'vertex' or 'fragment'"""
+    try:
+        from OpenGL.GL import shaders
+        if shader_type == 'vertex':
+            shader_type_enum = shaders.GL_VERTEX_SHADER
+        elif shader_type == 'fragment':
+            shader_type_enum = shaders.GL_FRAGMENT_SHADER
+        else:
+            return {"error": "Unknown shader type", "success": False}
+        shader = shaders.compileShader([source], shader_type_enum)
+        return {"success": True, "shader": shader}
+    except Exception as e:
+        return {"error": str(e), "success": False}
+
+
+def ipp_opengl_create_program(vertex_src, fragment_src):
+    """Create shader program from vertex and fragment sources"""
+    try:
+        from OpenGL.GL import shaders
+        vs = shaders.compileShader([vertex_src], shaders.GL_VERTEX_SHADER)
+        fs = shaders.compileShader([fragment_src], shaders.GL_FRAGMENT_SHADER)
+        program = shaders.compileProgram(vs, fs)
+        return {"success": True, "program": program}
+    except Exception as e:
+        return {"error": str(e), "success": False}
+
+
+def ipp_opengl_use_program(program):
+    """Use shader program"""
+    try:
+        from OpenGL.GL import glUseProgram
+        glUseProgram(program)
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e), "success": False}
+
+
+def ipp_opengl_set_uniform(program, name, value):
+    """Set uniform variable in shader program"""
+    try:
+        from OpenGL.GL import glGetUniformLocation, glUniform1f, glUniform3f, glUniform4f
+        loc = glGetUniformLocation(program, name)
+        if loc == -1:
+            return {"error": f"Uniform {name} not found", "success": False}
+        if isinstance(value, (list, tuple)):
+            if len(value) == 3:
+                glUniform3f(loc, value[0], value[1], value[2])
+            elif len(value) == 4:
+                glUniform4f(loc, value[0], value[1], value[2], value[3])
+        else:
+            glUniform1f(loc, value)
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e), "success": False}
+
+
+def ipp_opengl_enable_depth():
+    """Enable depth testing"""
+    try:
+        from OpenGL.GL import glEnable, GL_DEPTH_TEST
+        glEnable(GL_DEPTH_TEST)
+        return {"success": True}
+    except Exception as e:
+        return {"error": str(e), "success": False}
+
+
+def ipp_opengl_swap_buffers():
+    """Swap OpenGL buffers (for GLFW)"""
+    try:
+        import glfw
+        glfw.swap_buffers(glfw.get_current_context())
+        return {"success": True}
+    except:
+        return {"success": False}
 
 
 # Game Dev Math Functions
@@ -3619,6 +3787,18 @@ BUILTINS = {
     "object_count": ipp_object_count,
     "cache_info": ipp_cache_info,
     "opengl_available": ipp_opengl_available,
+    "opengl_init": ipp_opengl_init,
+    "opengl_clear": ipp_opengl_clear,
+    "opengl_draw_triangles": ipp_opengl_draw_triangles,
+    "opengl_draw_lines": ipp_opengl_draw_lines,
+    "opengl_draw_points": ipp_opengl_draw_points,
+    "opengl_set_color": ipp_opengl_set_color,
+    "opengl_create_shader": ipp_opengl_create_shader,
+    "opengl_create_program": ipp_opengl_create_program,
+    "opengl_use_program": ipp_opengl_use_program,
+    "opengl_set_uniform": ipp_opengl_set_uniform,
+    "opengl_enable_depth": ipp_opengl_enable_depth,
+    "opengl_swap_buffers": ipp_opengl_swap_buffers,
     "split": ipp_split,
     "join": ipp_join,
     "upper": ipp_upper,
