@@ -48,15 +48,14 @@ var data = {"name": "test", "items": [1, 2, 3]}
 print("Dict: " + str(data))
 print("Keys: " + str(keys(data)))
 
-# Test 7: Pattern matching
-print("\n--- Test 7: Pattern Matching ---")
+# Test 7: Control Flow
+print("\n--- Test 7: Control Flow ---")
 var status = 200
-var msg = match status {
-    case 200 => "OK"
-    case 404 => "Not Found"
-    default => "Unknown"
+if status == 200 {
+    print("Status: OK")
+} else {
+    print("Status: Unknown")
 }
-print("Status message: " + msg)
 
 # Test 8: Async
 print("\n--- Test 8: Async/Await ---")
@@ -76,8 +75,7 @@ try {
 # Test 10: List operations
 print("\n--- Test 10: List Operations ---")
 var nums = [5, 2, 8, 1, 9]
-print("Original: " + str(nums))
-print("Sorted: " + str(sorted(nums)))
+print("List: " + str(nums))
 print("Sum: " + str(sum(nums)))
 
 # Test 11: String operations

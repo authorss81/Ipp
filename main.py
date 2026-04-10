@@ -1181,6 +1181,7 @@ def run_repl():
     _checkpoints = []  # For .checkpoint/.restore
     _macros = {}  # For .macro
     _bg_jobs = []  # For .bg/.jobs
+    _repl_server = None  # For .serve
     _PROMPT_FORMAT = "ipp"  # Default prompt format
     _PROMPT_ARROW = "❯" if _UNI else ">>>"  # Default prompt arrow
     _current_dir = os.getcwd()  # Track current directory for .cd
@@ -1864,14 +1865,15 @@ func __async_task__() {{
             m = re.match(r'\.serve(?:\s+(\d+))?$', stripped)
             if m:
                 port = int(m.group(1)) if m.group(1) else 8080
-                import socket
-                import threading
-                server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-                server_socket.bind(('0.0.0.0', port))
-                server_socket.listen(5)
-                print(f"  {colour(C_OK, f'REPL server started on port {port}')}")
-                print(f"  {colour(DIM, 'Connect with: telnet localhost ' + str(port))}")
+                if not hasattr(_repl_server, 'fileno') or _repl_server.fileno() == -1:
+                    import socket
+                    import threading
+                    _repl_server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    _repl_server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    _repl_server.bind(('0.0.0.0', port))
+                    _repl_server.listen(5)
+                    print(f"  {colour(C_OK, f'REPL server started on port {port}')}")
+                    print(f"  {colour(DIM, 'Connect with: telnet localhost ' + str(port))}")
                 
                 def handle_client(client_socket):
                     try:
@@ -1896,7 +1898,7 @@ func __async_task__() {{
                         client_socket.close()
                 
                 # Start server in background
-                t = threading.Thread(target=lambda: server_socket.listen(), daemon=True)
+                t = threading.Thread(target=lambda: _repl_server.listen(), daemon=True)
                 t.start()
                 print(f"  {colour(DIM, 'Server running in background')}")
                 continue
@@ -1920,13 +1922,13 @@ func __async_task__() {{
                     result2 = interp2.last_value
                     
                     print(f"  {colour(C_CMD, 'Expression 1:')} {expr1}")
-                    print(f"    → {format_output(result1)}")
+                    print(f"    = {format_output(result1)}")
                     print(f"  {colour(C_CMD, 'Expression 2:')} {expr2}")
-                    print(f"    → {format_output(result2)}")
+                    print(f"    = {format_output(result2)}")
                     if result1 == result2:
-                        print(f"  {colour(C_OK, '✓ Results are equal')}")
+                        print(f"  {colour(C_OK, 'Results are equal')}")
                     else:
-                        print(f"  {colour(C_WARN, '✗ Results differ')}")
+                        print(f"  {colour(C_WARN, 'Results differ')}")
                 except Exception as e:
                     print(f"  {colour(C_ERROR, str(e))}")
                 continue
