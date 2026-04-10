@@ -2,7 +2,7 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.5.7-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.5.8-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-163+-brightgreen.svg" alt="Builtins">
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.5.7** includes 3D Visualization (wireframe, point cloud rendering via canvas). Previous phases are partially done.
+**v1.5.8** includes Performance & Profiling tools (perf_profile, benchmark, gc_stats, object_count, cache_info) + OpenGL availability check. Previous phases are partially done.
 
 ---
 
@@ -533,6 +533,7 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.5.5.4 | Basic Renderer (3D->2D projection) |
 | v1.5.6 | 3D Primitives (mesh_cube, mesh_sphere, mesh_plane) |
 | v1.5.7 | 3D Visualization (wireframe, point cloud rendering) |
+| v1.5.8 | Performance & Profiling (perf_profile, benchmark, gc_stats) + OpenGL check |
 | v1.6.0 | C++ Integration + Native Extensions |
 | v1.6.1 | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
 | v2.0.0 | Package Manager + Full Ecosystem + Game Engine |

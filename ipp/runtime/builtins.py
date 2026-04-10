@@ -1820,6 +1820,102 @@ def ipp_memory_info():
         return {"error": "psutil not installed", "rss": 0, "vms": 0, "rss_mb": 0, "vms_mb": 0}
 
 
+def ipp_perf_profile(func, *args, **kwargs):
+    """Profile a function's execution time and memory"""
+    import time
+    import tracemalloc
+    
+    tracemalloc.start()
+    start_time = time.perf_counter()
+    start_mem = tracemalloc.get_traced_memory()[0]
+    
+    result = func(*args, **kwargs)
+    
+    end_time = time.perf_counter()
+    end_mem = tracemalloc.get_traced_memory()[0]
+    current, peak = tracemalloc.get_traced_memory()
+    tracemalloc.stop()
+    
+    return {
+        "result": result,
+        "time_ms": (end_time - start_time) * 1000,
+        "memory_delta_mb": (end_mem - start_mem) / (1024 * 1024),
+        "peak_memory_mb": peak / (1024 * 1024),
+    }
+
+
+def ipp_benchmark(func, iterations=100, *args, **kwargs):
+    """Run benchmark on a function"""
+    import time
+    
+    times = []
+    for _ in range(iterations):
+        start = time.perf_counter()
+        func(*args, **kwargs)
+        end = time.perf_counter()
+        times.append((end - start) * 1000)
+    
+    times.sort()
+    return {
+        "iterations": iterations,
+        "avg_ms": sum(times) / len(times),
+        "min_ms": times[0],
+        "max_ms": times[-1],
+        "median_ms": times[len(times) // 2],
+    }
+
+
+def ipp_gc_stats():
+    """Get garbage collection statistics"""
+    import gc
+    stats = gc.get_stats()
+    return {
+        "collections": stats[0].get("collections", 0) if stats else 0,
+        "collected": stats[0].get("collected", 0) if stats else 0,
+        "uncollectable": stats[0].get("uncollectable", 0) if stats else 0,
+        "threshold": gc.get_threshold(),
+    }
+
+
+def ipp_object_count():
+    """Count objects by type"""
+    import gc
+    counts = {}
+    for obj in gc.get_objects():
+        name = type(obj).__name__
+        counts[name] = counts.get(name, 0) + 1
+    return dict(sorted(counts.items(), key=lambda x: -x[1])[:20])
+
+
+def ipp_cache_info():
+    """Get bytecode cache information"""
+    import os
+    cache_files = []
+    for f in os.listdir("."):
+        if f.endswith(".ipc"):
+            stat = os.stat(f)
+            cache_files.append({
+                "name": f,
+                "size_bytes": stat.st_size,
+                "size_kb": stat.st_size / 1024,
+                "modified": stat.st_mtime,
+            })
+    return {
+        "cache_files": cache_files,
+        "total_count": len(cache_files),
+        "total_size_kb": sum(c["size_kb"] for c in cache_files),
+    }
+
+
+def ipp_opengl_available():
+    """Check if OpenGL is available (optional)"""
+    try:
+        from OpenGL import GL
+        return True
+    except ImportError:
+        return False
+
+
 # Game Dev Math Functions
 
 def ipp_lerp(a, b, t):
@@ -3517,6 +3613,12 @@ BUILTINS = {
     "sleep": ipp_sleep,
     "clock": ipp_clock,
     "memory_info": ipp_memory_info,
+    "perf_profile": ipp_perf_profile,
+    "benchmark": ipp_benchmark,
+    "gc_stats": ipp_gc_stats,
+    "object_count": ipp_object_count,
+    "cache_info": ipp_cache_info,
+    "opengl_available": ipp_opengl_available,
     "split": ipp_split,
     "join": ipp_join,
     "upper": ipp_upper,
