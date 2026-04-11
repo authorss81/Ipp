@@ -69,7 +69,8 @@
 | **v1.5.16** | ✅ DONE | VM/Performance (for-loop in VM works, function returns, full test coverage) |
 | **v1.5.17** | ✅ DONE | Missing Features (HTML templates, f-strings, decorator @, event_loop, future, Unicode fix) |
 | **v1.5.18** | ✅ DONE | PyPI Release Polish (version bump, documentation, workflow verification) |
-| **v1.5.19** | 📋 PLANNED | TBD |
+| **v1.5.19** | 📋 PLANNED | Next Version - TBD |
+| **v1.6.0** | 📋 PLANNED | C++ Integration + Native Extensions |
 | **v1.6.1** | 📋 PLANNED | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
 | **v2.0.0** | 📋 PLANNED | Package Manager + Full Ecosystem + Game Engine |
 
@@ -666,10 +667,18 @@ Based on audit2.md findings - Critical bugs that break basic functionality:
 - [x] ROADMAP_V2.md updated with v1.5.18 status
 - [x] pyproject.toml version updated for PyPI
 - [x] Regression tests passing
+- [x] PyPI workflow verified
 
 ---
 
-## v1.5.19 — TBD 📋 PLANNED
+## v1.5.19 — Next Version 📋 PLANNED
+
+### Upcoming Features
+- TBD
+
+---
+
+## v1.6.0 — C++ Integration 📋 PLANNED
 
 ### C++ API
 - [ ] `#include "ipp.hpp"` — C++ header for embedding

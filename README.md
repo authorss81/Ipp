@@ -536,7 +536,8 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.5.16 | VM/Performance (for-loop in VM works, .cache command, wasm_run function) |
 | v1.5.17 | Missing Features (HTML templates, f-strings, decorator @, event_loop, future, Unicode fix) |
 | v1.5.18 | PyPI Release Polish (workflow fix, documentation update, regression tests) |
-| v1.5.19 | TBD |
+| v1.5.19 | Next Version - TBD |
+| v1.6.0 | C++ Integration + Native Extensions (PyBind11) |
 | v1.6.1 | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
 | v2.0.0 | Package Manager + Full Ecosystem + Game Engine |
 
