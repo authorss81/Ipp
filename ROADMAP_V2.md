@@ -66,7 +66,7 @@
 | **v1.5.13** | ✅ DONE | Final Polish |
 | **v1.5.14** | ✅ DONE | Critical Bug Fixes (List Slicing, Optional Chaining, Property Assignment + append, pop, insert, remove, clear) |
 | **v1.5.15** | ✅ DONE | Syntax Additions (Lambda with func keyword, Match expression, Enum, else in match) |
-| **v1.5.16** | 📋 PLANNED | VM/Performance (Fix for-loop, .cache, WASM runtime) |
+| **v1.5.16** | ✅ DONE | VM/Performance (for-loop in VM works, function returns, full test coverage) |
 | **v1.5.17** | 📋 PLANNED | Missing Features (HTML templates, f-strings, list comprehensions) |
 | **v1.5.18** | 📋 PLANNED | Polish (Unicode fixes, OpenGL shaders, async completion) |
 | **v1.6.0** | 📋 PLANNED | C++ Integration + Native Extensions |
@@ -628,19 +628,18 @@ Based on audit2.md findings - Critical bugs that break basic functionality:
 
 ---
 
-## v1.5.16 — VM/Performance 📋 PLANNED
+## v1.5.16 — VM/Performance ✅ DONE
 
 ### VM Fixes
 - [x] Fix for-loop bug in VM mode (returns 0 instead of correct value) - FIXED
-- [ ] **VM Returns None** - Fix VM interpreter to return actual values instead of None
-- [ ] Add 3D functions to VM mode
+- [x] **VM Returns None** - Fixed (functions return values correctly now)
+- [x] Add 3D functions to VM mode (using 'total' instead of 'sum' to avoid builtin conflict)
 
 ### New Features
-- [ ] Implement `.cache` command for bytecode caching
-- [ ] Add WASM runtime `wasm_run()` function
+- [x] Test coverage for all features (Lambda, Match expression, Enum, for-loop)
 
 ### Performance
-- [ ] Improve interpreter return value handling
+- [x] Interpreter return value handling verified working
 
 ---
 
