@@ -69,7 +69,9 @@
 | **v1.5.16** | ✅ DONE | VM/Performance (for-loop in VM works, function returns, full test coverage) |
 | **v1.5.17** | ✅ DONE | Missing Features (HTML templates, f-strings, decorator @, event_loop, future, Unicode fix) |
 | **v1.5.18** | ✅ DONE | PyPI Release Polish (version bump, documentation, workflow verification) |
-| **v1.5.19** | 📋 PLANNED | Next Version - TBD |
+| **v1.5.19** | 📋 PLANNED | Polish (OpenGL shaders, async completion) |
+| **v1.5.20** | 📋 PLANNED | Polish (further improvements) |
+| **v1.5.21** | 📋 PLANNED | Final Audit & Verification |
 | **v1.6.0** | 📋 PLANNED | C++ Integration + Native Extensions |
 | **v1.6.1** | 📋 PLANNED | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
 | **v2.0.0** | 📋 PLANNED | Package Manager + Full Ecosystem + Game Engine |
@@ -671,10 +673,33 @@ Based on audit2.md findings - Critical bugs that break basic functionality:
 
 ---
 
-## v1.5.19 — Next Version 📋 PLANNED
+## v1.5.19 — Polish 📋 PLANNED
 
-### Upcoming Features
+### Bug Fixes
+- [ ] Fix OpenGL shader compatibility (PyOpenGL legacy issue)
+- [ ] Async completion improvements
+
+### Completion
+- [ ] Final audit verification
+- [ ] Performance benchmarking
+- [ ] Documentation update
+
+---
+
+## v1.5.20 — Polish 📋 PLANNED
+
+### Further Improvements
 - TBD
+
+---
+
+## v1.5.21 — Final Audit & Verification 📋 PLANNED
+
+### Final Review
+- Complete audit verification
+- Performance benchmarking
+- Final documentation polish
+- Release readiness check
 
 ---
 
