@@ -330,6 +330,25 @@ class VM:
         from ipp.runtime.builtins import BUILTINS as _INTERP_BUILTINS
         from ipp.interpreter.interpreter import IppDict, IppList
 
+        def wasm_run(wasm_code):
+            import os as os_mod
+            if isinstance(wasm_code, str):
+                if wasm_code.endswith('.ipp'):
+                    with open(wasm_code, 'r') as f:
+                        source = f.read()
+                    from ipp.lexer.lexer import tokenize
+                    from ipp.parser.parser import parse
+                    tokens = tokenize(source)
+                    ast = parse(tokens)
+                    return self.run(ast)
+                else:
+                    from ipp.lexer.lexer import tokenize
+                    from ipp.parser.parser import parse
+                    tokens = tokenize(wasm_code)
+                    ast = parse(tokens)
+                    return self.run(ast)
+            return "wasm_run requires file path or source code"
+
         self.globals.update({
             'print': self._builtin_print,
             'len': self._builtin_len,
@@ -354,6 +373,7 @@ class VM:
             'to_float': float,
             'to_bool': bool,
             'to_string': str,
+            'wasm_run': wasm_run,
             'sqrt': math.sqrt,
             'pow': pow,
             'sin': math.sin, 'cos': math.cos, 'tan': math.tan,

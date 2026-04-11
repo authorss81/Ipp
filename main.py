@@ -669,6 +669,8 @@ def print_help():
         (".checkpoint [n]","Save checkpoint (default: 5)"),
         (".restore [n]",   "Restore checkpoint (default: latest)"),
         (".macro n exp",   "Define macro"),
+        (".cache save",    "Save bytecode cache for file"),
+        (".cache load",    "Load bytecode cache for file"),
     ]
     for cmd, desc in tools:
         c_cmd  = colour(C_CMD, cmd.ljust(16))
@@ -2414,6 +2416,49 @@ func __async_task__() {{
                 expansion = m.group(2)
                 _macros[name] = expansion
                 print(f"  {colour(C_OK, f'Macro {name} defined: {expansion}')}")
+                continue
+
+            # .cache save <file> — Save bytecode cache
+            m = re.match(r'\.cache\s+save(?:\s+(.+))?$', stripped)
+            if m:
+                filename = m.group(1) if m.group(1) else 'last.ipp'
+                try:
+                    from ipp.lexer.lexer import tokenize
+                    from ipp.parser.parser import parse
+                    from ipp.vm.compiler import compile_ast
+                    if hasattr(self, '_current_source') and self._current_source:
+                        tokens = tokenize(self._current_source)
+                        ast = parse(tokens)
+                        chunk = compile_ast(ast)
+                        cache_file = filename.replace('.ipp', '') + '.ipc'
+                        import pickle
+                        with open(cache_file, 'wb') as f:
+                            pickle.dump({
+                                'source': self._current_source,
+                                'chunk': chunk
+                            }, f)
+                        print(f"  {colour(C_OK, f'Bytecode cached to {cache_file}')}")
+                    else:
+                        print(f"  {colour(C_WARN, 'No source to cache')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
+                continue
+
+            # .cache load <file> — Load bytecode cache
+            m = re.match(r'\.cache\s+load(?:\s+(.+))?$', stripped)
+            if m:
+                filename = m.group(1) if m.group(1) else 'last.ipc'
+                try:
+                    import pickle
+                    with open(filename, 'rb') as f:
+                        data = pickle.load(f)
+                    from ipp.vm.vm import VM
+                    vm = VM()
+                    result = vm.run(data['chunk'])
+                    self.last_value = result
+                    print(f"  {colour(C_OK, f'Loaded bytecode from {filename}, result: {result}')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
                 continue
 
             # Expand macros (only for non-command inputs)

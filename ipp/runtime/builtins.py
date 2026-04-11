@@ -790,6 +790,28 @@ def ipp_group_by(lst, key_fn_name):
         result[key].append(item)
     return result
 
+def ipp_wasm_run(wasm_code):
+    """Run WASM bytecode or compile and run Ipp source"""
+    if isinstance(wasm_code, str):
+        if wasm_code.endswith('.ipp'):
+            with open(wasm_code, 'r') as f:
+                source = f.read()
+        else:
+            source = wasm_code
+        
+        from ipp.lexer.lexer import tokenize
+        from ipp.parser.parser import parse
+        from ipp.vm.compiler import compile_ast
+        from ipp.vm.vm import VM
+        
+        tokens = tokenize(source)
+        ast = parse(tokens)
+        chunk = compile_ast(ast)
+        vm = VM()
+        return vm.run(chunk)
+    return "wasm_run requires file path or source code"
+
+
 def ipp_zip_with(lst1, lst2):
     l1 = lst1.elements if hasattr(lst1, 'elements') else lst1
     l2 = lst2.elements if hasattr(lst2, 'elements') else lst2
@@ -3101,4 +3123,6 @@ BUILTINS = {
     "canvas_text": ipp_canvas_text,
     "canvas_clear": ipp_canvas_clear,
     "canvas_show": ipp_canvas_show,
+    # WASM Runtime (v1.5.16)
+    "wasm_run": ipp_wasm_run,
 }

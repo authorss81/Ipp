@@ -9,14 +9,14 @@ for i in 0..5 {
 }
 print("for loop total: " + str(total))
 
-# Test 2: function returning value in interpreter
+# Test 2: function returning value
 func add(a, b) {
     return a + b
 }
 var result = add(2, 3)
 print("function return: " + str(result))
 
-# Test 3: Lambda in interpreter
+# Test 3: Lambda
 var mul = func(x, y) => x * y
 print("lambda return: " + str(mul(4, 5)))
 
