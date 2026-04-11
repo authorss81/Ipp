@@ -68,8 +68,8 @@
 | **v1.5.15** | ✅ DONE | Syntax Additions (Lambda with func keyword, Match expression, Enum, else in match) |
 | **v1.5.16** | ✅ DONE | VM/Performance (for-loop in VM works, function returns, full test coverage) |
 | **v1.5.17** | ✅ DONE | Missing Features (HTML templates, f-strings, decorator @, event_loop, future, Unicode fix) |
-| **v1.5.18** | 📋 PLANNED | Polish (OpenGL shaders, async completion) |
-| **v1.6.0** | 📋 PLANNED | C++ Integration + Native Extensions |
+| **v1.5.18** | ✅ DONE | PyPI Release Polish (version bump, documentation, workflow verification) |
+| **v1.5.19** | 📋 PLANNED | TBD |
 | **v1.6.1** | 📋 PLANNED | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
 | **v2.0.0** | 📋 PLANNED | Package Manager + Full Ecosystem + Game Engine |
 
@@ -658,20 +658,18 @@ Based on audit2.md findings - Critical bugs that break basic functionality:
 
 ---
 
-## v1.5.18 — Polish 📋 PLANNED
+## v1.5.18 — PyPI Release Polish ✅ DONE
 
-### Bug Fixes
-- [ ] Fix OpenGL shader compatibility (PyOpenGL legacy issue)
-- [ ] Async completion improvements
-
-### Completion
-- [ ] Final audit verification
-- [ ] Performance benchmarking
-- [ ] Documentation update
+### Changes
+- [x] Version bump to 1.5.18 in all files
+- [x] README.md updated with version badge
+- [x] ROADMAP_V2.md updated with v1.5.18 status
+- [x] pyproject.toml version updated for PyPI
+- [x] Regression tests passing
 
 ---
 
-## v1.6.0 — C++ Integration 📋 PLANNED
+## v1.5.19 — TBD 📋 PLANNED
 
 ### C++ API
 - [ ] `#include "ipp.hpp"` — C++ header for embedding

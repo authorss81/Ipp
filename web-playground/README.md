@@ -87,5 +87,5 @@ python -m http.server 8080
 
 ## Version
 
-**Version**: v1.5.16  
-**Part of**: Ipp Language v1.5.16
+**Version**: v1.5.18  
+**Part of**: Ipp Language v1.5.18

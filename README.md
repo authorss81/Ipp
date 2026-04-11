@@ -2,7 +2,7 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.5.17-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.5.18-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-163+-brightgreen.svg" alt="Builtins">
@@ -535,8 +535,8 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.5.15 | Syntax Additions (Lambda with func keyword, Match expression, Enum, else in match) |
 | v1.5.16 | VM/Performance (for-loop in VM works, .cache command, wasm_run function) |
 | v1.5.17 | Missing Features (HTML templates, f-strings, decorator @, event_loop, future, Unicode fix) |
-| v1.5.18 | Polish (Unicode fixes, OpenGL shaders, async completion) - PLANNED |
-| v1.6.0 | C++ Integration + Native Extensions (PyBind11) |
+| v1.5.18 | PyPI Release Polish (workflow fix, documentation update, regression tests) |
+| v1.5.19 | TBD |
 | v1.6.1 | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
 | v2.0.0 | Package Manager + Full Ecosystem + Game Engine |
 
