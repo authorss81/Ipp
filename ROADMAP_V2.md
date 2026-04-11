@@ -637,6 +637,8 @@ Based on audit2.md findings - Critical bugs that break basic functionality:
 
 ### New Features
 - [x] Test coverage for all features (Lambda, Match expression, Enum, for-loop)
+- [x] Implement `.cache` command for bytecode caching (.cache save/load)
+- [x] Add WASM runtime `wasm_run()` function
 
 ### Performance
 - [x] Interpreter return value handling verified working

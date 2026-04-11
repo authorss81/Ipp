@@ -533,7 +533,7 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.5.13 | Final Polish (cleanup_check, perf_tips, health_check, version_info) |
 | v1.5.14 | Critical Bug Fixes (append, pop, insert, remove, clear + VM global_env fix) |
 | v1.5.15 | Syntax Additions (Lambda with func keyword, Match expression, Enum, else in match) |
-| v1.5.16 | VM/Performance (for-loop in VM works, function returns values, full test coverage) |
+| v1.5.16 | VM/Performance (for-loop in VM works, .cache command, wasm_run function) |
 | v1.5.17 | Missing Features (HTML templates, f-strings, list comprehensions) - PLANNED |
 | v1.5.18 | Polish (Unicode fixes, OpenGL shaders, async completion) - PLANNED |
 | v1.6.0 | C++ Integration + Native Extensions (PyBind11) |
