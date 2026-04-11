@@ -844,8 +844,7 @@ class Compiler:
         self.chunk.lines.append(self.current_line)
 
     def compile_set(self, node: SetExpr):
-        # FIX BUG-4: SET_PROPERTY pops value+obj. ExprStmt emits POP after,
-        # so we push NIL to give POP something to consume without corrupting locals.
+        # FIX: removed DUP — SET_PROPERTY pops both value and obj cleanly
         self.compile_expr(node.object)
         self.compile_expr(node.value)
         self.compile_set_property(node.name)

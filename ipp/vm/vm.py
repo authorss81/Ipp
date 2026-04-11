@@ -246,26 +246,23 @@ def _call_ipp_method(instance: IppInstance, method) -> Any:
     finally:
         instance._current_class = None
     return result if result is not None else f"<{instance.cls.name} instance>"
-    """Helper to call an Ipp method from Python code."""
-    from ipp.vm.vm import VM, Chunk, Closure, IppFunction
     vm = VM()
-    if isinstance(method, Chunk):
-        chunk = method
-    elif isinstance(method, Closure):
-        chunk = method.chunk
-    else:
-        raise VMError(f"Cannot call method of type {type(method).__name__}")
+    # mark instance as inside its own class so private fields work
+    instance._current_class = instance.cls
     base = len(vm.stack)
-    vm.stack.append(instance)
-    frame = VMFrame(chunk, closure=method if isinstance(method, Closure) else None, function=method, stack_base=base)
+    vm.stack.append(instance)   # slot 0 = self
+    frame = VMFrame(chunk, closure=closure, function=method, stack_base=base)
     vm.frames.append(frame)
     try:
         vm.run()
-    except:
-        pass
-    if vm.stack:
-        return vm.stack[-1]
-    return None
+        result = vm._return_value
+        if result is None and vm.stack:
+            result = vm.stack[-1]
+    except Exception:
+        result = f"<{instance.cls.name} instance>"
+    finally:
+        instance._current_class = None
+    return result if result is not None else f"<{instance.cls.name} instance>"
 
 
 class BoundMethod:

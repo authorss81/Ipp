@@ -1213,6 +1213,8 @@ _SPINNER = ['⣾','⣽','⣻','⢿','⡿','⣟','⣯','⣷']
 
 # ─── Main REPL ────────────────────────────────────────────────────────────────
 def run_repl():
+    from ipp.lexer.lexer import tokenize
+    from ipp.parser.parser import parse
     interp_manager = InterpreterManager()
     interp = interp_manager.get_interpreter()
     setup_readline(interp)
@@ -1360,6 +1362,8 @@ def run_repl():
             if m:
                 filepath = m.group(1).strip().strip('"').strip("'")
                 try:
+                    from ipp.lexer.lexer import tokenize
+                    from ipp.parser.parser import parse
                     with open(filepath, 'r', encoding='utf-8') as f:
                         source = f.read()
                     tokens = tokenize(source)
@@ -2512,8 +2516,10 @@ func __async_task__() {{
             _env_snapshots.pop(0)
         
         try:
-            tokens = tokenize(source)
-            ast = parse(tokens)
+            from ipp.lexer.lexer import tokenize as _tokenize
+            from ipp.parser.parser import parse as _parse
+            tokens = _tokenize(source)
+            ast = _parse(tokens)
             interp.run(ast)
             result_val = interp.return_value if interp.return_value is not None else interp.last_value
             interp.return_value = None
