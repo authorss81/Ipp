@@ -94,10 +94,6 @@ try {
 }
 
 print("\n=== All v1.3.2 tests passed! ===")
-# v1.3.2 Feature Tests
-# Tests for BUG-NEW-M5 (VM Upvalues by Reference) and BUG-NEW-M6 (Set type)
-=======
->>>>>>> Stashed changes
 
 print("=== v1.3.2 Bug Fix Tests ===")
 

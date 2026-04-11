@@ -1027,6 +1027,435 @@ def ipp_vec3(x=0, y=0, z=0):
     return Vector3(x, y, z)
 
 
+class Vector4:
+    """4D Vector for 3D graphics"""
+    __slots__ = ('x', 'y', 'z', 'w')
+    
+    def __init__(self, x=0, y=0, z=0, w=1):
+        self.x = float(x)
+        self.y = float(y)
+        self.z = float(z)
+        self.w = float(w)
+    
+    def __add__(self, other):
+        return Vector4(self.x + other.x, self.y + other.y, self.z + other.z, self.w + other.w)
+    
+    def __sub__(self, other):
+        return Vector4(self.x - other.x, self.y - other.y, self.z - other.z, self.w - other.w)
+    
+    def __mul__(self, scalar):
+        return Vector4(self.x * scalar, self.y * scalar, self.z * scalar, self.w * scalar)
+    
+    def __rmul__(self, scalar):
+        return Vector4(self.x * scalar, self.y * scalar, self.z * scalar, self.w * scalar)
+    
+    def __truediv__(self, scalar):
+        return Vector4(self.x / scalar, self.y / scalar, self.z / scalar, self.w / scalar)
+    
+    def dot(self, other):
+        return self.x * other.x + self.y * other.y + self.z * other.z + self.w * other.w
+    
+    def length(self):
+        return math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w)
+    
+    def normalize(self):
+        l = self.length()
+        if l == 0:
+            return Vector4(0, 0, 0, 0)
+        return Vector4(self.x / l, self.y / l, self.z / l, self.w / l)
+    
+    def to_vec3(self):
+        return Vector3(self.x, self.y, self.z)
+    
+    def __repr__(self):
+        return f"Vector4({self.x}, {self.y}, {self.z}, {self.w})"
+    
+    def __str__(self):
+        return f"Vector4({self.x}, {self.y}, {self.z}, {self.w})"
+
+
+class Matrix4:
+    """4x4 Matrix for 3D transformations"""
+    __slots__ = ('m',)
+    
+    def __init__(self, m=None):
+        if m is None:
+            self.m = [1, 0, 0, 0,  0, 1, 0, 0,  0, 0, 1, 0,  0, 0, 0, 1]
+        else:
+            self.m = list(m)
+    
+    def __getitem__(self, idx):
+        return self.m[idx]
+    
+    def __setitem__(self, idx, val):
+        self.m[idx] = val
+    
+    @staticmethod
+    def identity():
+        return Matrix4()
+    
+    def multiply(self, other):
+        a = self.m
+        b = other.m
+        result = []
+        for i in range(4):
+            for j in range(4):
+                val = a[i*4+0] * b[0*4+j] + a[i*4+1] * b[1*4+j] + a[i*4+2] * b[2*4+j] + a[i*4+3] * b[3*4+j]
+                result.append(val)
+        return Matrix4(result)
+    
+    def __mul__(self, other):
+        return self.multiply(other)
+    
+    def transform_vector(self, v):
+        x, y, z, w = v.x, v.y, v.z, v.w
+        return Vector4(
+            self.m[0]*x + self.m[1]*y + self.m[2]*z + self.m[3]*w,
+            self.m[4]*x + self.m[5]*y + self.m[6]*z + self.m[7]*w,
+            self.m[8]*x + self.m[9]*y + self.m[10]*z + self.m[11]*w,
+            self.m[12]*x + self.m[13]*y + self.m[14]*z + self.m[15]*w
+        )
+    
+    def __repr__(self):
+        return f"Matrix4([{', '.join(str(x) for x in self.m[:4])}, ...])"
+    
+    def __str__(self):
+        lines = []
+        for i in range(4):
+            row = [f"{self.m[i*4+j]:7.3f}" for j in range(4)]
+            lines.append("[" + " ".join(row) + "]")
+        return "\n".join(lines)
+
+
+def ipp_vec4(x=0, y=0, z=0, w=1):
+    return Vector4(x, y, z, w)
+
+
+def ipp_mat4():
+    return Matrix4()
+
+
+def ipp_mat4_identity():
+    return Matrix4.identity()
+
+
+def ipp_mat4_multiply(a, b):
+    if not isinstance(a, Matrix4) or not isinstance(b, Matrix4):
+        raise TypeError("Expected Matrix4 arguments")
+    return a.multiply(b)
+
+
+def ipp_mat4_perspective(fov=60, aspect=1.0, near=0.1, far=100):
+    f = 1.0 / math.tan(math.radians(fov) / 2)
+    nf = 1.0 / (near - far)
+    m = [0.0] * 16
+    m[0] = f / aspect
+    m[5] = f
+    m[10] = (far + near) * nf
+    m[11] = -1.0
+    m[14] = 2 * far * near * nf
+    return Matrix4(m)
+
+
+def ipp_mat4_look_at(eye, target, up):
+    if not isinstance(eye, Vector3):
+        eye = Vector3(eye[0], eye[1], eye[2])
+    if not isinstance(target, Vector3):
+        target = Vector3(target[0], target[1], target[2])
+    if not isinstance(up, Vector3):
+        up = Vector3(up[0], up[1], up[2])
+    
+    z_axis = (eye - target).normalize()
+    x_axis = up.cross(z_axis).normalize()
+    y_axis = z_axis.cross(x_axis).normalize()
+    
+    m = [
+        x_axis.x, y_axis.x, z_axis.x, 0,
+        x_axis.y, y_axis.y, z_axis.y, 0,
+        x_axis.z, y_axis.z, z_axis.z, 0,
+        -x_axis.dot(eye), -y_axis.dot(eye), -z_axis.dot(eye), 1
+    ]
+    return Matrix4(m)
+
+
+def ipp_mat4_translate(x=0, y=0, z=0):
+    m = Matrix4()
+    m.m[3] = float(x)
+    m.m[7] = float(y)
+    m.m[11] = float(z)
+    return m
+
+
+def ipp_mat4_rotate(angle, axis):
+    if not isinstance(axis, Vector3):
+        axis = Vector3(axis[0], axis[1], axis[2])
+    axis = axis.normalize()
+    
+    rad = math.radians(angle)
+    c = math.cos(rad)
+    s = math.sin(rad)
+    t = 1 - c
+    x, y, z = axis.x, axis.y, axis.z
+    
+    m = [
+        t*x*x + c,   t*x*y - s*z, t*x*z + s*y, 0,
+        t*x*y + s*z, t*y*y + c,   t*y*z - s*x, 0,
+        t*x*z - s*y, t*y*z + s*x, t*z*z + c,   0,
+        0,           0,           0,           1
+    ]
+    return Matrix4(m)
+
+
+def ipp_mat4_scale(x=1, y=1, z=1):
+    m = Matrix4()
+    m.m[0] = float(x)
+    m.m[5] = float(y)
+    m.m[10] = float(z)
+    return m
+
+
+class Quaternion:
+    __slots__ = ('x', 'y', 'z', 'w')
+    
+    def __init__(self, x=0, y=0, z=0, w=1):
+        self.x = float(x)
+        self.y = float(y)
+        self.z = float(z)
+        self.w = float(w)
+    
+    @staticmethod
+    def from_axis_angle(axis, angle):
+        rad = math.radians(angle) / 2
+        s = math.sin(rad)
+        return Quaternion(axis.x * s, axis.y * s, axis.z * s, math.cos(rad))
+    
+    def multiply(self, other):
+        return Quaternion(
+            self.w * other.x + self.x * other.w + self.y * other.z - self.z * other.y,
+            self.w * other.y - self.x * other.z + self.y * other.w + self.z * other.x,
+            self.w * other.z + self.x * other.y - self.y * other.x + self.z * other.w,
+            self.w * other.w - self.x * other.x - self.y * other.y - self.z * other.z
+        )
+    
+    def __mul__(self, other):
+        return self.multiply(other)
+    
+    def slerp(self, other, t):
+        dot = self.x * other.x + self.y * other.y + self.z * other.z + self.w * other.w
+        if dot < 0:
+            other = Quaternion(-other.x, -other.y, -other.z, -other.w)
+            dot = -dot
+        if dot > 0.9995:
+            return Quaternion(
+                self.x + t * (other.x - self.x),
+                self.y + t * (other.y - self.y),
+                self.z + t * (other.z - self.z),
+                self.w + t * (other.w - self.w)
+            ).normalize()
+        theta_0 = math.acos(dot)
+        theta = theta_0 * t
+        s0 = math.cos(theta) - dot * math.sin(theta) / math.sin(theta_0)
+        s1 = math.sin(theta) / math.sin(theta_0)
+        return Quaternion(
+            s0 * self.x + s1 * other.x,
+            s0 * self.y + s1 * other.y,
+            s0 * self.z + s1 * other.z,
+            s0 * self.w + s1 * other.w
+        )
+    
+    def normalize(self):
+        l = math.sqrt(self.x*self.x + self.y*self.y + self.z*self.z + self.w*self.w)
+        if l == 0:
+            return Quaternion(0, 0, 0, 1)
+        return Quaternion(self.x/l, self.y/l, self.z/l, self.w/l)
+    
+    def to_mat4(self):
+        x, y, z, w = self.x, self.y, self.z, self.w
+        x2, y2, z2 = x*x, y*y, z*z
+        xy, xz, yz = x*y, x*z, y*z
+        wx, wy, wz = w*x, w*y, w*z
+        m = [
+            1 - 2*(y2 + z2), 2*(xy + wz),   2*(xz - wy),   0,
+            2*(xy - wz),   1 - 2*(x2 + z2), 2*(yz + wx),   0,
+            2*(xz + wy),   2*(yz - wx),   1 - 2*(x2 + y2), 0,
+            0,             0,             0,             1
+        ]
+        return Matrix4(m)
+    
+    def __repr__(self):
+        return f"Quaternion({self.x:.3f}, {self.y:.3f}, {self.z:.3f}, {self.w:.3f})"
+
+
+def ipp_quat(x=0, y=0, z=0, w=1):
+    return Quaternion(x, y, z, w)
+
+
+def ipp_quat_from_axis_angle(axis, angle):
+    return Quaternion.from_axis_angle(axis, angle)
+
+
+def ipp_quat_multiply(a, b):
+    if not isinstance(a, Quaternion) or not isinstance(b, Quaternion):
+        raise TypeError("Expected Quaternion arguments")
+    return a.multiply(b)
+
+
+def ipp_quat_slerp(a, b, t):
+    if not isinstance(a, Quaternion) or not isinstance(b, Quaternion):
+        raise TypeError("Expected Quaternion arguments")
+    return a.slerp(b, t)
+
+
+def ipp_quat_to_mat4(q):
+    if not isinstance(q, Quaternion):
+        raise TypeError("Expected Quaternion argument")
+    return q.to_mat4()
+
+
+class SceneNode:
+    __slots__ = ('name', 'position', 'rotation', 'scale', 'children', 'parent')
+    
+    def __init__(self, name="node"):
+        self.name = name
+        self.position = Vector3(0, 0, 0)
+        self.rotation = Quaternion(0, 0, 0, 1)
+        self.scale = Vector3(1, 1, 1)
+        self.children = []
+        self.parent = None
+    
+    def add(self, child):
+        if isinstance(child, SceneNode):
+            child.parent = self
+            self.children.append(child)
+    
+    def remove(self, child):
+        if child in self.children:
+            child.parent = None
+            self.children.remove(child)
+    
+    def get_transform(self):
+        t = ipp_mat4_translate(self.position.x, self.position.y, self.position.z)
+        r = self.rotation.to_mat4()
+        s = ipp_mat4_scale(self.scale.x, self.scale.y, self.scale.z)
+        return ipp_mat4_multiply(ipp_mat4_multiply(t, r), s)
+    
+    def __repr__(self):
+        return f"SceneNode({self.name}, children={len(self.children)})"
+
+
+class Camera(SceneNode):
+    __slots__ = ('fov', 'aspect', 'near', 'far', 'projection')
+    
+    def __init__(self, name="camera", fov=60, aspect=1.5, near=0.1, far=100):
+        super().__init__(name)
+        self.fov = fov
+        self.aspect = aspect
+        self.near = near
+        self.far = far
+        self.projection = None
+    
+    def get_projection(self):
+        return ipp_mat4_perspective(self.fov, self.aspect, self.near, self.far)
+    
+    def get_view(self):
+        return ipp_mat4_look_at(self.position, Vector3(self.position.x, self.position.y, self.position.z - 1), Vector3(0, 1, 0))
+    
+    def __repr__(self):
+        return f"Camera({self.name}, fov={self.fov})"
+
+
+class Mesh(SceneNode):
+    __slots__ = ('vertices', 'indices', 'color')
+    
+    def __init__(self, name="mesh", vertices=None, indices=None):
+        super().__init__(name)
+        self.vertices = vertices if vertices else []
+        self.indices = indices if indices else []
+        self.color = Color(255, 255, 255)
+    
+    def __repr__(self):
+        return f"Mesh({self.name}, verts={len(self.vertices)}, indices={len(self.indices)})"
+
+
+class Light(SceneNode):
+    __slots__ = ('light_type', 'color', 'intensity')
+    
+    def __init__(self, name="light", light_type="directional", color=None, intensity=1):
+        super().__init__(name)
+        self.light_type = light_type
+        self.color = color if color else Color(255, 255, 255)
+        self.intensity = float(intensity)
+    
+    def __repr__(self):
+        return f"Light({self.name}, {self.light_type})"
+
+
+class Scene:
+    __slots__ = ('name', 'nodes', 'camera')
+    
+    def __init__(self, name="scene"):
+        self.name = name
+        self.nodes = []
+        self.camera = None
+    
+    def add(self, node):
+        if isinstance(node, (SceneNode, Camera, Mesh, Light)):
+            self.nodes.append(node)
+            return True
+        return False
+    
+    def remove(self, node):
+        if node in self.nodes:
+            self.nodes.remove(node)
+            return True
+        return False
+    
+    def set_camera(self, camera):
+        if isinstance(camera, Camera):
+            self.camera = camera
+            return True
+        return False
+    
+    def get_all_nodes(self):
+        result = list(self.nodes)
+        for node in self.nodes:
+            result.extend(self._get_children(node))
+        return result
+    
+    def _get_children(self, node):
+        result = []
+        for child in node.children:
+            result.append(child)
+            result.extend(self._get_children(child))
+        return result
+    
+    def render(self):
+        return f"Scene: {self.name}, nodes: {len(self.get_all_nodes())}, camera: {self.camera}"
+    
+    def __repr__(self):
+        return f"Scene({self.name}, nodes={len(self.nodes)})"
+
+
+def ipp_scene(name="scene"):
+    return Scene(name)
+
+
+def ipp_node(name="node"):
+    return SceneNode(name)
+
+
+def ipp_camera(name="camera", fov=60, aspect=1.5, near=0.1, far=100):
+    return Camera(name, fov, aspect, near, far)
+
+
+def ipp_mesh(name="mesh", vertices=None, indices=None):
+    return Mesh(name, vertices, indices)
+
+
+def ipp_light(name="light", light_type="directional", intensity=1):
+    return Light(name, light_type, None, intensity)
+
+
 def ipp_color(r=0, g=0, b=0, a=255):
     return Color(r, g, b, a)
 
@@ -2956,6 +3385,25 @@ BUILTINS = {
     "regex_replace": ipp_regex_replace,
     "vec2": ipp_vec2,
     "vec3": ipp_vec3,
+    "vec4": ipp_vec4,
+    "mat4": ipp_mat4,
+    "mat4_identity": ipp_mat4_identity,
+    "mat4_multiply": ipp_mat4_multiply,
+    "mat4_perspective": ipp_mat4_perspective,
+    "mat4_look_at": ipp_mat4_look_at,
+    "mat4_translate": ipp_mat4_translate,
+    "mat4_rotate": ipp_mat4_rotate,
+    "mat4_scale": ipp_mat4_scale,
+    "quat": ipp_quat,
+    "quat_from_axis_angle": ipp_quat_from_axis_angle,
+    "quat_multiply": ipp_quat_multiply,
+    "quat_slerp": ipp_quat_slerp,
+    "quat_to_mat4": ipp_quat_to_mat4,
+    "scene": ipp_scene,
+    "node": ipp_node,
+    "camera": ipp_camera,
+    "mesh": ipp_mesh,
+    "light": ipp_light,
     "color": ipp_color,
     "rect": ipp_rect,
     
