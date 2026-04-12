@@ -276,6 +276,9 @@ def ipp_pi():
 def ipp_e():
     return math.e
 
+# FIX v1.5.25: pi and e should be constants, not functions
+# This fixes the PyPI/Interpreter mode where pi was returning a function
+
 
 def ipp_input(prompt=""):
     return input(prompt)
@@ -3700,8 +3703,8 @@ BUILTINS = {
     "acos": ipp_acos,
     "atan": ipp_atan,
     "atan2": ipp_atan2,
-    "pi": ipp_pi,
-    "e": ipp_e,
+    "pi": math.pi,    # FIX v1.5.25: use constant, not function
+    "e": math.e,      # FIX v1.5.25: use constant, not function
     "input": ipp_input,
     "exit": ipp_exit,
     "assert": ipp_assert,

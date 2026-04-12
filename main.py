@@ -210,7 +210,7 @@ def _serve_accept_loop(server_socket):
     
     def handle_client(client_socket, addr):
         try:
-            client_socket.send(b"Ipp REPL v1.5.24\r\nType 'exit' to quit\r\n\r\n")
+            client_socket.send(b"Ipp REPL v1.5.25\r\nType 'exit' to quit\r\n\r\n")
             while True:
                 client_socket.send(b">>> ")
                 data = client_socket.recv(1024).decode().strip()

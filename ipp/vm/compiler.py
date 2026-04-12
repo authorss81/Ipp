@@ -247,7 +247,9 @@ class Compiler:
                 # compile method body as a sub-chunk
                 sub = Compiler(parent=self)
                 sub.depth = 1
-                sub.define_local("self")
+                # FIX v1.5.25: Skip 'self' for static methods
+                if not method.is_static:
+                    sub.define_local("self")
                 for param in method.parameters:
                     sub.define_local(param)
                 for stmt in method.body:

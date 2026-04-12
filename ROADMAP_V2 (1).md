@@ -261,7 +261,7 @@ assert str(Token("NUM", 42)) == "NUM:42"
 
 ---
 
-### v1.5.25 — Fix: Static Methods Inaccessible on Class
+### v1.5.25 — Fix: Static Methods Inaccessible on Class (DONE)
 
 **Symptom:** `MyClass.static_method()` crashes: `VMError: Property 'square' not found on IppClass`.
 

@@ -849,6 +849,14 @@ class VM:
             obj = self.stack[-1]
             if isinstance(obj, IppInstance):
                 self.stack[-1] = obj.get(name)
+            elif isinstance(obj, IppClass):
+                # FIX v1.5.25: Static methods on class
+                method = obj.get_method(name)
+                if method is not None:
+                    # Wrap as BoundMethod with instance=None for static dispatch
+                    self.stack[-1] = BoundMethod(None, method)
+                else:
+                    raise VMError(f"Class '{obj.name}' has no static member '{name}'")
             elif isinstance(obj, dict) and name in obj:
                 self.stack[-1] = obj[name]
             elif hasattr(obj, name):
@@ -1338,7 +1346,21 @@ class VM:
             raise VMError(f"Maximum recursion depth ({self.max_depth}) exceeded")
 
         if isinstance(callee, BoundMethod):
-            self._call_method(callee.instance, callee.method, args, return_frame)
+            # FIX v1.5.25: Handle static methods (instance=None)
+            if callee.instance is None:
+                # Static: call without injecting self
+                if isinstance(callee.method, Closure):
+                    chunk = callee.method.chunk
+                    base = len(self.stack)
+                    for a in args:
+                        self.stack.append(a)
+                    new_frame = VMFrame(chunk, closure=callee.method, stack_base=base)
+                    self.frames.append(new_frame)
+                else:
+                    # IppFunction or Chunk - use generic call
+                    self._call(callee.method, args, return_frame)
+            else:
+                self._call_method(callee.instance, callee.method, args, return_frame)
             return
 
         if isinstance(callee, IppClass):
