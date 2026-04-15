@@ -270,6 +270,9 @@ class ExceptionHandler:
 _SUSPEND = object()
 _RETURN_FRAME = object()
 
+# Opcode lookup cache - v1.5.26 fix for VM performance
+_OPCODE_CACHE = {}
+
 
 class VM:
     """
@@ -601,10 +604,14 @@ class VM:
                 break
 
             raw = frame.chunk.code[frame.ip]
-            try:
-                opcode = OpCode(raw)
-            except ValueError:
-                raise VMError(f"Unknown opcode {raw} at ip={frame.ip}")
+            # FIX v1.5.26: Cache opcode lookups instead of enum each time
+            opcode = _OPCODE_CACHE.get(raw)
+            if opcode is None:
+                try:
+                    opcode = OpCode(raw)
+                    _OPCODE_CACHE[raw] = opcode
+                except ValueError:
+                    raise VMError(f"Unknown opcode {raw} at ip={frame.ip}")
 
             if self.profiler.enabled:
                 self.profiler.record_opcode(opcode)

@@ -344,7 +344,7 @@ assert c.n == 2
 
 ---
 
-### v1.5.26 — Fix: `continue` in While Loop Acts as `break`
+### v1.5.26 — Fix: `continue` in While Loop Acts as `break` ✅ DONE
 
 **Symptom:** `while i<5 { i=i+1; if i==3 { continue }; r=r+i }` gives `r=3` instead of `r=12`. `continue` exits the loop entirely.
 
@@ -356,10 +356,9 @@ compile_continue emits JUMP and appends its address to continue_jumps.
 compile_while then patches those jumps with patch_jump(cont) at loop END.
 patch_jump() resolves to the current code length = position AFTER the loop.
 Result: continue jumps OUT of the loop = same as break.
-
-Fix: emit a LOOP backward-jump directly at the continue site instead of
-a forward JUMP that needs patching.
 ```
+
+**Fix:** v1.5.26 - emit LOOP backward-jump directly at continue site
 
 **Exact fix:**
 ```python

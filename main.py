@@ -73,7 +73,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "1.5.23"
+VERSION = "1.5.26"
 
 # ─── Windows ANSI enablement ──────────────────────────────────────────────────
 # Windows 10 supports ANSI but requires ENABLE_VIRTUAL_TERMINAL_PROCESSING.
@@ -576,7 +576,10 @@ def _balanced(src: str) -> bool:
     while i < len(src):
         c = src[i]
         if c == '\\' and (in_str or in_sq):
-            i += 2; continue
+            if i + 1 >= len(src):
+                return False
+            i += 2
+            continue
         if c == '"' and not in_sq: in_str = not in_str
         elif c == "'" and not in_str: in_sq = not in_sq
         elif not in_str and not in_sq:
@@ -587,7 +590,7 @@ def _balanced(src: str) -> bool:
                 if opens[stack[-1]] != c: return False
                 stack.pop()
         i += 1
-    return len(stack) == 0
+    return len(stack) == 0 and not in_str and not in_sq
 
 def _needs_more(src: str) -> bool:
     src = src.strip()
@@ -2496,12 +2499,16 @@ func __async_task__() {{
         buf.append(raw)
         source = '\n'.join(buf)
 
+        # Force execute after too many continuation lines (prevent infinite multiline stuck)
+        if len(buf) > 10:
+            pass  # Force execute
+
         # Multi-line paste detection: if source has multiple complete statements
         # Auto-execute if it looks like a paste (multiple newlines, no continuation)
-        if len(buf) > 1 and not _needs_more(source):
+        elif len(buf) > 1 and not _needs_more(source):
             pass  # Will execute normally
 
-        if _needs_more(source):
+        elif _needs_more(source):
             continue
 
         # ── Execute ───────────────────────────────────────────────────

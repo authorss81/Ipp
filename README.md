@@ -543,7 +543,7 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.5.23 | Emergency Fixes (let immutability) |
 | v1.5.24 | Emergency Fixes (__str__ method) |
 | v1.5.25 | Emergency Fixes (static methods) |
-| v1.5.26 | Emergency Fixes (continue in while) |
+| v1.5.26 | Emergency Fixes (continue in while/for loops + VM perf) |
 | v1.6.0 | C++ Integration + Native Extensions (PyBind11) |
 | v1.6.1 | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
 | v2.0.0 | Package Manager + Full Ecosystem + Game Engine |

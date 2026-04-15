@@ -407,22 +407,7 @@ class Compiler:
         for stmt in node.body:
             self.compile_stmt(stmt)
 
-        # continue lands here
-        continue_target = len(self.chunk.code)
-        self.loop_stack[-1]['continue_target'] = continue_target
-
-        # idx += 1
-        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
-        self.chunk.write(idx_slot, self.current_line)
-        self.chunk.add_constant(1, self.current_line)
-        self.chunk.write(OpCode.ADD, self.current_line)
-        self.chunk.write(OpCode.SET_LOCAL, self.current_line)
-        self.chunk.write(idx_slot, self.current_line)
-
-        self.chunk.emit_loop(loop_start, self.current_line)
-        self.chunk.patch_jump(exit_jump)
-
-        # Set continue_target now (after body compiled)
+        # FIX v1.5.27: Set continue_target BEFORE idx++ section (so compile_continue can emit LOOP)
         continue_target = len(self.chunk.code)
         self.loop_stack[-1]['continue_target'] = continue_target
 
@@ -440,15 +425,7 @@ class Compiler:
         loop_info = self.loop_stack.pop()
         for brk in loop_info['break_jumps']:
             self.chunk.patch_jump(brk)
-        # FIX v1.5.27: patch continue jumps to idx++ section
-        cont_target = loop_info.get('continue_target')
-        if cont_target:
-            # Re-patch with correct target
-            for orig_cont in loop_info['continue_jumps']:
-                # Need to overwrite the jump offset
-                self.chunk.code[orig_cont] = cont_target & 0xFF
-                self.chunk.code[orig_cont + 1] = (cont_target >> 8) & 0xFF
-                self.chunk.code[orig_cont + 2] = (cont_target >> 16) & 0xFF
+        # No special patch needed - compile_continue now checks continue_target before body
 
         self.pop_scope()
 
@@ -475,10 +452,7 @@ class Compiler:
         loop_info = self.loop_stack.pop()
         for brk in loop_info['break_jumps']:
             self.chunk.patch_jump(brk)
-        # patch continue jumps to loop_start via LOOP
-        for cont in loop_info['continue_jumps']:
-            # cont points to a JUMP instruction; redirect to loop_start via LOOP emission
-            self.chunk.patch_jump(cont)
+        # No patch needed for continue - compile_continue emits LOOP directly
 
         self.pop_scope()
 

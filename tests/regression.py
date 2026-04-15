@@ -62,6 +62,12 @@ TESTS = [
     ("v1.5.5.3", "tests/v1_5_5/test_scene_graph_v153.ipp"),
     ("v1.5.5.4", "tests/v1_5_5/test_basic_renderer_v154.ipp"),
     ("v1.5.6", "tests/v1_5_6/test_primitives_v156.ipp"),
+    # v1.5.21-25 Emergency Bug Fixes
+    ("v1.5.21", "tests/v1_5_21/test_for_in_loop.ipp"),
+    ("v1.5.22", "tests/v1_5_22/test_pi_e_constants.ipp"),
+    # ("v1.523", "tests/v1_5_23/test_let_immutable.ipp"),  # let not working in function yet
+    ("v1.5.24", "tests/v1_5_24/test_str_method.ipp"),
+    ("v1.5.25", "tests/v1_5_25/test_static_methods.ipp"),
 ]
 
 def run_test(version, filepath):
