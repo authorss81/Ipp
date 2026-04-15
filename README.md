@@ -2,7 +2,7 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.5.21-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.5.29-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-163+-brightgreen.svg" alt="Builtins">
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.5.28** includes Emergency Bug Fixes: For-in loop, pi/e constants, let immutability, __str__ method, static methods, continue in loops, and MultiVarDecl.
+**v1.5.29** includes Emergency Bug Fixes: For-in loop, pi/e constants, let immutability, __str__ method, static methods, continue in loops, and MultiVarDecl.
 
 ---
 
@@ -546,7 +546,7 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.5.26 | Emergency Fixes (continue in while/for loops + VM perf) |
 | v1.5.27 | Emergency Fixes (continue in for-in loops) |
 | v1.5.28 | Emergency Fixes (MultiVarDecl in VM) |
-| v1.5.29 | Emergency Fixes (list comprehension) |
+| v1.5.29 | Fixes (list comprehension in interpreter) |
 | v1.5.30 | Emergency Fixes (dict comprehension) |
 | v1.5.31 | Emergency Fixes (global cache hash collision) |
 | v1.5.32 | Emergency Fixes (SET_INDEX stack fix) |

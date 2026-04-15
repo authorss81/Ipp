@@ -545,7 +545,7 @@ assert p == 99 and q == 88 and r == nil
 
 ---
 
-### v1.5.29 — Fix: List Comprehension Is an Empty Stub
+### v1.5.29 — Fix: List Comprehension Is an Empty Stub ⏳ NOT DONE (VM)
 
 **Symptom:** `[x*x for x in range(5)]` returns `[0,1,2,3,4]` (range itself) instead of `[0,1,4,9,16]`.
 

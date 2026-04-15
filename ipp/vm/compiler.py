@@ -965,15 +965,94 @@ class Compiler:
 
     def compile_list_comprehension(self, node: ListComprehension):
         # [elem for var in iter if cond]
-        # Push empty list, iterate, append
+        # Full implementation per v1.5.29 roadmap
+        
+        # Compile iterator first
+        self.compile_expr(node.iterator)
+        list_slot = self.define_local("__src_list")
+        
+        # Empty result list
         self.chunk.write(OpCode.LIST, self.current_line)
         self.chunk.write(0, self.current_line)
-
-        self.push_scope()
-        self.compile_expr(node.iterator)
-        # Simplified: use runtime support via a special "for" bytecode pattern
-        # For now defer to interpreter path for comprehensions
-        # (VM comprehension support is a Phase-4 improvement)
+        result_slot = self.define_local("__result")
+        
+        # idx = 0
+        self.chunk.add_constant(0, self.current_line)
+        idx_slot = self.define_local("__idx")
+        
+        # DEFINE loop variable ONCE before loop
+        var_slot = self.define_local(node.variable)
+        
+        loop_start = len(self.chunk.code)
+        
+        # bounds: idx < len(src)
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(list_slot, self.current_line)
+        
+        self.compile_identifier("len")
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(list_slot, self.current_line)
+        self.chunk.write(OpCode.CALL, self.current_line)
+        self.chunk.write(1, self.current_line)
+        
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(idx_slot, self.current_line)
+        self.chunk.write(OpCode.LESS, self.current_line)
+        exit_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+        
+        # element = src[idx]
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(list_slot, self.current_line)
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(idx_slot, self.current_line)
+        self.chunk.write(OpCode.GET_INDEX, self.current_line)
+        
+        # Store element to local var (the GET_INDEX result is on stack)
+        self.chunk.write(OpCode.SET_LOCAL, self.current_line)
+        self.chunk.write(var_slot, self.current_line)
+        
+        # Compile element expression - this reads from locals via GET below
+        self.compile_expr(node.element)
+        
+        # After compile_expr, result is on stack
+        # Save to temp to use after get result list
+        temp_slot = self.define_local("__temp")
+        self.chunk.write(OpCode.SET_LOCAL, self.current_line)
+        self.chunk.write(temp_slot, self.current_line)
+        
+        # Get result list
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(result_slot, self.current_line)
+        
+        # Get element back  
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(temp_slot, self.current_line)
+        
+        # Call append(result, element)
+        append_idx = len(self.chunk.constants)
+        self.chunk.constants.append("append")
+        self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
+        self.chunk.write(append_idx, self.current_line)
+        
+        self.chunk.write(OpCode.CALL, self.current_line)
+        self.chunk.write(2, self.current_line)
+        
+        # idx++
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(idx_slot, self.current_line)
+        self.chunk.add_constant(1, self.current_line)
+        self.chunk.write(OpCode.ADD, self.current_line)
+        self.chunk.write(OpCode.SET_LOCAL, self.current_line)
+        self.chunk.write(idx_slot, self.current_line)
+        
+        # Loop back
+        self.chunk.emit_loop(loop_start, self.current_line)
+        self.chunk.patch_jump(exit_jump)
+        
+        # Return result
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(result_slot, self.current_line)
+        
         self.pop_scope()
 
     def compile_dict_comprehension(self, node: DictComprehension):

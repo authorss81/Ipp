@@ -359,6 +359,7 @@ class VM:
             'wasm_run': wasm_run,
             'sqrt': math.sqrt,
             'pow': pow,
+            'append': lambda lst, item: lst.append(item),
             'sin': math.sin, 'cos': math.cos, 'tan': math.tan,
             'log': math.log, 'log10': math.log10,
             'floor': math.floor, 'ceil': math.ceil,
