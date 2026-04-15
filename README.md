@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.5.25** includes Emergency Bug Fixes: For-in loop, pi/e constants, let immutability, __str__ method, and static methods on classes.
+**v1.5.28** includes Emergency Bug Fixes: For-in loop, pi/e constants, let immutability, __str__ method, static methods, continue in loops, and MultiVarDecl.
 
 ---
 
@@ -544,6 +544,8 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.5.24 | Emergency Fixes (__str__ method) |
 | v1.5.25 | Emergency Fixes (static methods) |
 | v1.5.26 | Emergency Fixes (continue in while/for loops + VM perf) |
+| v1.5.27 | Emergency Fixes (continue in for-in loops) |
+| v1.5.28 | Emergency Fixes (MultiVarDecl in VM) |
 | v1.6.0 | C++ Integration + Native Extensions (PyBind11) |
 | v1.6.1 | Cross-Platform (iOS, macOS, Linux, Windows Installer) |
 | v2.0.0 | Package Manager + Full Ecosystem + Game Engine |
