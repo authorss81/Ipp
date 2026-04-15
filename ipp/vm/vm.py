@@ -767,6 +767,10 @@ class VM:
         elif opcode == OpCode.SET_GLOBAL:
             idx = code[ip + 1]
             name = constants[idx]
+            # FIX v1.5.23: Check for const global
+            const_globals = getattr(frame.chunk, 'const_globals', None)
+            if const_globals and name in const_globals:
+                raise VMError(f"Cannot reassign immutable 'let' variable: {name}")
             val = self.stack[-1] if self.stack else None
             self.globals[name] = val
             self._global_cache.set(hash(name), val)

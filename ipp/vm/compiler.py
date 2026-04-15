@@ -189,6 +189,12 @@ class Compiler:
             self.chunk.constants.append(node.name)
             self.chunk.write(idx, self.current_line)
             self.chunk.lines.append(self.current_line)
+            # FIX v1.5.23: track global const for immutability
+            if is_const:
+                # For global let, track as const global by name
+                if not hasattr(self.chunk, 'const_globals'):
+                    self.chunk.const_globals = set()
+                self.chunk.const_globals.add(node.name)
 
     # ─── Function compilation ─────────────────────────────────────────────────
 
