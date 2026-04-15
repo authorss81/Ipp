@@ -133,6 +133,8 @@ class Compiler:
             self.compile_var_decl(node, is_const=False)
         elif isinstance(node, LetDecl):
             self.compile_var_decl(node, is_const=True)
+        elif isinstance(node, MultiVarDecl):
+            self.compile_multi_var_decl(node)
         elif isinstance(node, FunctionDecl):
             self.compile_function(node)
         elif isinstance(node, ClassDecl):
@@ -195,6 +197,50 @@ class Compiler:
                 if not hasattr(self.chunk, 'const_globals'):
                     self.chunk.const_globals = set()
                 self.chunk.const_globals.add(node.name)
+
+    def compile_multi_var_decl(self, node: MultiVarDecl):
+        """var a, b, c = [1, 2, 3] — destructure list into named vars"""
+        # Compile the initializer (list) - pushes list to stack
+        self.compile_expr(node.initializer)
+        
+        # Save the list to a temp local for indexing
+        if self.depth > 0:
+            temp_slot = self.define_local("__multivar_temp__")
+        else:
+            # For global: store in global
+            self.chunk.write(OpCode.DEFINE_GLOBAL, self.current_line)
+            idx = len(self.chunk.constants)
+            self.chunk.constants.append("__multivar_temp__")
+            self.chunk.write(idx, self.current_line)
+            self.chunk.lines.append(self.current_line)
+            temp_slot = None
+
+        # Now destructure each element into its variable
+        for i, name in enumerate(node.names):
+            # Get list[i]
+            if temp_slot is not None:
+                self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+                self.chunk.write(temp_slot, self.current_line)
+            else:
+                self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
+                idx = len(self.chunk.constants)
+                self.chunk.constants.append("__multivar_temp__")
+                self.chunk.write(idx, self.current_line)
+                self.chunk.lines.append(self.current_line)
+            
+            # Push index
+            self.chunk.add_constant(i, self.current_line)
+            self.chunk.write(OpCode.GET_INDEX, self.current_line)
+            
+            # Define variable
+            if self.depth > 0:
+                self.define_local(name)
+            else:
+                self.chunk.write(OpCode.DEFINE_GLOBAL, self.current_line)
+                idx = len(self.chunk.constants)
+                self.chunk.constants.append(name)
+                self.chunk.write(idx, self.current_line)
+                self.chunk.lines.append(self.current_line)
 
     # ─── Function compilation ─────────────────────────────────────────────────
 
