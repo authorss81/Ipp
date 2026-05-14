@@ -20,6 +20,7 @@ print("v3:", next(gen))
 print("v4:", next(gen))
 print("v5:", next(gen))
 print("v6:", next(gen))
+gen = count_up()
 assert next(gen) == 0
 assert next(gen) == 1
 assert next(gen) == 2

@@ -319,6 +319,7 @@ class WhileStmt(ASTNode):
 class DoWhileStmt(ASTNode):
     body: List[ASTNode]
     condition: ASTNode
+    is_until: bool = False  # True for repeat..until (exit when TRUE), False for do..while (exit when FALSE)
     def accept(self, visitor): return visitor.visit_do_while_stmt(self)
 
 @dataclass

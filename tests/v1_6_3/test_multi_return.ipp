@@ -42,6 +42,6 @@ assert c1 == 1 and c2 == 2 and c3 == 3
 # Test in nested assignment
 var first, second = divmod(100, 7)
 var third = first + second
-assert third == 16 + 2
+assert third == 14 + 2
 
 print("v1.6.3: Multiple return values tests PASSED")

@@ -284,7 +284,7 @@ class BoundMethod:
 
 class IppList:
     def __init__(self, elements=None):
-        self.elements = elements or []
+        self.elements = list(elements) if elements is not None else []
     
     def __repr__(self):
         return f"[{', '.join(repr(e) for e in self.elements)}]"
@@ -297,6 +297,19 @@ class IppList:
     
     def __getitem__(self, key):
         return self.elements[key]
+    
+    def __setitem__(self, key, value):
+        self.elements[key] = value
+    
+    def __eq__(self, other):
+        if isinstance(other, IppList):
+            return self.elements == other.elements
+        if isinstance(other, list):
+            return self.elements == other
+        return NotImplemented
+    
+    def __hash__(self):
+        return None  # unhashable like list
     
     def append(self, item):
         self.elements.append(item)

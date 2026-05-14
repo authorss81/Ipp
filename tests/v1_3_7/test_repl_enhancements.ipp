@@ -33,7 +33,7 @@ for i in 0..1000 {
 }
 var elapsed = time() - start
 print("Sum:", sum, "Time:", elapsed)
-assert sum == 500500
+assert sum == 499500
 print("Sum 0..999:", sum)
 print("Elapsed:", elapsed, "seconds")
 

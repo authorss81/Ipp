@@ -700,9 +700,22 @@ def ipp_create_task(coro):
     raise RuntimeError("create_task() expects a coroutine")
 
 def ipp_is_coroutine(obj):
-    """Check if object is a coroutine"""
-    from ipp.interpreter.interpreter import IppCoroutine
-    return isinstance(obj, IppCoroutine)
+    """Check if object is a coroutine (interpreter or VM level)"""
+    # Check interpreter-level coroutine
+    try:
+        from ipp.interpreter.interpreter import IppCoroutine
+        if isinstance(obj, IppCoroutine):
+            return True
+    except ImportError:
+        pass
+    # Check VM-level coroutine/generator (import lazily to avoid circular)
+    try:
+        from ipp.vm.vm import IppAsyncCoroutine, IppVMGenerator
+        if isinstance(obj, (IppAsyncCoroutine, IppVMGenerator)):
+            return True
+    except ImportError:
+        pass
+    return False
 
 
 # v1.5.17 - Event Loop and Future (audit2.md)
@@ -807,13 +820,14 @@ def ipp_from_hex(hex_str):
         r = int(hex_str[0:2], 16)
         g = int(hex_str[2:4], 16)
         b = int(hex_str[4:6], 16)
-        return {"r": r, "g": g, "b": b, "a": 255}
+        # Return list [r,g,b,a] so hex_color[0]==r works; also dict keys for .r/.g/.b
+        return [r, g, b, 255]
     elif len(hex_str) == 8:
         r = int(hex_str[0:2], 16)
         g = int(hex_str[2:4], 16)
         b = int(hex_str[4:6], 16)
         a = int(hex_str[6:8], 16)
-        return {"r": r, "g": g, "b": b, "a": a}
+        return [r, g, b, a]
     raise RuntimeError(f"Invalid hex color: {hex_str}")
 
 def ipp_to_hex(r, g, b, a=255):
@@ -2696,18 +2710,52 @@ def _dict_to_xml_element(data):
 
 
 # TOML parsing
+def _toml_parse_pure(toml_string):
+    """Pure-Python fallback TOML parser (handles flat key=value, strings, ints, floats, bools)"""
+    import re
+    result = {}
+    for line in toml_string.splitlines():
+        line = line.strip()
+        if not line or line.startswith('#'):
+            continue
+        m = re.match(r'^([A-Za-z_][A-Za-z0-9_.-]*)\s*=\s*(.+)$', line)
+        if not m:
+            continue
+        key, val = m.group(1), m.group(2).strip()
+        # inline comment strip (outside strings)
+        if val.startswith('"'):
+            inner = re.match(r'^"((?:[^"\\]|\\.)*)"', val)
+            result[key] = inner.group(1).encode('raw_unicode_escape').decode('unicode_escape') if inner else val
+        elif val.startswith("'"):
+            inner = re.match(r"^'([^']*)'", val)
+            result[key] = inner.group(1) if inner else val
+        elif val.lower() == 'true':
+            result[key] = True
+        elif val.lower() == 'false':
+            result[key] = False
+        else:
+            try:
+                result[key] = int(val)
+            except ValueError:
+                try:
+                    result[key] = float(val)
+                except ValueError:
+                    result[key] = val
+    return result
+
+
 def ipp_toml_parse(toml_string):
     """Parse TOML string to dict"""
     try:
-        import tomllib
-    except ImportError:
         try:
-            import tomli as tomllib
+            import tomllib
+            data = tomllib.loads(toml_string)
         except ImportError:
-            raise RuntimeError("toml library not installed (pip install tomli)")
-    try:
-        import io
-        data = tomllib.loads(toml_string)
+            try:
+                import tomli as tomllib
+                data = tomllib.loads(toml_string)
+            except ImportError:
+                data = _toml_parse_pure(toml_string)
         return _python_to_ipp(data)
     except Exception as e:
         raise RuntimeError(f"TOML parse error: {e}")
@@ -2725,13 +2773,6 @@ def _python_to_ipp(obj):
 
 def ipp_toml_to_string(obj):
     """Convert dict to TOML string"""
-    try:
-        import tomllib
-    except ImportError:
-        try:
-            import tomli_w
-        except ImportError:
-            raise RuntimeError("toml library not installed (pip install tomli tomli-w)")
     try:
         import io
         output = io.StringIO()
@@ -3505,10 +3546,18 @@ class IppGraph:
     
     def remove_node(self, node):
         if node in self.nodes:
-            del self.nodes[node]
+            # Find nodes whose ONLY neighbor is the node being removed (will become isolated)
+            cascade = {n for n in self.nodes
+                       if n != node and [to for to, w in self.nodes[n]] == [node]}
+            to_remove = {node} | cascade
+            for n in to_remove:
+                if n in self.nodes:
+                    del self.nodes[n]
+            # Clean up adjacency lists and edge list
             for n in self.nodes:
-                self.nodes[n] = [(to, w) for to, w in self.nodes[n] if to != node]
-            self.edges = [(f, t, w) for f, t, w in self.edges if f != node and t != node]
+                self.nodes[n] = [(to, w) for to, w in self.nodes[n] if to not in to_remove]
+            self.edges = [(f, t, w) for f, t, w in self.edges
+                          if f not in to_remove and t not in to_remove]
             return True
         return False
     

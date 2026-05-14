@@ -23,7 +23,7 @@ var r5 = format("Value: {}", 42)
 assert r5 == "Value: 42"
 
 # Test string.format() method with positional args
-var r6 = "Hello {}".format("World")
+var r6 = "Hello {}!".format("World")
 assert r6 == "Hello World!"
 
 # Test string.format() method with named args (v1.6.13 key feature)

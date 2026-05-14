@@ -26,15 +26,17 @@ class FunctionProto:
       - is_local=True  → capture slot `index` from the enclosing frame's locals
       - is_local=False → inherit upvalue `index` from the enclosing closure
     """
-    __slots__ = ('chunk', 'upvalue_descs', 'name', 'variadic_param', 'is_async')
+    __slots__ = ('chunk', 'upvalue_descs', 'name', 'variadic_param', 'is_async', 'param_names')
 
     def __init__(self, chunk: Chunk, upvalue_descs: List[Tuple[bool, int]],
-                 name: str = '<fn>', variadic_param: str = None, is_async: bool = False):
+                 name: str = '<fn>', variadic_param: str = None, is_async: bool = False,
+                 param_names: list = None):
         self.chunk = chunk
         self.upvalue_descs = upvalue_descs
         self.name = name
         self.variadic_param = variadic_param
         self.is_async = is_async
+        self.param_names = param_names or []
 
     def __repr__(self):
         return f"<proto {self.name} upvalues={self.upvalue_descs}>"
@@ -260,12 +262,37 @@ class Compiler:
             sub.define_local("self")
 
         variadic_param = None
+        param_slots = []
         for param in node.parameters:
             if param.startswith("..."):
                 variadic_param = param[3:]
-                sub.define_local(variadic_param)
+                slot = sub.define_local(variadic_param)
             else:
-                sub.define_local(param)
+                slot = sub.define_local(param)
+            param_slots.append(slot)
+
+        # FIX: emit default value guards at function entry
+        # For each param with a default: if param_slot is nil, assign default
+        defaults = getattr(node, 'defaults', None) or []
+        start_idx = 1 if is_method else 0  # skip 'self' slot
+        for i, default_expr in enumerate(defaults):
+            if default_expr is None:
+                continue
+            param_idx = start_idx + i
+            if param_idx >= len(param_slots):
+                break
+            slot = param_slots[param_idx] if not is_method else param_slots[i]
+            # if slot == nil: slot = default_expr
+            sub.chunk.write(OpCode.GET_LOCAL, sub.current_line)
+            sub.chunk.write(slot, sub.current_line)
+            sub.chunk.write(OpCode.NIL, sub.current_line)
+            sub.chunk.write(OpCode.EQUAL, sub.current_line)
+            skip_jump = sub.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, sub.current_line)
+            sub.compile_expr(default_expr)
+            sub.chunk.write(OpCode.SET_LOCAL, sub.current_line)
+            sub.chunk.write(slot, sub.current_line)
+            sub.chunk.write(OpCode.POP, sub.current_line)
+            sub.chunk.patch_jump(skip_jump)
 
         for stmt in node.body:
             sub.compile_stmt(stmt)
@@ -277,7 +304,13 @@ class Compiler:
             sub.chunk.write(OpCode.RETURN_VAL, self.current_line)
 
         func_chunk = sub.chunk
-        proto = FunctionProto(func_chunk, sub.upvalues, name=node.name, variadic_param=variadic_param, is_async=is_async)
+        # Store param names for named-arg dispatch at call sites
+        _param_names = [p.lstrip('.') for p in node.parameters]
+        if is_method and _param_names and _param_names[0] == 'self':
+            _param_names = _param_names[1:]  # exclude 'self'
+        proto = FunctionProto(func_chunk, sub.upvalues, name=node.name,
+                              variadic_param=variadic_param, is_async=is_async,
+                              param_names=_param_names)
         idx = len(self.chunk.constants)
         self.chunk.constants.append(proto)
         
@@ -438,7 +471,7 @@ class Compiler:
         """
         self.push_scope()
 
-        # slot 0: iterator list
+        # slot 0: iterator list (generators are coerced to list at runtime via GET_LOCAL/len)
         self.compile_expr(node.iterator)
         list_slot = self.define_local("__for_iter__")
 
@@ -487,6 +520,7 @@ class Compiler:
         if var_slot is not None:
             self.chunk.write(OpCode.SET_LOCAL, self.current_line)
             self.chunk.write(var_slot, self.current_line)
+            self.chunk.write(OpCode.POP, self.current_line)  # FIX: SET_LOCAL doesn't pop; clear TOS
         else:
             self.chunk.write(OpCode.POP, self.current_line)
 
@@ -505,6 +539,7 @@ class Compiler:
         self.chunk.write(OpCode.ADD, self.current_line)
         self.chunk.write(OpCode.SET_LOCAL, self.current_line)
         self.chunk.write(idx_slot, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)  # FIX: SET_LOCAL peeks; pop the leaked idx+1
 
         self.chunk.emit_loop(loop_start, self.current_line)
         self.chunk.patch_jump(exit_jump)
@@ -561,7 +596,11 @@ class Compiler:
         self.loop_stack[-1]['continue_target'] = continue_target
 
         self.compile_expr(node.condition)
-        exit_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+        # repeat..until exits when condition is TRUE; do..while exits when FALSE
+        if getattr(node, 'is_until', False):
+            exit_jump = self.chunk.emit_jump(OpCode.JUMP_IF_TRUE_POP, self.current_line)
+        else:
+            exit_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
 
         self.chunk.emit_loop(loop_start, self.current_line)
         self.chunk.patch_jump(exit_jump)
@@ -649,24 +688,53 @@ class Compiler:
         skip_catch = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
         self.chunk.patch_jump(try_jump)
 
-        # Multiple catch blocks - v1.6.1: catches is list of (catch_type, catch_var, catch_body)
+        # Multiple catch blocks with optional type matching
+        end_jumps = []
         for i, catch_info in enumerate(node.catches):
             catch_type = catch_info[0] if len(catch_info) > 0 else None
             catch_var = catch_info[1] if len(catch_info) > 1 else None
             catch_body = catch_info[2] if len(catch_info) > 2 else []
             self.push_scope()
             slot = None
+
+            if catch_type:
+                # FIX v1.6.1: typed catch — check if TOS (exception) matches type name
+                # Stack has exception on top. Push type name, call MATCH_EXC_TYPE.
+                # MATCH_EXC_TYPE: peeks exc, pops type_str, pushes bool. exc remains on stack.
+                type_idx = len(self.chunk.constants)
+                self.chunk.constants.append(catch_type)
+                self.chunk.write(OpCode.CONSTANT, self.current_line)
+                self.chunk.write(type_idx, self.current_line)
+                self.chunk.lines.append(self.current_line)
+                # Stack: [exc, type_str] → MATCH_EXC_TYPE → [exc, bool]
+                self.chunk.write(OpCode.MATCH_EXC_TYPE, self.current_line)
+                next_catch = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+            else:
+                next_catch = None
+
             if catch_var:
                 slot = self.define_local(catch_var)
-                # Store caught exception (pushed by _handle_exception) into local
                 self.chunk.write(OpCode.SET_LOCAL, self.current_line)
                 self.chunk.write(slot, self.current_line)
                 self.chunk.lines.append(self.current_line)
+                # SET_LOCAL writes TOS → slot. The exception IS at slot 0 (TOS = stack[stack_base+0]).
+                # Do NOT POP here — that would destroy the slot value.
+
             for stmt in catch_body:
                 self.compile_stmt(stmt)
-            self.chunk.write(OpCode.CATCH_END, self.current_line)
+            # FIX: pop_scope BEFORE the end-jump so cleanup POPs actually execute
             self.pop_scope()
+            # After catch body, jump past ALL remaining catches
+            end_jump = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
+            end_jumps.append(end_jump)
 
+            if next_catch is not None:
+                self.chunk.patch_jump(next_catch)
+            self.chunk.write(OpCode.CATCH_END, self.current_line)
+
+        # Patch all end-of-catch jumps to here
+        for j in end_jumps:
+            self.chunk.patch_jump(j)
         self.chunk.patch_jump(skip_catch)
 
         # Finally block
@@ -720,6 +788,13 @@ class Compiler:
             self.chunk.write(OpCode.TRUE if node.value else OpCode.FALSE, self.current_line)
         elif isinstance(node, NilLiteral):
             self.chunk.write(OpCode.NIL, self.current_line)
+        elif isinstance(node, YieldExpr):
+            # Compile the yielded value, then emit YIELD
+            if node.value is not None:
+                self.compile_expr(node.value)
+            else:
+                self.chunk.write(OpCode.NIL, self.current_line)
+            self.chunk.write(OpCode.YIELD, self.current_line)
         elif isinstance(node, Identifier):
             self.compile_identifier(node.name)
         elif isinstance(node, SelfExpr):
@@ -920,6 +995,13 @@ class Compiler:
 
         if node.operator == "..":
             self.chunk.write(OpCode.RANGE, self.current_line)
+        elif node.operator == "in":
+            # FIX: 'x in collection' → CONTAINS opcode
+            self.chunk.write(OpCode.CONTAINS, self.current_line)
+        elif node.operator == "not in":
+            # FIX: 'x not in collection' → CONTAINS then NOT
+            self.chunk.write(OpCode.CONTAINS, self.current_line)
+            self.chunk.write(OpCode.NOT, self.current_line)
         elif node.operator in ops and ops[node.operator] is not None:
             self.chunk.write(ops[node.operator], self.current_line)
         else:
@@ -940,10 +1022,16 @@ class Compiler:
         for arg in node.arguments:
             self.compile_expr(arg)
         total_args = len(node.arguments)
-        # FIX BUG-5: also push named args in the order they appear
-        # Push as pairs: (name_string, value) on stack, then CALL knows to convert
-        # The format() builtin will handle extracting kwargs from stack
+        # FIX: push named args as sentinel+pairs so VM can split correctly
+        # Format: [pos0..posN, "\x00KWARGS\x00", name0, val0, name1, val1, ...]
         if hasattr(node, 'named_arguments') and node.named_arguments:
+            # Push sentinel to mark start of named args
+            sentinel_idx = len(self.chunk.constants)
+            self.chunk.constants.append("\x00KWARGS\x00")
+            self.chunk.write(OpCode.CONSTANT, self.current_line)
+            self.chunk.write(sentinel_idx, self.current_line)
+            self.chunk.lines.append(self.current_line)
+            total_args += 1
             for named in node.named_arguments:
                 # Push name as constant
                 self.chunk.write(OpCode.CONSTANT, self.current_line)
@@ -953,7 +1041,6 @@ class Compiler:
                 self.chunk.lines.append(self.current_line)
                 # Push value
                 self.compile_expr(named.value)
-                # Named args take 2 slots (name + value)
                 total_args += 2
         self.chunk.write(OpCode.CALL, self.current_line)
         self.chunk.write(total_args, self.current_line)
@@ -1036,109 +1123,165 @@ class Compiler:
         self.chunk.lines.append(self.current_line)
 
     def compile_list_comprehension(self, node: ListComprehension):
-        # [elem for var in iter if cond]
-        # Full implementation per v1.5.29 roadmap
-        
-        # Compile iterator first
-        self.compile_expr(node.iterator)
-        list_slot = self.define_local("__src_list")
-        # Store the iterator result to list_slot
-        self.chunk.write(OpCode.SET_LOCAL, self.current_line)
-        self.chunk.write(list_slot, self.current_line)
-        
-        # Empty result list
+        # FIX: correct stack discipline for [elem for var in iter (if cond)]
+        # Pre-allocate 5 locals so nested inner comps start at slot base+5
+        self.push_scope()
+
+        # slot 0: result list
         self.chunk.write(OpCode.LIST, self.current_line)
         self.chunk.write(0, self.current_line)
-        result_slot = self.define_local("__result")
-        # Store the empty list to result_slot
-        self.chunk.write(OpCode.SET_LOCAL, self.current_line)
-        self.chunk.write(result_slot, self.current_line)
-        
-        # idx = 0
+        res_slot = self.define_local("__lc_res")
+
+        # slot 1: source iterable
+        self.compile_expr(node.iterator)
+        src_slot = self.define_local("__lc_src")
+
+        # slot 2: index = 0
         self.chunk.add_constant(0, self.current_line)
-        idx_slot = self.define_local("__idx")
-        # Store initial idx value
-        self.chunk.write(OpCode.SET_LOCAL, self.current_line)
-        self.chunk.write(idx_slot, self.current_line)
-        
-        # DEFINE loop variable ONCE before loop
+        idx_slot = self.define_local("__lc_idx")
+
+        # slot 3: loop variable
+        self.chunk.write(OpCode.NIL, self.current_line)
         var_slot = self.define_local(node.variable)
-        
+
+        # slot 4: element temp — reserves stack slot so nested comps start at 5+
+        self.chunk.write(OpCode.NIL, self.current_line)
+        elem_slot = self.define_local("__lc_elem")
+
         loop_start = len(self.chunk.code)
-        
-        # bounds: idx < len(src)
+
+        # while idx < len(src)
         self.chunk.write(OpCode.GET_LOCAL, self.current_line)
-        self.chunk.write(list_slot, self.current_line)
-        
+        self.chunk.write(idx_slot, self.current_line)
         self.compile_identifier("len")
         self.chunk.write(OpCode.GET_LOCAL, self.current_line)
-        self.chunk.write(list_slot, self.current_line)
+        self.chunk.write(src_slot, self.current_line)
         self.chunk.write(OpCode.CALL, self.current_line)
         self.chunk.write(1, self.current_line)
-        
-        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
-        self.chunk.write(idx_slot, self.current_line)
-        self.chunk.write(OpCode.LESS, self.current_line)
+        self.chunk.write(OpCode.LESS, self.current_line)  # idx < len(src)
         exit_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
-        
-        # element = src[idx]
+
+        # var = src[idx]
         self.chunk.write(OpCode.GET_LOCAL, self.current_line)
-        self.chunk.write(list_slot, self.current_line)
+        self.chunk.write(src_slot, self.current_line)
         self.chunk.write(OpCode.GET_LOCAL, self.current_line)
         self.chunk.write(idx_slot, self.current_line)
         self.chunk.write(OpCode.GET_INDEX, self.current_line)
-        
-        # Store element to local var (the GET_INDEX result is on stack)
         self.chunk.write(OpCode.SET_LOCAL, self.current_line)
         self.chunk.write(var_slot, self.current_line)
-        
-        # Compile element expression - this reads from locals via GET below
+        self.chunk.write(OpCode.POP, self.current_line)
+
+        # optional filter
+        if_jump = None
+        if node.condition:
+            self.compile_expr(node.condition)
+            if_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+
+        # compile element into elem_slot (inner comps won't collide — they start at slot 5+)
         self.compile_expr(node.element)
-        
-        # After compile_expr, result is on stack
-        # Save to temp to use after get result list
-        temp_slot = self.define_local("__temp")
         self.chunk.write(OpCode.SET_LOCAL, self.current_line)
-        self.chunk.write(temp_slot, self.current_line)
-        
-        # Get result list
+        self.chunk.write(elem_slot, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
+
+        # result.append(element): GET res, GET elem, LIST_APPEND, POP list ref
         self.chunk.write(OpCode.GET_LOCAL, self.current_line)
-        self.chunk.write(result_slot, self.current_line)
-        
-        # Get element back  
+        self.chunk.write(res_slot, self.current_line)
         self.chunk.write(OpCode.GET_LOCAL, self.current_line)
-        self.chunk.write(temp_slot, self.current_line)
-        
-        # Call append(result, element)
-        append_idx = len(self.chunk.constants)
-        self.chunk.constants.append("append")
-        self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
-        self.chunk.write(append_idx, self.current_line)
-        
-        self.chunk.write(OpCode.CALL, self.current_line)
-        self.chunk.write(2, self.current_line)
-        
-        # idx++
+        self.chunk.write(elem_slot, self.current_line)
+        self.chunk.write(OpCode.LIST_APPEND, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
+
+        if if_jump is not None:
+            self.chunk.patch_jump(if_jump)
+
+        # idx += 1
         self.chunk.write(OpCode.GET_LOCAL, self.current_line)
         self.chunk.write(idx_slot, self.current_line)
         self.chunk.add_constant(1, self.current_line)
         self.chunk.write(OpCode.ADD, self.current_line)
         self.chunk.write(OpCode.SET_LOCAL, self.current_line)
         self.chunk.write(idx_slot, self.current_line)
-        
-        # Loop back
+        self.chunk.write(OpCode.POP, self.current_line)
+
         self.chunk.emit_loop(loop_start, self.current_line)
         self.chunk.patch_jump(exit_jump)
-        
-        # Return result - get from local before popping scope
+
+        # GET_LOCAL res (copy at top), then pop_scope emits 5 POPs:
+        # POP copy_of_res, POP elem, POP var, POP idx, POP src → res remains at slot 0
         self.chunk.write(OpCode.GET_LOCAL, self.current_line)
-        self.chunk.write(result_slot, self.current_line)
-        
+        self.chunk.write(res_slot, self.current_line)
         self.pop_scope()
 
     def compile_dict_comprehension(self, node: DictComprehension):
+        # FIX: same stack discipline as list comprehension
+        # result dict defined first (slot 0) so it survives pop_scope
+        self.push_scope()
+
         self.chunk.write(OpCode.DICT, self.current_line)
         self.chunk.write(0, self.current_line)
+        result_slot = self.define_local("__dc_res")
+
+        self.compile_expr(node.iterator)
+        src_slot = self.define_local("__dc_src")
+
+        self.chunk.add_constant(0, self.current_line)
+        idx_slot = self.define_local("__dc_idx")
+
+        self.chunk.write(OpCode.NIL, self.current_line)
+        var_slot = self.define_local(node.variable)
+
+        loop_start = len(self.chunk.code)
+
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(idx_slot, self.current_line)
+        self.compile_identifier("len")
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(src_slot, self.current_line)
+        self.chunk.write(OpCode.CALL, self.current_line)
+        self.chunk.write(1, self.current_line)
+        self.chunk.write(OpCode.LESS, self.current_line)
+        exit_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+
+        # var = src[idx]
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(src_slot, self.current_line)
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(idx_slot, self.current_line)
+        self.chunk.write(OpCode.GET_INDEX, self.current_line)
+        self.chunk.write(OpCode.SET_LOCAL, self.current_line)
+        self.chunk.write(var_slot, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
+
+        if_jump = None
+        if hasattr(node, 'condition') and node.condition:
+            self.compile_expr(node.condition)
+            if_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+
+        # result[key] = value  via GET_LOCAL result, compile key, compile val, SET_INDEX
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(result_slot, self.current_line)
+        self.compile_expr(node.key)
+        self.compile_expr(node.value)
+        self.chunk.write(OpCode.SET_INDEX, self.current_line)
+        # SET_INDEX pops all 3 (obj,key,val) and pushes nothing — no POP needed
+
+        if if_jump is not None:
+            self.chunk.patch_jump(if_jump)
+
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(idx_slot, self.current_line)
+        self.chunk.add_constant(1, self.current_line)
+        self.chunk.write(OpCode.ADD, self.current_line)
+        self.chunk.write(OpCode.SET_LOCAL, self.current_line)
+        self.chunk.write(idx_slot, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
+
+        self.chunk.emit_loop(loop_start, self.current_line)
+        self.chunk.patch_jump(exit_jump)
+
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(result_slot, self.current_line)
+        self.pop_scope()
 
 
 def compile_ast(node: Program) -> Chunk:

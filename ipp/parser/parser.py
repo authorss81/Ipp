@@ -352,14 +352,15 @@ class Parser:
         body = self.block()
         self.consume(TokenType.UNTIL, "Expect 'until' after repeat body")
         condition = self.expression()
-        return DoWhileStmt(body, condition)
+        return DoWhileStmt(body, condition, is_until=True)
 
     def do_while_statement_c(self):
+        # FIX: do { body } while (cond) — C-style do-while
         self.consume(TokenType.LEFT_BRACE, "Expect '{' after 'do'")
         body = self.block()
         self.consume(TokenType.WHILE, "Expect 'while' after do-body")
         condition = self.expression()
-        return DoWhileStmt(body, condition)
+        return DoWhileStmt(body, condition, is_until=False)
 
     def match_statement(self):
         subject = self.expression()
@@ -560,6 +561,19 @@ class Parser:
             operator = self.previous().lexeme
             right = self.range_expr()
             left = BinaryExpr(left, operator, right)
+        # FIX: handle 'in' membership operator
+        if self.match(TokenType.IN):
+            right = self.range_expr()
+            return BinaryExpr(left, "in", right)
+        # FIX: handle 'not in' — 'not' is tokenized as BANG
+        if (self.check(TokenType.BANG) and
+                self.peek().lexeme == 'not' and
+                self.current + 1 < len(self.tokens) and
+                self.tokens[self.current + 1].type == TokenType.IN):
+            self.advance()  # consume 'not'
+            self.advance()  # consume 'in'
+            right = self.range_expr()
+            return BinaryExpr(left, "not in", right)
         return left
 
     def range_expr(self):

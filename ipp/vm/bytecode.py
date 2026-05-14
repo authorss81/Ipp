@@ -117,8 +117,8 @@ class OpCode(IntEnum):
 
     # Collections
     LIST = 74
-    LIST_APPEND = 85     # Append single element to list
-    LIST_EXTEND = 86     # Extend list with iterable
+    LIST_APPEND = 100    # FIX: was 85, collided with CATCH=85
+    LIST_EXTEND = 101    # FIX: was 86
     DICT = 75
     TUPLE = 76
     SPREAD = 77
@@ -147,11 +147,17 @@ class OpCode(IntEnum):
     WITH_EXIT = 92
 
     # Loop control (resolved by compiler to JUMPs; these are fallback stubs)
-    BREAK = 92
-    CONTINUE = 93
+    BREAK = 102    # FIX: was 92, collided with WITH_EXIT=92
+    CONTINUE = 103 # FIX: was 93
 
     # Assert statement (v1.7.9.1)
     ASSERT = 94
+
+    # Membership test
+    CONTAINS = 104  # FIX: 'in' operator — pops (item, collection) → bool
+
+    # Exception type matching
+    MATCH_EXC_TYPE = 105  # pops (type_str, exc) → pushes (exc, bool)
 
 
 # ─── Operand size table (authoritative) ──────────────────────────────────────
@@ -180,6 +186,12 @@ _SIZE1 = frozenset([
     OpCode.SUBCLASS, OpCode.END_IMPORT,
     # FIX BUG-2: GET_INDEX/SET_INDEX have no operand — they pop from stack
     OpCode.GET_INDEX, OpCode.SET_INDEX, OpCode.SET_INDEX_POP,
+    # FIX: LIST_APPEND/LIST_EXTEND have no operands
+    OpCode.LIST_APPEND, OpCode.LIST_EXTEND,
+    # FIX: CONTAINS has no operands
+    OpCode.CONTAINS,
+    # FIX: MATCH_EXC_TYPE has no operands
+    OpCode.MATCH_EXC_TYPE,
 ])
 
 _SIZE2 = frozenset([

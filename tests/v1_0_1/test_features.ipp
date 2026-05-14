@@ -43,7 +43,7 @@ assert nums[0] == 10
 
 var sum_nums = sum(nums)
 print("Sum: " + str(sum_nums))
-assert sum_nums == 25
+assert sum_nums == 24
 
 # ====== String Operations ======
 print("\n--- String Operations ---")

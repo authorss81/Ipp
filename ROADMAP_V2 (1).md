@@ -2678,6 +2678,68 @@ These are zero-code changes that unblock new users immediately. Do them alongsid
 
 ---
 
+---
+
+## v1.7.9.1.x — UX & Game Dev (Planned after current bug-fix sprint)
+
+These features are confirmed for implementation after all regression tests pass.
+
+### v1.7.9.1.1 — Keyboard Input Support
+**Goal:** Allow interactive programs (games, simulations, interactive tools) to respond to keyboard events in real-time.
+- `key_pressed("up")` / `key_pressed("down")` / `key_pressed("space")` etc. — poll key state
+- `on_keydown(key, handler)` / `on_keyup(key, handler)` — event-driven key binding
+- `get_key()` — blocking single-char read (cross-platform: Windows msvcrt + Unix termios)
+- `get_key_async()` — non-blocking key read, returns `nil` if no key pressed
+- Arrow keys, function keys, special keys (ESC, ENTER, BACKSPACE) as named constants
+- Integration with the existing `signal`/`emit` system so game loop can `on_keydown("up", move_paddle_up)`
+- Example use case: pong paddles via up/down arrows, quit on ESC
+- **Files:** `ipp/runtime/keyboard.py` (new), registered as builtins in `vm.py`
+
+### v1.7.9.1.2 — REPL: Fix ANSI Escape Codes on Windows
+**Goal:** `.help` and coloured output must not show raw escape sequences on Windows terminals that don't support ANSI.
+- Detect Windows console capability via `os.get_terminal_size()` + `ctypes` `GetConsoleMode` check
+- Auto-enable ANSI via `ENABLE_VIRTUAL_TERMINAL_PROCESSING` on Windows 10+
+- Fall back to plain text if ANSI unavailable (same logic as `.colors off`)
+- Strip escape codes from Quick Reference table in `.help` — render them clean regardless of colour mode
+- Add `_strip_ansi(text)` helper to `main.py` and `ipp/main.py`
+- Show user-friendly `.colors off` suggestion only when escape codes are actually detected, not always
+- **Files:** `main.py`, `ipp/main.py`
+
+### v1.7.9.1.3 — Web Playground Enhancement
+**Goal:** Make `web-playground/index.html` a fully usable online IDE for Ipp.
+- Syntax highlighting for Ipp keywords, strings, comments, numbers using CodeMirror or custom tokenizer
+- Live output panel with proper error formatting (line numbers, underlines)
+- Share button: encode program to URL fragment (`#code=base64...`) for easy sharing
+- Example programs dropdown (fibonacci, pong simulation, list comp, class demo, async)
+- Dark/light theme toggle matching the REPL colour themes
+- Mobile-friendly layout with resizable panels
+- Persistent storage via `localStorage` (last program auto-saved)
+- "Run" keyboard shortcut: Ctrl+Enter
+- **Files:** `web-playground/index.html`, `web-playground/ipp-syntax.json`
+
+### v1.7.9.1.4 — REPL: Enhanced Colours & Syntax Highlighting
+**Goal:** Make the REPL experience more polished with real syntax highlighting on input.
+- Live syntax highlighting as user types (keywords, strings, numbers, comments in different colours)
+- Multiple colour themes: `default`, `dracula`, `monokai`, `solarized`, `nord`, `gruvbox`
+- `.theme <name>` command to switch themes at runtime
+- `.themes` command to list available themes with preview
+- Colour-coded output: strings in green, numbers in cyan, errors in red, nil in dim
+- Bracket/paren matching highlight
+- Fix: escape-code stripping for `.help` Quick Reference table on all platforms
+- **Files:** `main.py`, `ipp/main.py`
+
+### v1.7.9.1.5 — GitHub Page & README Enhancement  
+**Goal:** Professional landing page and documentation that matches the quality of the language.
+- GitHub Pages (`docs/index.html`): full landing page with feature highlights, code examples, installation steps
+- Animated code demo on the landing page (typewriter effect showing Ipp code running)
+- Updated `README.md`: clearer Getting Started, working examples for all major features
+- `TUTORIAL.md`: complete beginner-to-intermediate tutorial with exercises
+- `CONTRIBUTING.md`: guide for contributors, test format, how to add builtins
+- Badges: test count, Python version support, license
+- **Files:** `README.md`, `TUTORIAL.md`, `docs/index.html` (new), `CONTRIBUTING.md`
+
+---
+
 *Roadmap v3 — May 2026 | Starting from Ipp v1.7.5*
 *Based on new2_audit.md: 22 open bugs, 45 confirmed working features*
 *Phase A (v1.7.6–v1.7.9): ~4 days of work, unblocks all new users*
@@ -2685,3 +2747,4 @@ These are zero-code changes that unblock new users immediately. Do them alongsid
 *Phase C (v1.9.0–v1.9.5): ~1 week, completes standard library*
 *Phase D (v2.0.0–v2.0.8): ~1 month, real game dev capability*
 *Phase E (v2.1.0+): 3–6 months, native performance*
+*Phase F (v1.7.9.1.x): UX & game-dev QoL — keyboard, REPL polish, web playground, docs*

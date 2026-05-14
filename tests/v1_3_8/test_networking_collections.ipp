@@ -17,12 +17,9 @@ pq.push("high", 1)
 pq.push("medium", 2)
 print(pq)
 
-print("Pop:", pq.pop())
-print("Pop:", pq.pop())
-print("Pop:", pq.pop())
-print("Is empty:", pq.is_empty())
-print("Len:", pq.len())
 assert pq.pop() == "high", "PriorityQueue returns highest priority first"
+assert pq.pop() == "medium", "PriorityQueue second pop"
+assert pq.pop() == "low", "PriorityQueue third pop"
 assert pq.is_empty() == true, "PriorityQueue is empty after popping all"
 
 # Test peek

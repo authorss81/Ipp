@@ -11,16 +11,23 @@ import random
 class _IppSignal:
     def __init__(self, name):
         self.name = name
-        self.handlers = []
-    
-    def connect(self, handler):
-        self.handlers.append(handler)
-    
+        self.handlers = []   # list of (handler, vm_ref_or_None)
+
+    def connect(self, handler, vm=None):
+        self.handlers.append((handler, vm))
+
     def emit(self, *args):
-        for handler in self.handlers:
-            if callable(handler):
+        for handler, vm in self.handlers:
+            if vm is not None:
+                # Dispatch through the VM that connected this handler
+                saved_running = vm.running
+                vm._call(handler, list(args), None)
+                vm.running = True
+                vm.run()
+                vm.running = saved_running
+            elif callable(handler):
                 handler(*args)
-    
+
     def __repr__(self):
         return f"Signal({self.name})"
 
@@ -209,6 +216,87 @@ class IppClass:
         return None
 
 
+class IppAsyncCoroutine:
+    """Returned when an async function is called — not yet executed."""
+    def __init__(self, closure, args):
+        self.closure = closure
+        self.args = args
+    def __repr__(self):
+        name = getattr(getattr(self.closure, '_proto', None), 'name', '<async>')
+        return f"<coroutine {name}>"
+
+
+class IppVMGenerator:
+    """VM-level generator object — suspends on YIELD, resumes on next()."""
+    def __init__(self, closure, args):
+        self._closure = closure
+        self._args = args
+        self._vm = None
+        self._done = False
+
+    def _ensure_vm(self):
+        if self._vm is None:
+            self._vm = VM()
+            # Temporarily disable generator detection so _call pushes a real frame
+            self._vm._in_generator_call = True
+            proto = getattr(self._closure, '_proto', None)
+            orig_async = getattr(proto, 'is_async', False)
+            if proto: proto.is_async = False
+            self._vm._call(self._closure, list(self._args), None)
+            if proto: proto.is_async = orig_async
+            self._vm._in_generator_call = False
+            self._vm.running = True
+
+    def next_value(self):
+        if self._done:
+            return None
+        self._ensure_vm()
+        vm = self._vm
+        vm._gen_yield_value = None
+        vm._gen_yield_hit = False
+        vm._gen_active = True   # signal YIELD handler to pause
+        vm.running = True
+        vm.run()
+        vm._gen_active = False
+
+        if vm._gen_yield_hit:
+            return vm._gen_yield_value
+        else:
+            self._done = True
+            return None
+
+    def __repr__(self):
+        return "<generator>"
+
+
+def _reorder_named_args(callee, positional, kwargs):
+    """Slot kwargs into correct positions using the callee's param list."""
+    param_names = []
+    # Try FunctionProto first (most reliable)
+    if isinstance(callee, Closure):
+        proto = getattr(callee, 'proto', None)
+        if proto and hasattr(proto, 'param_names'):
+            param_names = proto.param_names
+    # Fallback: look at _proto attribute stored by CLOSURE handler
+    if not param_names and hasattr(callee, '_proto'):
+        proto = callee._proto
+        if hasattr(proto, 'param_names'):
+            param_names = proto.param_names
+
+    if not param_names:
+        return positional + list(kwargs.values())
+
+    result = list(positional)
+    while len(result) < len(param_names):
+        result.append(None)
+    for name, val in kwargs.items():
+        if name in param_names:
+            result[param_names.index(name)] = val
+        else:
+            result.append(val)
+    return result
+
+
 class VMError(Exception):
     pass
 
@@ -355,7 +443,7 @@ class VM:
         self.instruction_count = 0
         # FIX BUG-N2: recursion depth tracking
         self.call_depth = 0
-        self.max_depth = 1000
+        self.max_depth = 2000
 
         # FIX: BUG-M5 — inline caches use _MISS sentinel
         self._global_cache = InlineCache(max_size=2048)
@@ -435,7 +523,7 @@ class VM:
             'sha256': lambda s: hashlib.sha256(str(s).encode()).hexdigest(),
             'sha1': lambda s: hashlib.sha1(str(s).encode()).hexdigest(),
             'sha512': lambda s: hashlib.sha512(str(s).encode()).hexdigest(),
-            'hash': hash,
+            'hash': lambda s: abs(hash(s)),
             'base64_encode': lambda s: base64.b64encode(str(s).encode()).decode(),
             'base64_decode': lambda s: base64.b64decode(str(s).encode()).decode(),
             'clock': time_mod.perf_counter,
@@ -446,23 +534,23 @@ class VM:
             'assert': self._builtin_assert,
             # String functions
             'format': lambda s, *args, **kwargs: s.format(*args) if args else s.format(**kwargs) if kwargs else s,
-            'upper': str.upper,
-            'lower': str.lower,
-            'strip': str.strip,
-            'split': str.split,
+            'upper': lambda s: str(s).upper(),
+            'lower': lambda s: str(s).lower(),
+            'strip': lambda s, *a: str(s).strip(*a),
+            'split': lambda s, *a: str(s).split(*a),
             'join': lambda arr, sep: sep.join(str(x) for x in arr),
-            'replace': str.replace,
-            'replace_all': str.replace,
-            'starts_with': str.startswith,
-            'ends_with': str.endswith,
-            'startswith': str.startswith,
-            'endswith': str.endswith,
-            'find': str.find,
-            'index_of': str.find,
+            'replace': lambda s, a, b: str(s).replace(a, b),
+            'replace_all': lambda s, a, b: str(s).replace(a, b),
+            'starts_with': lambda s, p: str(s).startswith(p),
+            'ends_with': lambda s, p: str(s).endswith(p),
+            'startswith': lambda s, p: str(s).startswith(p),
+            'endswith': lambda s, p: str(s).endswith(p),
+            'find': lambda s, *a: str(s).find(*a),
+            'index_of': lambda s, *a: str(s).find(*a),
             'char_at': lambda s, i: s[int(i)] if int(i) < len(s) else '',
             'substring': lambda s, start, length=None: s[int(start):int(start)+int(length)] if length else s[int(start):],
-            'count': lambda s, sub: s.count(sub),
-            'contains': lambda s, sub: sub in s,
+            'count': lambda s, sub: str(s).count(sub),
+            'contains': lambda s, sub: sub in str(s),
             'split_lines': lambda s: s.split('\n'),
             'ascii': ord,
             'from_ascii': chr,
@@ -473,9 +561,9 @@ class VM:
             'file_write': self._builtin_write_file,
             'append_file': self._builtin_append_file,
             'file_exists': os.path.exists,
-            'delete_file': os.remove,
+            'delete_file': lambda p: (os.remove(p), True)[1] if os.path.exists(p) else False,
             'list_dir': os.listdir,
-            'mkdir': os.makedirs,
+            'mkdir': lambda p: (os.makedirs(str(p), exist_ok=True), True)[1],
             # Dict operations
             'keys': lambda d: list(d.keys()) if isinstance(d, dict) else (list(d.data.keys()) if hasattr(d, 'data') else []),
             'values': lambda d: list(d.values()) if isinstance(d, dict) else (list(d.data.values()) if hasattr(d, 'data') else []),
@@ -486,7 +574,7 @@ class VM:
             'regex_search': lambda text, pattern: (m.group() if (m := re.search(pattern, text)) else ''),
             'regex_replace': lambda text, pattern, repl: re.sub(pattern, repl, text),
             # CSV
-            'csv_parse': lambda s: [row.split(',') for row in s.strip().split('\n')],
+            'csv_parse': lambda s: [row.split(',') for row in s.strip().split('\n')[1:]],
             'csv_parse_dict': self._builtin_csv_parse_dict,
             # URL
             'url_encode': lambda s: __import__('urllib.parse').parse.quote(str(s)),
@@ -500,15 +588,17 @@ class VM:
             'uuid_nil': lambda: '00000000-0000-0000-0000-000000000000',
             # Signals (v1.6.6)
             'signal': lambda name: _IppSignal(name),
-            'connect': lambda sig, handler: sig.connect(handler) if hasattr(sig, 'connect') else None,
-            'emit': lambda sig, *args: sig.emit(*args) if hasattr(sig, 'emit') else None,
+            'connect': lambda sig, handler: sig.connect(handler, self) if isinstance(sig, _IppSignal) else None,
+            'emit': lambda sig, *args: sig.emit(*args) if isinstance(sig, _IppSignal) else None,
             # Mathematics (v1.6.8) - simplified placeholder versions
             'vec4': lambda x=0, y=0, z=0, w=1: _Vec4(x, y, z, w),
             'mat4': lambda: _Mat4(),
             'mat4_identity': lambda: _Mat4(),
             'quat': lambda x=0, y=0, z=0, w=1: _Quat(x, y, z, w),
             # Async (v1.6.9)
-            'async_run': lambda fn, *args: fn(*args) if callable(fn) else None,
+            'async_run': self._builtin_async_run,
+            'next': self._builtin_next,
+            'is_coroutine': lambda obj: isinstance(obj, (IppVMGenerator, IppAsyncCoroutine)),
             # OS
             'os_platform': lambda: os.name,
             'os_cwd': os.getcwd,
@@ -584,6 +674,17 @@ class VM:
         return None
 
     def _builtin_len(self, obj):
+        # FIX: drain generators to a list (for-loop iterates with len + index)
+        if isinstance(obj, IppVMGenerator):
+            if not hasattr(obj, '_collected'):
+                items = []
+                while True:
+                    val = obj.next_value()
+                    if val is None:
+                        break
+                    items.append(val)
+                obj._collected = items
+            return len(obj._collected)
         # FIX v1.7.8.3: Check for __len__ method on IppInstance
         if isinstance(obj, IppInstance):
             len_method = obj.cls.get_method('__len__')
@@ -593,23 +694,72 @@ class VM:
             raise VMError(f"len() not supported for {obj.cls.name}")
         if isinstance(obj, (str, list, dict, tuple)):
             return len(obj)
+        # FIX: IppSet uses _items
+        if hasattr(obj, '_items') and isinstance(obj._items, set):
+            return len(obj._items)
+        # FIX: IppSet may use _data
+        if hasattr(obj, '_data') and isinstance(obj._data, set):
+            return len(obj._data)
         if hasattr(obj, '__len__'):
             return len(obj)
         raise VMError(f"len() not supported for {type(obj).__name__}")
 
+    def _builtin_next(self, gen, default=None):
+        """Get next value from an IppVMGenerator or any Python iterable."""
+        if isinstance(gen, IppVMGenerator):
+            val = gen.next_value()
+            return val if val is not None else default
+        elif hasattr(gen, '__next__'):
+            try:
+                return gen.__next__()
+            except StopIteration:
+                return default
+        return default
+
+    def _builtin_async_run(self, fn, *args):
+        """Execute an async function or coroutine synchronously."""
+        # IppAsyncCoroutine: call its closure with stored args
+        if isinstance(fn, IppAsyncCoroutine):
+            return self._builtin_async_run(fn.closure, *fn.args)
+        if isinstance(fn, (Closure, IppFunction)):
+            saved_stack = list(self.stack)
+            saved_frames = list(self.frames)
+            saved_running = self.running
+            # Temporarily clear async flag so it runs immediately
+            proto = getattr(fn, '_proto', None)
+            orig_async = getattr(proto, 'is_async', False)
+            if proto:
+                proto.is_async = False
+            self._call(fn, list(args), None)
+            self.running = True
+            result = self.run()
+            self.stack = saved_stack
+            self.frames = saved_frames
+            self.running = saved_running
+            if proto:
+                proto.is_async = orig_async
+            return result
+        elif callable(fn):
+            return fn(*args)
+        # Already a computed value
+        return fn
+
     def _builtin_type(self, obj):
         if obj is None:           return "nil"
         if isinstance(obj, bool): return "bool"
-        if isinstance(obj, int):  return "int"
-        if isinstance(obj, float): return "float"
+        if isinstance(obj, int):  return "number"   # FIX: Ipp uses "number" not "int"
+        if isinstance(obj, float): return "number"  # FIX: Ipp uses "number" not "float"
         if isinstance(obj, str):  return "string"
         if isinstance(obj, (list, tuple)): return "list"
         if hasattr(obj, 'elements'): return "list"   # IppList
         if isinstance(obj, dict): return "dict"
-        if hasattr(obj, '_data') and hasattr(obj, 'add'): return "set"  # IppSet (BUG-NEW-M6)
-        if hasattr(obj, 'data'): return "dict"       # IppDict
+        if hasattr(obj, '_items') and isinstance(getattr(obj,'_items',None), set): return "set"
+        if hasattr(obj, '_data') and hasattr(obj, 'add'): return "set"
+        if hasattr(obj, 'data'): return "dict"
         if isinstance(obj, IppClass): return "class"
         if isinstance(obj, IppInstance): return obj.cls.name
+        if isinstance(obj, (Closure, IppFunction)): return "function"
+        if callable(obj): return "function"
         return type(obj).__name__
 
     def _builtin_sum(self, *args):
@@ -703,7 +853,8 @@ class VM:
         # If chunk is provided, use it and don't create a new frame if one already exists
         if chunk:
             self.chunk = chunk
-        if not self.chunk:
+        # FIX: if no chunk but frames already exist (e.g. generator resume), still execute
+        if not self.chunk and not self.frames:
             return None
 
         # Only create new frame if no frames exist (allows _call_ipp_method to work)
@@ -740,6 +891,8 @@ class VM:
                 result = self._execute(opcode, frame)
             except VMError as e:
                 # FIX VM-BUG-3: route VMError through exception handlers (try/catch support)
+                if not hasattr(e, '_thrown_value'):
+                    e._thrown_value = str(e)  # FIX R04: runtime errors caught as string message
                 if self.exception_handlers:
                     target_ip = self._handle_exception(e, frame)
                     frame = self.frames[-1]
@@ -749,6 +902,7 @@ class VM:
             except Exception as e:
                 # wrap in VMError for structured handling
                 exc = VMError(str(e))
+                exc._thrown_value = str(e)  # FIX R04
                 if self.exception_handlers:
                     target_ip = self._handle_exception(exc, frame)
                     frame = self.frames[-1]
@@ -819,11 +973,18 @@ class VM:
         # restore stack
         while len(self.stack) > handler.stack_len:
             self.stack.pop()
-        # push the exception message for catch var
-        self.stack.append(str(exc))
-        # restore frame depth
+        # FIX R04: push the actual thrown value, not str(exc)
+        # VMError wraps the thrown value; if it came from THROW, recover original
+        thrown_val = getattr(exc, '_thrown_value', None)
+        if thrown_val is not None:
+            self.stack.append(thrown_val)
+        else:
+            self.stack.append(str(exc))
+        # restore frame depth — decrement call_depth for each frame unwound
+        frames_to_pop = len(self.frames) - handler.frame_depth
         while len(self.frames) > handler.frame_depth:
             self.frames.pop()
+        self.call_depth = max(0, self.call_depth - frames_to_pop)
         if not self.frames:
             raise exc
         # Update the frame reference to use the correct frame after pop
@@ -1001,10 +1162,104 @@ class VM:
                     self.stack[-1] = BoundMethod(None, method)
                 else:
                     raise VMError(f"Class '{obj.name}' has no static member '{name}'")
+            elif isinstance(obj, _IppSignal):
+                # FIX: signal method dispatch with VM reference
+                _sig = obj
+                _vm = self
+                if name == 'connect':
+                    self.stack[-1] = lambda handler, _s=_sig, _v=_vm: _s.connect(handler, _v)
+                elif name == 'emit':
+                    self.stack[-1] = lambda *args, _s=_sig: _s.emit(*args)
+                else:
+                    raise VMError(f"Signal has no property '{name}'")
+            elif hasattr(obj, '_items') and isinstance(getattr(obj, '_items', None), set):
+                # FIX: IppSet method dispatch
+                _set = obj._items
+                _IPPSET_METHODS = {
+                    'add':      lambda s, v: s.add(v) or obj,
+                    'remove':   lambda s, v: s.discard(v) or obj,
+                    'discard':  lambda s, v: s.discard(v) or obj,
+                    'has':      lambda s, v: v in s,
+                    'contains': lambda s, v: v in s,
+                    'clear':    lambda s: s.clear() or obj,
+                    'len':      lambda s: len(s),
+                    'size':     lambda s: len(s),
+                    'to_list':  lambda s: list(s),
+                    'union':    lambda s, o: type(obj)(s | (o._items if hasattr(o,'_items') else set(o))),
+                    'intersect':lambda s, o: type(obj)(s & (o._items if hasattr(o,'_items') else set(o))),
+                    'difference':lambda s, o: type(obj)(s - (o._items if hasattr(o,'_items') else set(o))),
+                }
+                if name in _IPPSET_METHODS:
+                    _fn = _IPPSET_METHODS[name]
+                    self.stack[-1] = lambda *args, _f=_fn, _s=_set: _f(_s, *args)
+                elif name == 'len':
+                    self.stack[-1] = lambda _s=_set: len(_s)
+                else:
+                    raise VMError(f"Property '{name}' not found on IppSet")
+            elif isinstance(obj, str):
+                # FIX: string property/method access
+                _STR_METHODS = {
+                    'upper': lambda s: s.upper(), 'lower': lambda s: s.lower(),
+                    'strip': lambda s: s.strip(), 'lstrip': lambda s: s.lstrip(),
+                    'rstrip': lambda s: s.rstrip(),
+                    'split': lambda s, *a: s.split(*a),
+                    'join': lambda s, lst: s.join(str(x) for x in lst),
+                    'replace': lambda s, a, b: s.replace(a, b),
+                    'startswith': lambda s, p: s.startswith(p),
+                    'endswith': lambda s, p: s.endswith(p),
+                    'find': lambda s, p: s.find(p),
+                    'index': lambda s, p: s.index(p),
+                    'contains': lambda s, p: p in s,
+                    'count': lambda s, p: s.count(p),
+                    'repeat': lambda s, n: s * int(n),
+                    'trim': lambda s: s.strip(),
+                    'reverse': lambda s: s[::-1],
+                    'chars': lambda s: list(s),
+                    'to_upper': lambda s: s.upper(),
+                    'to_lower': lambda s: s.lower(),
+                    'to_int': lambda s: int(s),
+                    'to_float': lambda s: float(s),
+                    'format': lambda s, *a, **kw: s.format(*a, **kw),
+                    'len': lambda s: len(s),
+                }
+                if name == 'len':
+                    self.stack[-1] = (lambda _s: lambda: len(_s))(obj)
+                elif name == 'format':
+                    # Special case: format needs **kwargs for named args
+                    _bound_obj = obj
+                    _vm_ref = self
+                    def _format_method(_o=obj, _vm=self):
+                        def _call(*args, **kw):
+                            # Merge _vm._kwargs_for_call into kw
+                            extra = getattr(_vm, '_kwargs_for_call', None) or {}
+                            _vm._kwargs_for_call = None
+                            kw.update(extra)
+                            return _o.format(*args, **kw)
+                        return _call
+                    self.stack[-1] = _format_method()
+                elif name in _STR_METHODS:
+                    _fn = _STR_METHODS[name]
+                    _bound_obj = obj
+                    self.stack[-1] = lambda *args, _f=_fn, _o=_bound_obj: _f(_o, *args)
+                elif hasattr(obj, name):
+                    attr = getattr(obj, name)
+                    # Wrap method_descriptor as bound callable
+                    if callable(attr) and not isinstance(attr, (str, int, float, bool)):
+                        self.stack[-1] = lambda *args, _a=attr: _a(*args)
+                    else:
+                        self.stack[-1] = attr
+                else:
+                    raise VMError(f"Property '{name}' not found on str")
             elif isinstance(obj, dict) and name in obj:
                 self.stack[-1] = obj[name]
             elif hasattr(obj, name):
-                self.stack[-1] = getattr(obj, name)
+                attr = getattr(obj, name)
+                # FIX: wrap method_descriptor so it becomes callable from VM
+                if hasattr(attr, '__objclass__') or type(attr).__name__ in ('method_descriptor', 'builtin_function_or_method', 'method-wrapper'):
+                    _bound_obj = obj
+                    self.stack[-1] = lambda *args, _a=attr, _o=_bound_obj: _a(_o, *args) if not callable(_a) else _a(*args)
+                else:
+                    self.stack[-1] = attr
             else:
                 raise VMError(f"Property '{name}' not found on {type(obj).__name__}")
 
@@ -1039,18 +1294,37 @@ class VM:
         elif opcode == OpCode.GET_INDEX:
             idx = self.stack.pop()
             obj = self.stack.pop()
-            if isinstance(obj, (list, tuple, str)):
+            # FIX: generators are collected to a list by _builtin_len; use that list here
+            if isinstance(obj, IppVMGenerator):
+                if not hasattr(obj, '_collected'):
+                    items = []
+                    while True:
+                        val = obj.next_value()
+                        if val is None:
+                            break
+                        items.append(val)
+                    obj._collected = items
+                self.stack.append(obj._collected[int(idx)])
+            elif isinstance(obj, (list, tuple, str)):
                 self.stack.append(obj[int(idx)])
             elif isinstance(obj, dict):
-                self.stack.append(obj.get(idx))
+                # Try integer index first (for list-style dict), then string key
+                key = idx
+                if isinstance(idx, (int, float)) and int(idx) in obj:
+                    self.stack.append(obj[int(idx)])
+                else:
+                    self.stack.append(obj.get(key))
             elif hasattr(obj, 'data'):
                 # IppDict
                 self.stack.append(obj.data.get(idx))
             elif hasattr(obj, 'elements'):
                 # IppList
                 self.stack.append(obj.elements[int(idx)])
+            elif isinstance(obj, (int, float, bool)) and int(idx) == 0:
+                # FIX: scalar[0] returns the scalar (supports single-value tuple idiom)
+                self.stack.append(obj)
             else:
-                self.stack.append(None)
+                raise VMError(f"Cannot index {type(obj).__name__} with {idx!r}{line_info}")
 
         elif opcode == OpCode.SET_INDEX:
             value = self.stack.pop()
@@ -1114,11 +1388,32 @@ class VM:
         # ── Function calls ───────────────────────────────────────────────
         elif opcode == OpCode.CALL:
             argc = code[ip + 1]
-            args = []
+            raw = []
             for _ in range(argc):
-                args.append(self.stack.pop() if self.stack else None)
-            args.reverse()
+                raw.append(self.stack.pop() if self.stack else None)
+            raw.reverse()
             callee = self.stack.pop() if self.stack else None
+
+            # FIX: split positional from named args using sentinel marker
+            if "\x00KWARGS\x00" in raw:
+                sentinel_idx = raw.index("\x00KWARGS\x00")
+                positional = raw[:sentinel_idx]
+                named_pairs = raw[sentinel_idx + 1:]
+                kwargs = {}
+                for i in range(0, len(named_pairs) - 1, 2):
+                    if isinstance(named_pairs[i], str):
+                        kwargs[named_pairs[i]] = named_pairs[i + 1]
+                # For Ipp closures: reorder positionals using param names
+                # For Python builtins: pass as kwargs
+                if isinstance(callee, (Closure, IppFunction)):
+                    args = _reorder_named_args(callee, positional, kwargs)
+                    self._kwargs_for_call = None
+                else:
+                    args = positional
+                    self._kwargs_for_call = kwargs
+            else:
+                args = raw
+                self._kwargs_for_call = None
 
             frame.ip += 2    # advance past CALL + argc before pushing new frame
             self._call(callee, args, frame)
@@ -1178,7 +1473,9 @@ class VM:
                             dummy._closed = True
                             dummy._closed_value = None
                             upvalue_cells.append(dummy)
-                self.stack.append(Closure(proto.chunk, upvalue_cells))
+                closure = Closure(proto.chunk, upvalue_cells)
+                closure._proto = proto  # FIX: store proto for named-arg dispatch
+                self.stack.append(closure)
             elif isinstance(proto, Chunk):
                 # Legacy bare Chunk (e.g. from backup/v1.2.4 code paths)
                 self.stack.append(Closure(proto))
@@ -1192,7 +1489,19 @@ class VM:
             return _RETURN_FRAME
 
         elif opcode == OpCode.YIELD:
-            return _SUSPEND
+            val = self.stack.pop() if self.stack else None
+            if getattr(self, '_gen_active', False):
+                # We're running inside a generator's next_value() call — pause here
+                self._gen_yield_value = val
+                self._gen_yield_hit = True
+                # FIX: push nil as the "result" of the yield expression so that the
+                # ExprStmt POP after `yield x` consumes nil, not the local variable below it
+                self.stack.append(None)
+                frame.ip += 1  # advance past YIELD opcode (size=1)
+                self.running = False
+                return _SUSPEND
+            # Not in a generator context — just push nil (shouldn't happen normally)
+            self.stack.append(None)
 
         # ── Classes ──────────────────────────────────────────────────────
         elif opcode == OpCode.CLASS:
@@ -1336,6 +1645,7 @@ class VM:
         elif opcode == OpCode.RANGE:
             b = self.stack.pop()
             a = self.stack.pop()
+            # `..` is exclusive of the end in Ipp — 0..5 = [0,1,2,3,4]
             self.stack.append(list(range(int(a), int(b))))
 
         # ── Arithmetic ───────────────────────────────────────────────────
@@ -1443,6 +1753,10 @@ class VM:
         # ── Comparisons ──────────────────────────────────────────────────
         elif opcode == OpCode.EQUAL:
             b, a = self.stack.pop(), self.stack.pop()
+            # FIX: normalize IppList for comparison
+            from ipp.interpreter.interpreter import IppList as _IppList2
+            if isinstance(a, _IppList2): a = a.elements
+            if isinstance(b, _IppList2): b = b.elements
             self.stack.append(a == b)
         elif opcode == OpCode.NOT_EQUAL:
             b, a = self.stack.pop(), self.stack.pop()
@@ -1460,6 +1774,36 @@ class VM:
             b, a = self.stack.pop(), self.stack.pop()
             self.stack.append(a >= b)
 
+        elif opcode == OpCode.CONTAINS:
+            # FIX: 'item in collection' — stack: item, collection → bool
+            collection = self.stack.pop()
+            item = self.stack.pop()
+            if isinstance(collection, (list, tuple, str)):
+                self.stack.append(item in collection)
+            elif isinstance(collection, dict):
+                self.stack.append(item in collection)
+            elif hasattr(collection, '_items'):
+                self.stack.append(item in collection._items)
+            elif hasattr(collection, '_data') and isinstance(collection._data, set):
+                self.stack.append(item in collection._data)
+            else:
+                try:
+                    self.stack.append(item in collection)
+                except TypeError:
+                    self.stack.append(False)
+
+        elif opcode == OpCode.MATCH_EXC_TYPE:
+            # Stack: [..., exc, type_str] → pops type_str, peeks exc, pushes bool
+            # exc stays on stack so catch_var binding can still use it
+            type_str = self.stack.pop()
+            exc_val = self.stack[-1]  # peek - don't consume
+            matched = False
+            if isinstance(exc_val, IppInstance):
+                matched = exc_val.cls.name == type_str
+            elif isinstance(exc_val, str):
+                matched = exc_val.startswith(type_str + ':') or exc_val == type_str
+            self.stack.append(matched)  # stack: [..., exc, bool]
+
         # ── Nullish / optional ───────────────────────────────────────────
         elif opcode == OpCode.NULLISH:
             b, a = self.stack.pop(), self.stack.pop()
@@ -1476,6 +1820,9 @@ class VM:
                     self.stack.append(obj.get(name))
                 except VMError:
                     self.stack.append(None)
+            elif isinstance(obj, dict):
+                # FIX: dict?.key lookups
+                self.stack.append(obj.get(name, None))
             elif hasattr(obj, name):
                 self.stack.append(getattr(obj, name))
             else:
@@ -1488,6 +1835,7 @@ class VM:
         elif opcode == OpCode.THROW:
             msg = self.stack.pop() if self.stack else "Unknown error"
             exc = VMError(str(msg))
+            exc._thrown_value = msg  # FIX R04: preserve original value for catch binding
             if self.exception_handlers:
                 target_ip = self._handle_exception(exc, frame)
                 frame.ip = target_ip  # Update current frame's ip
@@ -1593,12 +1941,10 @@ class VM:
             except Exception as e:
                 raise VMError(str(e))
         
-        # FIX: Handle method_descriptor and builtin_function_or_method for string methods
+        # FIX: Handle Python callables with kwargs (e.g. str.format(name=val))
         if callable(callee) and not isinstance(callee, (Closure, IppFunction, IppClass, BoundMethod, type(str.format))):
-            # built-in Python callable - extract named arguments if they exist
-            # Only do this for functions that explicitly accept keyword args
-            kwargs = {}
-            # Don't infer kwargs from string arguments - just pass args as-is
+            kwargs = getattr(self, '_kwargs_for_call', None) or {}
+            self._kwargs_for_call = None
             try:
                 result = callee(*args, **kwargs) if kwargs else callee(*args)
             except VMError:
@@ -1608,11 +1954,37 @@ class VM:
             self.stack.append(result)
             return
 
-        # FIX BUG-N2: recursion depth check for non-builtin calls
-        self.call_depth += 1
-        if self.call_depth > self.max_depth:
-            self.call_depth -= 1
-            raise VMError(f"Maximum recursion depth ({self.max_depth}) exceeded")
+        # FIX BUG-N2: recursion depth check — incremented only at actual frame-push sites below
+
+        # FIX: detect generator functions (contain YIELD opcode at opcode positions)
+        if isinstance(callee, Closure) and not getattr(self, '_in_generator_call', False):
+            chunk = callee.chunk
+            # Must check YIELD at actual opcode positions, not just any byte
+            _has_yield = False
+            _ip = 0
+            _YIELD_VAL = int(OpCode.YIELD)
+            while _ip < len(chunk.code):
+                _op_byte = chunk.code[_ip]
+                if _op_byte == _YIELD_VAL:
+                    _has_yield = True
+                    break
+                try:
+                    _op = OpCode(_op_byte)
+                    _ip += opcode_size(_op)
+                except Exception:
+                    _ip += 1
+            if _has_yield:
+                self.call_depth -= 1
+                gen = IppVMGenerator(callee, list(args))
+                self.stack.append(gen)
+                return
+            # FIX: async functions return a coroutine object, not execute immediately
+            proto = getattr(callee, '_proto', None)
+            if proto and getattr(proto, 'is_async', False):
+                self.call_depth -= 1
+                coro = IppAsyncCoroutine(callee, list(args))
+                self.stack.append(coro)
+                return
 
         if isinstance(callee, BoundMethod):
             # FIX v1.5.25: Handle static methods (instance=None)
@@ -1624,6 +1996,10 @@ class VM:
                     for a in args:
                         self.stack.append(a)
                     new_frame = VMFrame(chunk, closure=callee.method, stack_base=base)
+                    # FIX BUG-N2: increment only at frame-push
+                    if self.call_depth >= self.max_depth:
+                        raise VMError(f"Maximum recursion depth ({self.max_depth}) exceeded")
+                    self.call_depth += 1
                     self.frames.append(new_frame)
                 else:
                     # IppFunction or Chunk - use generic call
@@ -1648,10 +2024,10 @@ class VM:
 
         if isinstance(callee, Closure):
             chunk = callee.chunk
-            proto = getattr(callee, 'proto', None)
+            proto = getattr(callee, '_proto', None)  # FIX: stored as _proto by CLOSURE handler
         elif isinstance(callee, IppFunction):
             chunk = callee.chunk
-            proto = getattr(callee, 'proto', None)
+            proto = getattr(callee, '_proto', None)
         elif isinstance(callee, Chunk):
             chunk = callee
             proto = None
@@ -1665,35 +2041,46 @@ class VM:
         # FIX: BUG-M7 — push args onto stack BEFORE creating frame
         # Handle variadic: pack excess args into list
         variadic_param = getattr(proto, 'variadic_param', None) if proto else None
-        expected_args = len(chunk.locals) if hasattr(chunk, 'locals') else 0
-        
+        proto_param_count = len(getattr(proto, 'param_names', None) or []) if proto else 0
+        expected_args = proto_param_count or (len(chunk.locals) if hasattr(chunk, 'locals') else 0)
+
+        from ipp.interpreter.interpreter import IppList as _IppList
         base = len(self.stack)
-        if variadic_param and len(args) > (expected_args - 1):
-            # Pack excess args into a list
-            normal_count = expected_args - 1
-            for i, a in enumerate(args):
-                if i < normal_count:
+        if variadic_param:
+            normal_count = max(0, expected_args - 1)
+            if normal_count == 0:
+                self.stack.append(_IppList(list(args)))
+            elif len(args) > normal_count:
+                for i in range(normal_count):
+                    self.stack.append(args[i] if i < len(args) else None)
+                self.stack.append(_IppList(list(args[normal_count:])))
+            else:
+                for a in args:
                     self.stack.append(a)
-                elif i == normal_count:
-                    # Collect remaining into list
-                    self.stack.append(IppList(list(args[normal_count:])))
+                while len(self.stack) - base < normal_count:
+                    self.stack.append(None)
+                self.stack.append(_IppList([]))
         else:
             for a in args:
                 self.stack.append(a)
+            # FIX: pad missing args with None so default-param guards in function body fire
+            if expected_args > len(args):
+                for _ in range(expected_args - len(args)):
+                    self.stack.append(None)
 
         new_frame = VMFrame(chunk,
                             closure=callee if isinstance(callee, Closure) else None,
                             function=callee,
                             stack_base=base)
+        # FIX BUG-N2: increment ONLY here, once per frame pushed
+        if self.call_depth >= self.max_depth:
+            raise VMError(f"Maximum recursion depth ({self.max_depth}) exceeded")
+        self.call_depth += 1
         self.frames.append(new_frame)
 
     def _call_method(self, instance: IppInstance, method, args, return_frame):
         """Call a method with self as first arg. FIX: BUG-V8."""
-        # FIX BUG-N2: recursion depth check
-        self.call_depth += 1
-        if self.call_depth > self.max_depth:
-            self.call_depth -= 1
-            raise VMError(f"Maximum recursion depth ({self.max_depth}) exceeded")
+        # FIX BUG-N2: depth incremented only at frame-push below
         
         # Handle BoundMethod
         if isinstance(method, BoundMethod):
@@ -1728,6 +2115,10 @@ class VM:
         new_frame = VMFrame(chunk, closure=closure, function=method, stack_base=base)
         # Store instance on frame so RETURN_VAL can clear _current_class
         new_frame._method_instance = instance
+        # FIX BUG-N2: increment only here, once per frame pushed
+        if self.call_depth >= self.max_depth:
+            raise VMError(f"Maximum recursion depth ({self.max_depth}) exceeded")
+        self.call_depth += 1
         self.frames.append(new_frame)
 
     def _is_truthy(self, value) -> bool:

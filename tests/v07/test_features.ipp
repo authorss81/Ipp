@@ -1,12 +1,12 @@
 # v0.7.0 Feature Tests
 
 # List comprehension
-var squares = [i*i for i in 1..5]
+var squares = [i*i for i in 1..6]
 print("Squares: " + str(squares))
 assert squares[0] == 1
 assert squares[4] == 25
 
-var evens = [x for x in 1..10 if x % 2 == 0]
+var evens = [x for x in 1..11 if x % 2 == 0]
 print("Evens: " + str(evens))
 assert evens[0] == 2
 assert evens[4] == 10
@@ -24,7 +24,7 @@ assert d2[1] == 10
 assert d2[3] == 30
 
 # Nested comprehension
-var matrix = [[i*j for j in 1..4] for i in 1..4]
+var matrix = [[i*j for j in 1..5] for i in 1..5]
 print("Matrix: " + str(matrix))
 assert matrix[0][0] == 1
 assert matrix[3][3] == 16
