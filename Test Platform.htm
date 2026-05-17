@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<!-- saved from url=(0736)https://testplatform.aakash.ac.in/results/final/index.html?token=eyJhbGciOiJSUzI1NiJ9.eyJleHAiOjE3Nzg5ODIwMjksInVzZXJfaWQiOiIwMDAwNTAwOTQ5MiIsImV4YW1fc2NoZWR1bGVfaWQiOiI3OWYxNDFiNS00MGU5LTQyMGItOGVjOS1jYzQzNTQ5MzcwZmMiLCJ0ZW5hbnRfaWQiOiI3Nzc0NDkzMi04NDc1LTExZWUtYTVmNi0wMjFiZmI4YjVmYmMiLCJhdHRlbXB0X25vIjoxLCJ3ZV91c2VyX2lkIjoiMTA1ODA5OCIsImV4YW1fdHlwZSI6IkFJQVRTIn0.FtoxtH-IS0ZeHDPy0XyYgli_T6NMoOyBgNxTrzpEohfMY57smMf1AXVMSng3oS7067EhPEht4iBt3lKa6soF9arU0Zl5aJmA4-%2DsLugTAPtO7zWC-iOKBOi31OeZCbcS9_lRXWIQq95ZWqrP1-G_sCiPzvaRauCklA_igkEYz5SdvgE0LkyVHda9LdL81W0OwQV19dlFmIM2rr0nnzuAg9ibBo1qJ0b75yvxGj7rskJ5SLGbQJZfBxBJO2eKUZMniCVkBs3hTfaBWBPv8ZHTJQFckhgBK87o3Q9fHZ0ERrnM3UC-QVjEV95WQUZx_312VpJeIuDS3_8qS0sXiVnIxg&app=myaakash&platform=web -->
+<html lang="en" style=""><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0,user-scalable=0"><script defer="" id="_webengage_script_tag" type="text/javascript"> 
+        var webengage;
+        ! function(w, e, b, n, g) {
+            function o(e, t) {
+            e[t[t.length - 1]] = function() {
+                r.__queue.push([t.join("."), arguments])
+            }
+            }
+            var i, s, r = w[b],
+            z = " ",
+            l = "init options track screen onReady".split(z),
+            a = "feedback survey notification".split(z),
+            c = "options render clear abort".split(z),
+            p = "Open Close Submit Complete View Click".split(z),
+            u = "identify login logout setAttribute".split(z);
+            if (!r || !r.__v) {
+            for (w[b] = r = {
+                __queue: [],
+                __v: "6.0",
+                user: {}
+                }, i = 0; i < l.length; i++) o(r, [l[i]]);
+            for (i = 0; i < a.length; i++) {
+                for (r[a[i]] = {}, s = 0; s < c.length; s++) o(r[a[i]], [a[i], c[s]]);
+                for (s = 0; s < p.length; s++) o(r[a[i]], [a[i], "on" + p[s]])
+            }
+            for (i = 0; i < u.length; i++) o(r.user, ["user", u[i]])
+            }
+        }(window, document, "webengage");
+
+        if (
+            window.ReactNativeWebView &&
+            /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+        ) {
+            (function () {
+                console.log('WE_MOBILE_BRIDGE -> initialising mobile sdk')
+                var type = Object.prototype.toString;
+                  webengage.track = function (name, data) {
+                    const message = {
+                        type: 'webengage',
+                        action: 'track',
+                        data: {
+                            name: name || null,
+                            attr: type.call(data) === '[object Object]' ? data : null,
+                        },
+                    };
+                    console.log(message,'...message')
+                    window.ReactNativeWebView.postMessage(JSON.stringify(message));
+                };
+
+             window.webengage = window.webengage || { __queue: [] };
+                window.webengage.user = window.webengage.user || {};
+             
+                webengage.user.login = webengage.user.identify = function (id) {
+                    const message = {
+                        type: 'webengage',
+                        action: 'Login',
+                        id: id,
+                    };
+                    window.ReactNativeWebView.postMessage(JSON.stringify(message));
+                };
+
+            
+                webengage.user.logout = function () {
+                    const message = {
+                        type: 'webengage',
+                        action: 'Logout',
+                    };
+                    window.ReactNativeWebView.postMessage(JSON.stringify(message));
+                };
+
+                webengage.user.setAttribute = function (name, value) {
+                    var attr = null;
+                    if (type.call(name) === '[object Object]') {
+                        attr = name;
+                    } else {
+                        attr = {};
+                        attr[name] = value;
+                    }
+                    const message = {
+                        type: 'webengage',
+                        action: 'setAttribute',
+                        data: attr,
+                    };
+                    window.ReactNativeWebView.postMessage(JSON.stringify(message));
+                };
+                
+                // Correctly override screen
+                webengage.screen = function (name, data) {
+                    if (arguments.length === 1 && type.call(name) === '[object Object]') {
+                        data = name;
+                        name = null;
+                    }
+                    const message = {
+                        type: 'webengage',
+                        action: 'screen',
+                        data: {
+                            name: name || null,
+                            attr: type.call(data) === '[object Object]' ? data : null,
+                        },
+                    };
+                    window.ReactNativeWebView.postMessage(JSON.stringify(message));
+                };
+            })();
+        }
+        else if (window.__WEBENGAGE_MOBILE_BRIDGE__) {
+            (function(bridge) {
+            console.log("WEBENGAGE .__WEBENGAGE_MOBILE_BRIDGE__");
+            var type = Object.prototype.toString;
+
+            if (!bridge) return;
+            webengage.user.login = webengage.user.identify = function(id) {
+                bridge.login(id)
+            };
+            webengage.user.logout = function() {
+                bridge.logout()
+            };
+
+            webengage.user.setAttribute = function(name, value) {
+                var attr = null;
+
+                if (type.call(name) === '[object Object]') {
+                attr = name;
+                } else {
+                attr = {};
+                attr[name] = value;
+                }
+
+                if (type.call(attr) === '[object Object]') {
+                bridge.setAttribute(JSON.stringify(attr));
+                }
+            };
+
+            webengage.screen = function(name, data) {
+                if (arguments.length === 1 && type.call(name) === '[object Object]') {
+                data = name;
+                name = null;
+                }
+
+                bridge.screen(name || null, type.call(data) === '[object Object]' ? JSON.stringify(data) : null);
+            };
+
+            webengage.track = function(name, data) {
+                bridge.track(name, type.call(data) === '[object Object]' ? JSON.stringify(data) : null);
+            };
+
+            })(window.__WEBENGAGE_MOBILE_BRIDGE__);
+
+        }
+        else if(true) {
+            setTimeout(function() {
+            var f = document.createElement("script"),
+                d = document.getElementById("_webengage_script_tag");
+            f.type = "text/javascript",
+                f.async = !0,
+                f.src = ("https:" == window.location.protocol ? "https://ssl.widgets.webengage.com" : "http://cdn.widgets.webengage.com") + "/js/webengage-min-v-6.0.js",
+                d.parentNode.insertBefore(f, d)
+            });
+
+        }
+
+        webengage.onReady(function() {
+            console.log("WEBENGAGE READY");
+        });
+        webengage.init("~134104966");
+    </script><meta name="next-head-count" content="3"><link rel="icon" href="https://testplatform.aakash.ac.in/images/favicon.ico"><script defer="" src="./Test Platform_files/newrelic.js.download"></script><link rel="preload" href="./Test Platform_files/313b4b76dbf1618d.css" as="style"><link rel="stylesheet" href="./Test Platform_files/313b4b76dbf1618d.css" data-n-g=""><noscript data-n-css=""></noscript><script defer="" nomodule="" src="./Test Platform_files/polyfills-42372ed130431b0a.js.download"></script><script src="./Test Platform_files/webpack-2fbc56b05658e11e.js.download" defer=""></script><script src="./Test Platform_files/framework-e952fed463eb8e34.js.download" defer=""></script><script src="./Test Platform_files/main-da6148ca19f5272f.js.download" defer=""></script><script src="./Test Platform_files/_app-7ffe31287bd6e0c6.js.download" defer=""></script><script src="./Test Platform_files/final-c7266699adf5b306.js.download" defer=""></script><script src="./Test Platform_files/_buildManifest.js.download" defer=""></script><script src="./Test Platform_files/_ssgManifest.js.download" defer=""></script><style id="_goober"> @keyframes go2264125279{from{transform:scale(0) rotate(45deg);opacity:0;}to{transform:scale(1) rotate(45deg);opacity:1;}}@keyframes go3020080000{from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;}}@keyframes go463499852{from{transform:scale(0) rotate(90deg);opacity:0;}to{transform:scale(1) rotate(90deg);opacity:1;}}@keyframes go1268368563{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}@keyframes go1310225428{from{transform:scale(0) rotate(45deg);opacity:0;}to{transform:scale(1) rotate(45deg);opacity:1;}}@keyframes go651618207{0%{height:0;width:0;opacity:0;}40%{height:0;width:6px;opacity:1;}100%{opacity:1;height:10px;}}@keyframes go901347462{from{transform:scale(0.6);opacity:0.4;}to{transform:scale(1);opacity:1;}}.go4109123758{z-index:9999;}.go4109123758 > *{pointer-events:auto;}</style><script type="text/javascript" src="./Test Platform_files/MathJax.js.download"></script><title>Test Platform</title><style id="react-tooltip-core-styles" type="text/css">:root{--rt-color-white:#fff;--rt-color-dark:#222;--rt-color-success:#8dc572;--rt-color-error:#be6464;--rt-color-warning:#f0ad4e;--rt-color-info:#337ab7;--rt-opacity:0.9;--rt-transition-show-delay:0.15s;--rt-transition-closing-delay:0.15s;--rt-arrow-size:8px}.core-styles-module_tooltip__3vRRp{position:absolute;top:0;left:0;pointer-events:none;opacity:0;will-change:opacity}.core-styles-module_fixed__pcSol{position:fixed}.core-styles-module_arrow__cvMwQ{position:absolute;background:inherit;z-index:-1}.core-styles-module_noArrow__xock6{display:none}.core-styles-module_clickable__ZuTTB{pointer-events:auto}.core-styles-module_show__Nt9eE{opacity:var(--rt-opacity);transition:opacity var(--rt-transition-show-delay)ease-out}.core-styles-module_closing__sGnxF{opacity:0;transition:opacity var(--rt-transition-closing-delay)ease-in}</style><style id="react-tooltip-base-styles" type="text/css">
+.styles-module_tooltip__mnnfp{padding:8px 16px;border-radius:3px;font-size:90%;width:max-content}.styles-module_arrow__K0L3T{width:var(--rt-arrow-size);height:var(--rt-arrow-size)}[class*='react-tooltip__place-top']>.styles-module_arrow__K0L3T{transform:rotate(45deg)}[class*='react-tooltip__place-right']>.styles-module_arrow__K0L3T{transform:rotate(135deg)}[class*='react-tooltip__place-bottom']>.styles-module_arrow__K0L3T{transform:rotate(225deg)}[class*='react-tooltip__place-left']>.styles-module_arrow__K0L3T{transform:rotate(315deg)}.styles-module_dark__xNqje{background:var(--rt-color-dark);color:var(--rt-color-white)}.styles-module_light__Z6W-X{background-color:var(--rt-color-white);color:var(--rt-color-dark)}.styles-module_success__A2AKt{background-color:var(--rt-color-success);color:var(--rt-color-white)}.styles-module_warning__SCK0X{background-color:var(--rt-color-warning);color:var(--rt-color-white)}.styles-module_error__JvumD{background-color:var(--rt-color-error);color:var(--rt-color-white)}.styles-module_info__BWdHW{background-color:var(--rt-color-info);color:var(--rt-color-white)}</style><style type="text/css">.MathJax_Hover_Frame {border-radius: .25em; -webkit-border-radius: .25em; -moz-border-radius: .25em; -khtml-border-radius: .25em; box-shadow: 0px 0px 15px #83A; -webkit-box-shadow: 0px 0px 15px #83A; -moz-box-shadow: 0px 0px 15px #83A; -khtml-box-shadow: 0px 0px 15px #83A; border: 1px solid #A6D ! important; display: inline-block; position: absolute}
+.MathJax_Menu_Button .MathJax_Hover_Arrow {position: absolute; cursor: pointer; display: inline-block; border: 2px solid #AAA; border-radius: 4px; -webkit-border-radius: 4px; -moz-border-radius: 4px; -khtml-border-radius: 4px; font-family: 'Courier New',Courier; font-size: 9px; color: #F0F0F0}
+.MathJax_Menu_Button .MathJax_Hover_Arrow span {display: block; background-color: #AAA; border: 1px solid; border-radius: 3px; line-height: 0; padding: 4px}
+.MathJax_Hover_Arrow:hover {color: white!important; border: 2px solid #CCC!important}
+.MathJax_Hover_Arrow:hover span {background-color: #CCC!important}
+</style><style type="text/css">#MathJax_About {position: fixed; left: 50%; width: auto; text-align: center; border: 3px outset; padding: 1em 2em; background-color: #DDDDDD; color: black; cursor: default; font-family: message-box; font-size: 120%; font-style: normal; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; border-radius: 15px; -webkit-border-radius: 15px; -moz-border-radius: 15px; -khtml-border-radius: 15px; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_About.MathJax_MousePost {outline: none}
+.MathJax_Menu {position: absolute; background-color: white; color: black; width: auto; padding: 2px; border: 1px solid #CCCCCC; margin: 0; cursor: default; font: menu; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; z-index: 201; box-shadow: 0px 10px 20px #808080; -webkit-box-shadow: 0px 10px 20px #808080; -moz-box-shadow: 0px 10px 20px #808080; -khtml-box-shadow: 0px 10px 20px #808080; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+.MathJax_MenuItem {padding: 2px 2em; background: transparent}
+.MathJax_MenuArrow {position: absolute; right: .5em; padding-top: .25em; color: #666666; font-size: .75em}
+.MathJax_MenuActive .MathJax_MenuArrow {color: white}
+.MathJax_MenuArrow.RTL {left: .5em; right: auto}
+.MathJax_MenuCheck {position: absolute; left: .7em}
+.MathJax_MenuCheck.RTL {right: .7em; left: auto}
+.MathJax_MenuRadioCheck {position: absolute; left: 1em}
+.MathJax_MenuRadioCheck.RTL {right: 1em; left: auto}
+.MathJax_MenuLabel {padding: 2px 2em 4px 1.33em; font-style: italic}
+.MathJax_MenuRule {border-top: 1px solid #CCCCCC; margin: 4px 1px 0px}
+.MathJax_MenuDisabled {color: GrayText}
+.MathJax_MenuActive {background-color: Highlight; color: HighlightText}
+.MathJax_MenuDisabled:focus, .MathJax_MenuLabel:focus {background-color: #E8E8E8}
+.MathJax_ContextMenu:focus {outline: none}
+.MathJax_ContextMenu .MathJax_MenuItem:focus {outline: none}
+#MathJax_AboutClose {top: .2em; right: .2em}
+.MathJax_Menu .MathJax_MenuClose {top: -10px; left: -10px}
+.MathJax_MenuClose {position: absolute; cursor: pointer; display: inline-block; border: 2px solid #AAA; border-radius: 18px; -webkit-border-radius: 18px; -moz-border-radius: 18px; -khtml-border-radius: 18px; font-family: 'Courier New',Courier; font-size: 24px; color: #F0F0F0}
+.MathJax_MenuClose span {display: block; background-color: #AAA; border: 1.5px solid; border-radius: 18px; -webkit-border-radius: 18px; -moz-border-radius: 18px; -khtml-border-radius: 18px; line-height: 0; padding: 8px 0 6px}
+.MathJax_MenuClose:hover {color: white!important; border: 2px solid #CCC!important}
+.MathJax_MenuClose:hover span {background-color: #CCC!important}
+.MathJax_MenuClose:hover:focus {outline: none}
+</style><style type="text/css">.MJX_Assistive_MathML {position: absolute!important; top: 0; left: 0; clip: rect(1px, 1px, 1px, 1px); padding: 1px 0 0 0!important; border: 0!important; height: 1px!important; width: 1px!important; overflow: hidden!important; display: block!important; -webkit-touch-callout: none; -webkit-user-select: none; -khtml-user-select: none; -moz-user-select: none; -ms-user-select: none; user-select: none}
+.MJX_Assistive_MathML.MJX_Assistive_MathML_Block {width: 100%!important}
+</style><style type="text/css">#MathJax_Zoom {position: absolute; background-color: #F0F0F0; overflow: auto; display: block; z-index: 301; padding: .5em; border: 1px solid black; margin: 0; font-weight: normal; font-style: normal; text-align: left; text-indent: 0; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; word-wrap: normal; white-space: nowrap; float: none; -webkit-box-sizing: content-box; -moz-box-sizing: content-box; box-sizing: content-box; box-shadow: 5px 5px 15px #AAAAAA; -webkit-box-shadow: 5px 5px 15px #AAAAAA; -moz-box-shadow: 5px 5px 15px #AAAAAA; -khtml-box-shadow: 5px 5px 15px #AAAAAA; filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')}
+#MathJax_ZoomOverlay {position: absolute; left: 0; top: 0; z-index: 300; display: inline-block; width: 100%; height: 100%; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+#MathJax_ZoomFrame {position: relative; display: inline-block; height: 0; width: 0}
+#MathJax_ZoomEventTrap {position: absolute; left: 0; top: 0; z-index: 302; display: inline-block; border: 0; padding: 0; margin: 0; background-color: white; opacity: 0; filter: alpha(opacity=0)}
+</style><style type="text/css">.MathJax_Preview {color: #888; display: contents}
+#MathJax_Message {position: fixed; left: 1em; bottom: 1.5em; background-color: #E6E6E6; border: 1px solid #959595; margin: 0px; padding: 2px 8px; z-index: 102; color: black; font-size: 80%; width: auto; white-space: nowrap}
+#MathJax_MSIE_Frame {position: absolute; top: 0; left: 0; width: 0px; z-index: 101; border: 0px; margin: 0px; padding: 0px}
+.MathJax_Error {color: #CC0000; font-style: italic}
+</style><style type="text/css">.MJXp-script {font-size: .8em}
+.MJXp-right {-webkit-transform-origin: right; -moz-transform-origin: right; -ms-transform-origin: right; -o-transform-origin: right; transform-origin: right}
+.MJXp-bold {font-weight: bold}
+.MJXp-italic {font-style: italic}
+.MJXp-scr {font-family: MathJax_Script,'Times New Roman',Times,STIXGeneral,serif}
+.MJXp-frak {font-family: MathJax_Fraktur,'Times New Roman',Times,STIXGeneral,serif}
+.MJXp-sf {font-family: MathJax_SansSerif,'Times New Roman',Times,STIXGeneral,serif}
+.MJXp-cal {font-family: MathJax_Caligraphic,'Times New Roman',Times,STIXGeneral,serif}
+.MJXp-mono {font-family: MathJax_Typewriter,'Times New Roman',Times,STIXGeneral,serif}
+.MJXp-largeop {font-size: 150%}
+.MJXp-largeop.MJXp-int {vertical-align: -.2em}
+.MJXp-math {display: inline-block; line-height: 1.2; text-indent: 0; font-family: 'Times New Roman',Times,STIXGeneral,serif; white-space: nowrap; border-collapse: collapse}
+.MJXp-display {display: block; text-align: center; margin: 1em 0}
+.MJXp-math span {display: inline-block}
+.MJXp-box {display: block!important; text-align: center}
+.MJXp-box:after {content: " "}
+.MJXp-rule {display: block!important; margin-top: .1em}
+.MJXp-char {display: block!important}
+.MJXp-mo {margin: 0 .15em}
+.MJXp-mfrac {margin: 0 .125em; vertical-align: .25em}
+.MJXp-denom {display: inline-table!important; width: 100%}
+.MJXp-denom > * {display: table-row!important}
+.MJXp-surd {vertical-align: top}
+.MJXp-surd > * {display: block!important}
+.MJXp-script-box > *  {display: table!important; height: 50%}
+.MJXp-script-box > * > * {display: table-cell!important; vertical-align: top}
+.MJXp-script-box > *:last-child > * {vertical-align: bottom}
+.MJXp-script-box > * > * > * {display: block!important}
+.MJXp-mphantom {visibility: hidden}
+.MJXp-munderover, .MJXp-munder {display: inline-table!important}
+.MJXp-over {display: inline-block!important; text-align: center}
+.MJXp-over > * {display: block!important}
+.MJXp-munderover > *, .MJXp-munder > * {display: table-row!important}
+.MJXp-mtable {vertical-align: .25em; margin: 0 .125em}
+.MJXp-mtable > * {display: inline-table!important; vertical-align: middle}
+.MJXp-mtr {display: table-row!important}
+.MJXp-mtd {display: table-cell!important; text-align: center; padding: .5em 0 0 .5em}
+.MJXp-mtr > .MJXp-mtd:first-child {padding-left: 0}
+.MJXp-mtr:first-child > .MJXp-mtd {padding-top: 0}
+.MJXp-mlabeledtr {display: table-row!important}
+.MJXp-mlabeledtr > .MJXp-mtd:first-child {padding-left: 0}
+.MJXp-mlabeledtr:first-child > .MJXp-mtd {padding-top: 0}
+.MJXp-merror {background-color: #FFFF88; color: #CC0000; border: 1px solid #CC0000; padding: 1px 3px; font-style: normal; font-size: 90%}
+.MJXp-scale0 {-webkit-transform: scaleX(.0); -moz-transform: scaleX(.0); -ms-transform: scaleX(.0); -o-transform: scaleX(.0); transform: scaleX(.0)}
+.MJXp-scale1 {-webkit-transform: scaleX(.1); -moz-transform: scaleX(.1); -ms-transform: scaleX(.1); -o-transform: scaleX(.1); transform: scaleX(.1)}
+.MJXp-scale2 {-webkit-transform: scaleX(.2); -moz-transform: scaleX(.2); -ms-transform: scaleX(.2); -o-transform: scaleX(.2); transform: scaleX(.2)}
+.MJXp-scale3 {-webkit-transform: scaleX(.3); -moz-transform: scaleX(.3); -ms-transform: scaleX(.3); -o-transform: scaleX(.3); transform: scaleX(.3)}
+.MJXp-scale4 {-webkit-transform: scaleX(.4); -moz-transform: scaleX(.4); -ms-transform: scaleX(.4); -o-transform: scaleX(.4); transform: scaleX(.4)}
+.MJXp-scale5 {-webkit-transform: scaleX(.5); -moz-transform: scaleX(.5); -ms-transform: scaleX(.5); -o-transform: scaleX(.5); transform: scaleX(.5)}
+.MJXp-scale6 {-webkit-transform: scaleX(.6); -moz-transform: scaleX(.6); -ms-transform: scaleX(.6); -o-transform: scaleX(.6); transform: scaleX(.6)}
+.MJXp-scale7 {-webkit-transform: scaleX(.7); -moz-transform: scaleX(.7); -ms-transform: scaleX(.7); -o-transform: scaleX(.7); transform: scaleX(.7)}
+.MJXp-scale8 {-webkit-transform: scaleX(.8); -moz-transform: scaleX(.8); -ms-transform: scaleX(.8); -o-transform: scaleX(.8); transform: scaleX(.8)}
+.MJXp-scale9 {-webkit-transform: scaleX(.9); -moz-transform: scaleX(.9); -ms-transform: scaleX(.9); -o-transform: scaleX(.9); transform: scaleX(.9)}
+.MathJax_PHTML .noError {vertical-align: ; font-size: 90%; text-align: left; color: black; padding: 1px 3px; border: 1px solid}
+</style><style type="text/css">.mjx-chtml {display: inline-block; line-height: 0; text-indent: 0; text-align: left; text-transform: none; font-style: normal; font-weight: normal; font-size: 100%; font-size-adjust: none; letter-spacing: normal; word-wrap: normal; word-spacing: normal; white-space: nowrap; float: none; direction: ltr; max-width: none; max-height: none; min-width: 0; min-height: 0; border: 0; margin: 0; padding: 1px 0}
+.MJXc-display {display: block; text-align: center; margin: 1em 0; padding: 0}
+.mjx-chtml[tabindex]:focus, body :focus .mjx-chtml[tabindex] {display: inline-table}
+.mjx-full-width {text-align: center; display: table-cell!important; width: 10000em}
+.mjx-math {display: inline-block; border-collapse: separate; border-spacing: 0}
+.mjx-math * {display: inline-block; -webkit-box-sizing: content-box!important; -moz-box-sizing: content-box!important; box-sizing: content-box!important; text-align: left}
+.mjx-numerator {display: block; text-align: center}
+.mjx-denominator {display: block; text-align: center}
+.MJXc-stacked {height: 0; position: relative}
+.MJXc-stacked > * {position: absolute}
+.MJXc-bevelled > * {display: inline-block}
+.mjx-stack {display: inline-block}
+.mjx-op {display: block}
+.mjx-under {display: table-cell}
+.mjx-over {display: block}
+.mjx-over > * {padding-left: 0px!important; padding-right: 0px!important}
+.mjx-under > * {padding-left: 0px!important; padding-right: 0px!important}
+.mjx-stack > .mjx-sup {display: block}
+.mjx-stack > .mjx-sub {display: block}
+.mjx-prestack > .mjx-presup {display: block}
+.mjx-prestack > .mjx-presub {display: block}
+.mjx-delim-h > .mjx-char {display: inline-block}
+.mjx-surd {vertical-align: top}
+.mjx-surd + .mjx-box {display: inline-flex}
+.mjx-mphantom * {visibility: hidden}
+.mjx-merror {background-color: #FFFF88; color: #CC0000; border: 1px solid #CC0000; padding: 2px 3px; font-style: normal; font-size: 90%}
+.mjx-annotation-xml {line-height: normal}
+.mjx-menclose > svg {fill: none; stroke: currentColor; overflow: visible}
+.mjx-mtr {display: table-row}
+.mjx-mlabeledtr {display: table-row}
+.mjx-mtd {display: table-cell; text-align: center}
+.mjx-label {display: table-row}
+.mjx-box {display: inline-block}
+.mjx-block {display: block}
+.mjx-span {display: inline}
+.mjx-char {display: block; white-space: pre}
+.mjx-itable {display: inline-table; width: auto}
+.mjx-row {display: table-row}
+.mjx-cell {display: table-cell}
+.mjx-table {display: table; width: 100%}
+.mjx-line {display: block; height: 0}
+.mjx-strut {width: 0; padding-top: 1em}
+.mjx-vsize {width: 0}
+.MJXc-space1 {margin-left: .167em}
+.MJXc-space2 {margin-left: .222em}
+.MJXc-space3 {margin-left: .278em}
+.mjx-chartest {display: block; visibility: hidden; position: absolute; top: 0; line-height: normal; font-size: 500%}
+.mjx-chartest .mjx-char {display: inline}
+.mjx-chartest .mjx-box {padding-top: 1000px}
+.MJXc-processing {visibility: hidden; position: fixed; width: 0; height: 0; overflow: hidden}
+.MJXc-processed {display: none}
+.mjx-test {font-style: normal; font-weight: normal; font-size: 100%; font-size-adjust: none; text-indent: 0; text-transform: none; letter-spacing: normal; word-spacing: normal; overflow: hidden; height: 1px}
+.mjx-test.mjx-test-display {display: table!important}
+.mjx-test.mjx-test-inline {display: inline!important; margin-right: -1px}
+.mjx-test.mjx-test-default {display: block!important; clear: both}
+.mjx-ex-box {display: inline-block!important; position: absolute; overflow: hidden; min-height: 0; max-height: none; padding: 0; border: 0; margin: 0; width: 1px; height: 60ex}
+.mjx-test-inline .mjx-left-box {display: inline-block; width: 0; float: left}
+.mjx-test-inline .mjx-right-box {display: inline-block; width: 0; float: right}
+.mjx-test-display .mjx-right-box {display: table-cell!important; width: 10000em!important; min-width: 0; max-width: none; padding: 0; border: 0; margin: 0}
+#MathJax_CHTML_Tooltip {background-color: InfoBackground; color: InfoText; border: 1px solid black; box-shadow: 2px 2px 5px #AAAAAA; -webkit-box-shadow: 2px 2px 5px #AAAAAA; -moz-box-shadow: 2px 2px 5px #AAAAAA; -khtml-box-shadow: 2px 2px 5px #AAAAAA; padding: 3px 4px; z-index: 401; position: absolute; left: 0; top: 0; width: auto; height: auto; display: none}
+.mjx-chtml .mjx-noError {line-height: 1.2; vertical-align: ; font-size: 90%; text-align: left; color: black; padding: 1px 3px; border: 1px solid}
+.MJXc-TeX-unknown-R {font-family: STIXGeneral,'Cambria Math','Arial Unicode MS',serif; font-style: normal; font-weight: normal}
+.MJXc-TeX-unknown-I {font-family: STIXGeneral,'Cambria Math','Arial Unicode MS',serif; font-style: italic; font-weight: normal}
+.MJXc-TeX-unknown-B {font-family: STIXGeneral,'Cambria Math','Arial Unicode MS',serif; font-style: normal; font-weight: bold}
+.MJXc-TeX-unknown-BI {font-family: STIXGeneral,'Cambria Math','Arial Unicode MS',serif; font-style: italic; font-weight: bold}
+.MJXc-TeX-ams-R {font-family: MJXc-TeX-ams-R,MJXc-TeX-ams-Rw}
+.MJXc-TeX-cal-B {font-family: MJXc-TeX-cal-B,MJXc-TeX-cal-Bx,MJXc-TeX-cal-Bw}
+.MJXc-TeX-frak-R {font-family: MJXc-TeX-frak-R,MJXc-TeX-frak-Rw}
+.MJXc-TeX-frak-B {font-family: MJXc-TeX-frak-B,MJXc-TeX-frak-Bx,MJXc-TeX-frak-Bw}
+.MJXc-TeX-math-BI {font-family: MJXc-TeX-math-BI,MJXc-TeX-math-BIx,MJXc-TeX-math-BIw}
+.MJXc-TeX-sans-R {font-family: MJXc-TeX-sans-R,MJXc-TeX-sans-Rw}
+.MJXc-TeX-sans-B {font-family: MJXc-TeX-sans-B,MJXc-TeX-sans-Bx,MJXc-TeX-sans-Bw}
+.MJXc-TeX-sans-I {font-family: MJXc-TeX-sans-I,MJXc-TeX-sans-Ix,MJXc-TeX-sans-Iw}
+.MJXc-TeX-script-R {font-family: MJXc-TeX-script-R,MJXc-TeX-script-Rw}
+.MJXc-TeX-type-R {font-family: MJXc-TeX-type-R,MJXc-TeX-type-Rw}
+.MJXc-TeX-cal-R {font-family: MJXc-TeX-cal-R,MJXc-TeX-cal-Rw}
+.MJXc-TeX-main-B {font-family: MJXc-TeX-main-B,MJXc-TeX-main-Bx,MJXc-TeX-main-Bw}
+.MJXc-TeX-main-I {font-family: MJXc-TeX-main-I,MJXc-TeX-main-Ix,MJXc-TeX-main-Iw}
+.MJXc-TeX-main-R {font-family: MJXc-TeX-main-R,MJXc-TeX-main-Rw}
+.MJXc-TeX-math-I {font-family: MJXc-TeX-math-I,MJXc-TeX-math-Ix,MJXc-TeX-math-Iw}
+.MJXc-TeX-size1-R {font-family: MJXc-TeX-size1-R,MJXc-TeX-size1-Rw}
+.MJXc-TeX-size2-R {font-family: MJXc-TeX-size2-R,MJXc-TeX-size2-Rw}
+.MJXc-TeX-size3-R {font-family: MJXc-TeX-size3-R,MJXc-TeX-size3-Rw}
+.MJXc-TeX-size4-R {font-family: MJXc-TeX-size4-R,MJXc-TeX-size4-Rw}
+.MJXc-TeX-vec-R {font-family: MJXc-TeX-vec-R,MJXc-TeX-vec-Rw}
+.MJXc-TeX-vec-B {font-family: MJXc-TeX-vec-B,MJXc-TeX-vec-Bx,MJXc-TeX-vec-Bw}
+@font-face {font-family: MJXc-TeX-ams-R; src: local('MathJax_AMS'), local('MathJax_AMS-Regular')}
+@font-face {font-family: MJXc-TeX-ams-Rw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_AMS-Regular.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_AMS-Regular.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_AMS-Regular.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-cal-B; src: local('MathJax_Caligraphic Bold'), local('MathJax_Caligraphic-Bold')}
+@font-face {font-family: MJXc-TeX-cal-Bx; src: local('MathJax_Caligraphic'); font-weight: bold}
+@font-face {font-family: MJXc-TeX-cal-Bw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Caligraphic-Bold.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Caligraphic-Bold.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Caligraphic-Bold.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-frak-R; src: local('MathJax_Fraktur'), local('MathJax_Fraktur-Regular')}
+@font-face {font-family: MJXc-TeX-frak-Rw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Fraktur-Regular.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Fraktur-Regular.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Fraktur-Regular.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-frak-B; src: local('MathJax_Fraktur Bold'), local('MathJax_Fraktur-Bold')}
+@font-face {font-family: MJXc-TeX-frak-Bx; src: local('MathJax_Fraktur'); font-weight: bold}
+@font-face {font-family: MJXc-TeX-frak-Bw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Fraktur-Bold.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Fraktur-Bold.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Fraktur-Bold.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-math-BI; src: local('MathJax_Math BoldItalic'), local('MathJax_Math-BoldItalic')}
+@font-face {font-family: MJXc-TeX-math-BIx; src: local('MathJax_Math'); font-weight: bold; font-style: italic}
+@font-face {font-family: MJXc-TeX-math-BIw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Math-BoldItalic.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Math-BoldItalic.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Math-BoldItalic.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-sans-R; src: local('MathJax_SansSerif'), local('MathJax_SansSerif-Regular')}
+@font-face {font-family: MJXc-TeX-sans-Rw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_SansSerif-Regular.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_SansSerif-Regular.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_SansSerif-Regular.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-sans-B; src: local('MathJax_SansSerif Bold'), local('MathJax_SansSerif-Bold')}
+@font-face {font-family: MJXc-TeX-sans-Bx; src: local('MathJax_SansSerif'); font-weight: bold}
+@font-face {font-family: MJXc-TeX-sans-Bw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_SansSerif-Bold.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_SansSerif-Bold.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_SansSerif-Bold.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-sans-I; src: local('MathJax_SansSerif Italic'), local('MathJax_SansSerif-Italic')}
+@font-face {font-family: MJXc-TeX-sans-Ix; src: local('MathJax_SansSerif'); font-style: italic}
+@font-face {font-family: MJXc-TeX-sans-Iw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_SansSerif-Italic.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_SansSerif-Italic.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_SansSerif-Italic.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-script-R; src: local('MathJax_Script'), local('MathJax_Script-Regular')}
+@font-face {font-family: MJXc-TeX-script-Rw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Script-Regular.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Script-Regular.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Script-Regular.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-type-R; src: local('MathJax_Typewriter'), local('MathJax_Typewriter-Regular')}
+@font-face {font-family: MJXc-TeX-type-Rw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Typewriter-Regular.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Typewriter-Regular.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Typewriter-Regular.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-cal-R; src: local('MathJax_Caligraphic'), local('MathJax_Caligraphic-Regular')}
+@font-face {font-family: MJXc-TeX-cal-Rw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Caligraphic-Regular.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Caligraphic-Regular.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Caligraphic-Regular.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-main-B; src: local('MathJax_Main Bold'), local('MathJax_Main-Bold')}
+@font-face {font-family: MJXc-TeX-main-Bx; src: local('MathJax_Main'); font-weight: bold}
+@font-face {font-family: MJXc-TeX-main-Bw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Main-Bold.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Main-Bold.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Main-Bold.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-main-I; src: local('MathJax_Main Italic'), local('MathJax_Main-Italic')}
+@font-face {font-family: MJXc-TeX-main-Ix; src: local('MathJax_Main'); font-style: italic}
+@font-face {font-family: MJXc-TeX-main-Iw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Main-Italic.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Main-Italic.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Main-Italic.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-main-R; src: local('MathJax_Main'), local('MathJax_Main-Regular')}
+@font-face {font-family: MJXc-TeX-main-Rw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Main-Regular.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Main-Regular.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Main-Regular.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-math-I; src: local('MathJax_Math Italic'), local('MathJax_Math-Italic')}
+@font-face {font-family: MJXc-TeX-math-Ix; src: local('MathJax_Math'); font-style: italic}
+@font-face {font-family: MJXc-TeX-math-Iw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Math-Italic.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Math-Italic.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Math-Italic.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-size1-R; src: local('MathJax_Size1'), local('MathJax_Size1-Regular')}
+@font-face {font-family: MJXc-TeX-size1-Rw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Size1-Regular.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Size1-Regular.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Size1-Regular.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-size2-R; src: local('MathJax_Size2'), local('MathJax_Size2-Regular')}
+@font-face {font-family: MJXc-TeX-size2-Rw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Size2-Regular.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Size2-Regular.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Size2-Regular.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-size3-R; src: local('MathJax_Size3'), local('MathJax_Size3-Regular')}
+@font-face {font-family: MJXc-TeX-size3-Rw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Size3-Regular.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Size3-Regular.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Size3-Regular.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-size4-R; src: local('MathJax_Size4'), local('MathJax_Size4-Regular')}
+@font-face {font-family: MJXc-TeX-size4-Rw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Size4-Regular.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Size4-Regular.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Size4-Regular.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-vec-R; src: local('MathJax_Vector'), local('MathJax_Vector-Regular')}
+@font-face {font-family: MJXc-TeX-vec-Rw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Vector-Regular.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Vector-Regular.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Vector-Regular.otf') format('opentype')}
+@font-face {font-family: MJXc-TeX-vec-B; src: local('MathJax_Vector Bold'), local('MathJax_Vector-Bold')}
+@font-face {font-family: MJXc-TeX-vec-Bx; src: local('MathJax_Vector'); font-weight: bold}
+@font-face {font-family: MJXc-TeX-vec-Bw; src /*1*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/eot/MathJax_Vector-Bold.eot'); src /*2*/: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/woff/MathJax_Vector-Bold.woff') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.9/fonts/HTML-CSS/TeX/otf/MathJax_Vector-Bold.otf') format('opentype')}
+</style></head><body class="overflow-auto custom-scrollbar bg-[#F5F7FA] sm:no-scrollbar"><div id="MathJax_Message" style="display: none;"></div><div id="__next"><div><div><div class="fixed w-full h-[64px] flex items-center px-[7vw] py-5 z-[99] transition-height duration-1000 ease-out sm:px-[5.33vw] sm:py-4 sm:pt-8 sm:pb-[22px] sm:h-auto bg-[#CCEFFD] shadow-[0_0_20px_0_rgba(0,0,0,0.07)]"><div class="w-full flex items-center justify-between sm:flex sm:flex-row sm:justify-between"><div class="w-full font-semibold text-lg text-[#333333] sm:text-sm sm:mb-0 sm:flex sm:items-center"><div><svg fill="none" preserveAspectRatio="xMidYMid meet" height="24" width="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" stroke="#B0B0B0" class="hidden sm:w-6 sm:h-6 sm:mr-3 cursor-pointer stroke-[#414141] sm:float-left sm:hidden"><g id="fi:chevron-down"><path id="Vector" d="M15 6L9 12L15 18" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></g></svg></div><div class="sm:text-center sm:w-full">AIATS For Two Year JEE(Main)-2027 (XI Studying-P2)_Test-03_Online</div><div class="hidden sm:block sm:relative"><svg fill="none" preserveAspectRatio="xMidYMid meet" height="25" width="24" viewBox="0 0 24 25"><path d="M12 20.0808C12.5523 20.0808 13 19.6331 13 19.0808C13 18.5285 12.5523 18.0808 12 18.0808C11.4477 18.0808 11 18.5285 11 19.0808C11 19.6331 11.4477 20.0808 12 20.0808Z" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 13.0808C12.5523 13.0808 13 12.6331 13 12.0808C13 11.5285 12.5523 11.0808 12 11.0808C11.4477 11.0808 11 11.5285 11 12.0808C11 12.6331 11.4477 13.0808 12 13.0808Z" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path><path d="M12 6.08081C12.5523 6.08081 13 5.6331 13 5.08081C13 4.52853 12.5523 4.08081 12 4.08081C11.4477 4.08081 11 4.52853 11 5.08081C11 5.6331 11.4477 6.08081 12 6.08081Z" stroke="#333333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg></div></div><div class="flex space-x-[1.1vw] sm:overflow-x-scroll sm:no-scrollbar sm:w-full sm:justify-between sm:hidden"><div class="flex  p-2 rounded-lg text-sm whitespace-nowrap sm:text-xs sm:hidden"><div class="font-medium text-[#333333]">User ID</div><span class="font-medium text-[#545454]">: 00005009492</span></div><div class="flex p-2 rounded-lg text-sm whitespace-nowrap sm:text-xs sm:hidden"><div class="font-medium text-[#333333]">Attempted date</div><span class="font-medium text-[#545454]">: 3/5/26</span></div></div></div></div></div> <div><div class=""><div class="flex flex-col "><div class="flex flex-col sm:space-y-0"><div class="flex flex-col sticky z-[98] min-h-[264px] h-auto overflow-hidden"><div class="overflow-hidden transition-all duration-500 ease-out max-h-[500px] opacity-100"><div class="w-full bg-[#CCEFFD] pb-[20px] z-1 transition-all duration-1000 ease-in-out flex sm:flex-col px-[7vw] items-center justify-center gap-[20px] space-x-[20px] sm:space-x-0 s:pb-4 sm:px-[4vw] sm:transition-none pt-[70px] sm:pt-24" style="background: linear-gradient(92deg, rgb(229, 246, 255) -4.86%, rgb(119, 211, 247) 121.49%);"><picture><source srcset="/images/Results/WebHeaderBg.png" media="(min-width: 1280px)"><img src="./Test Platform_files/WebHeaderBg.png" loading="lazy" alt="Background" class="absolute top-[60px] left-0 w-full h-full object-cover z-0 pointer-events-none"></picture><div class="flex flex-col sm:flex-row justify-center items-center gap-[20px] xs:gap-0 xs:w-full xs:justify-evenly"><div class="flex flex-col items-center justify-center"><div class="relative flex items-center"><svg class="mt-[-20px] w-[260px] sm:h-[125px] xs:w-[160px]"><path id="backgroundArc" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" d="M 220 140 A 90 90 0 0 0 40 140" style="filter: drop-shadow(rgba(15, 15, 15, 0.12) 0px 2px 4px);"></path><path id="completedArc" fill="none" stroke="#008DC4" stroke-width="12" stroke-linecap="round" d="M 218.0332840660425 121.28794782640166 A 90 90 0 0 0 40 140"></path><circle cx="218.0332840660425" cy="121.28794782640166" r="10" fill="#008DC4"></circle></svg><div class=" text-center mt-[-20px] absolute text-[#333333]  sm:min-w-[70px] sm:max-w-fit " style="top: 90px; left: 90px;"><div><div class="text-base sm:text-sm sm:min-w-[40px]">Score</div><div class="text-[24px] sm:text-[18px] font-medium sm:min-w-[50px]">290/300</div></div></div></div></div><div class="flex items-center justify-center space-x-5 w-fit sm:items-baseline sm:space-x-0 sm:overflow-auto sm:no-scrollbar  sm:my-4 sm:justify-center sm:gap-3 sm:flex-col sm:mt-2 sm:mb-2"><div class="flex justify-center items-center space-x-1 sm:space-x-0 sm:gap-[8px]"><div class="flex justify-center items-center xs:h-auto xs:w-[15px] sm:overflow-auto sm:no-scrollbar"><svg fill="none" preserveAspectRatio="xMidYMid meet" height="14" width="14" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px] sm:w-[16px] sm:h-[16px]"><circle cx="7" cy="7" r="7" fill="#50B47F"></circle><path fill-rule="evenodd" clip-rule="evenodd" d="M5.38831 10.2624L3.36549 8.13813C3.06827 7.82609 3.07998 7.33228 3.3928 7.03506C3.70328 6.73784 4.19709 6.74954 4.49587 7.06236L5.91098 8.54769L9.81619 3.78514C10.0892 3.45359 10.5815 3.40289 10.9146 3.6767C11.2485 3.95052 11.2961 4.44121 11.023 4.77509L6.55691 10.2195C6.41571 10.3926 6.20664 10.4964 5.98275 10.5042C5.97339 10.505 5.96481 10.505 5.95389 10.505C5.74092 10.505 5.53653 10.4176 5.38831 10.2624Z" fill="white"></path></svg></div><div class="flex justify-center items-center text-base xs:text-xs font-semibold text-[#333]">71<span class="text-base font-medium w-max text-[#545454] ml-1 xs:text-xs ">Correct</span></div></div><div class="flex justify-center items-center space-x-1 sm:space-x-0 sm:gap-[8px]"><div class="flex justify-center items-center xs:h-auto xs:w-[15px] sm:overflow-auto sm:no-scrollbar"><svg fill="none" preserveAspectRatio="xMidYMid meet" height="18" width="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" class="w-[18px] h-[18px] sm:w-[16px] sm:h-[16px]"><circle cx="9" cy="9" r="9" fill="#E7685A"></circle><path d="M10.0047 9.18015L13.5091 5.67562C13.7372 5.44767 13.7372 5.0791 13.5091 4.85114C13.2812 4.62319 12.9126 4.62319 12.6846 4.85114L9.18012 8.35567L5.6757 4.85114C5.44764 4.62319 5.07918 4.62319 4.85122 4.85114C4.62316 5.0791 4.62316 5.44767 4.85122 5.67562L8.35564 9.18015L4.85122 12.6847C4.62316 12.9126 4.62316 13.2812 4.85122 13.5092C4.96483 13.6229 5.1142 13.68 5.26346 13.68C5.41273 13.68 5.56199 13.6229 5.6757 13.5092L9.18012 10.0046L12.6846 13.5092C12.7984 13.6229 12.9476 13.68 13.0969 13.68C13.2462 13.68 13.3954 13.6229 13.5091 13.5092C13.7372 13.2812 13.7372 12.9126 13.5091 12.6847L10.0047 9.18015Z" fill="white" stroke="white" stroke-width="0.545455"></path></svg></div><div class="flex justify-center items-center text-base xs:text-xs font-semibold text-[#333]">2<span class="text-base font-medium w-max text-[#545454] ml-1 xs:text-xs ">Incorrect</span></div></div><div class="flex justify-center items-center space-x-1 sm:space-x-0 sm:gap-[8px]"><div class="flex justify-center items-center xs:h-auto xs:w-[15px] sm:overflow-auto sm:no-scrollbar"><svg fill="#B0B0B0" preserveAspectRatio="xMidYMid meet" height="24" width="24" viewBox="0 0 24 24" class="w-[18px] h-[18px] sm:w-[16px] sm:h-[16px]"><circle cx="12" cy="12" r="12"></circle><path d="M11.0532 15.3101L10.5972 8.23008V4.28711L13.1172 4.28723V8.23008L12.6612 15.3101H11.0532ZM11.8452 20.4941C11.4132 20.4941 11.0452 20.3421 10.7412 20.0381C10.4372 19.7341 10.2852 19.3661 10.2852 18.9341C10.2852 18.5021 10.4372 18.1341 10.7412 17.8301C11.0452 17.5261 11.4132 17.3741 11.8452 17.3741C12.2932 17.3741 12.6612 17.5261 12.9492 17.8301C13.2532 18.1341 13.4052 18.5021 13.4052 18.9341C13.4052 19.3661 13.2532 19.7341 12.9492 20.0381C12.6612 20.3421 12.2932 20.4941 11.8452 20.4941Z" fill="white"></path></svg></div><div class="flex justify-center items-center text-base xs:text-xs font-semibold text-[#333]">0<span class="text-base font-medium w-max text-[#545454] ml-1 xs:text-xs ">Not attempted</span></div></div></div></div><div class="flex flex-col justify-center items-center gap-[15px] pt-[30px] sm:pt-0"></div></div></div><div class=""><div class="flex items-center justify-center w-full bg-[#FFF] sm:justify-start sm:p-0 sm:pt-0 sm:bg-[#F7F8FA]"><div class="flex space-x-[26px] sm:space-x-0 overflow-x-auto no-scrollbar w-full bg-[#fff] justify-center sm:justify-around"><div class="text-base text-[#757575] p-3 pt-5 cursor-pointer whitespace-nowrap sm:p-4 sm:text-sm sm:bg-white">Subject Analysis</div><div class="text-base p-3 pt-5 cursor-pointer whitespace-nowrap sm:p-4 sm:text-sm sm:bg-white text-primary border-b-2 border-solid border-primary">Comparative Analysis</div><div class="text-base text-[#757575] p-3 pt-5 cursor-pointer whitespace-nowrap sm:p-4 sm:text-sm sm:bg-white">Chapter Analysis</div><div class="text-base text-[#757575] p-3 pt-5 cursor-pointer whitespace-nowrap sm:p-4 sm:text-sm sm:bg-white">Question Analysis</div><div class="text-base text-[#757575] p-3 pt-5 cursor-pointer whitespace-nowrap sm:p-4 sm:text-sm sm:bg-white">Re-attempt mode</div><div class="text-base text-[#757575] p-3 pt-5 cursor-pointer whitespace-nowrap sm:p-4 sm:text-sm sm:bg-white">Answer Key  and Solutions</div></div></div></div></div><div class="flex-col-reverse px-[7vw] pb-4 pt-5 bg-[#F7F8FA] relative sm:my-0 sm:px-[5.33vw] sm:top-0 sm:pb-[12vh] sm:flex sm:flex-col-reverse sm:pt-7"><div><div class="bg-white px-8 py-6 rounded-[10px] mb-8 sm:mb-[18px] sm:px-4 sm:py-7 shadow-[0_2px_12px_0px_rgba(15,15,15,0.08)] transition-all duration-150"><div class="flex flex-col space-y-8 items-center justify-center w-full h-[482px] sm:space-y-6 sm:h-[340px]"><picture><source srcset="/images/chart_zero_screen_icon.svg" media="(min-width: 1280px)"><img src="./Test Platform_files/chart_zero_screen_icon.svg" loading="eager" alt="Chart Zero Screen Icon" class="w-[64px] h-[64px] sm:w-12 sm:h-12"></picture><div class="flex flex-col space-y-[10px] text-center sm:space-y-[6px]"></div></div></div></div></div></div></div></div></div></div><div data-rht-toaster="" style="position: fixed; z-index: 9999; inset: 16px; pointer-events: none;"></div></div><script id="__NEXT_DATA__" type="application/json">{"props":{"pageProps":{}},"page":"/results/final","query":{},"buildId":"Hnnk8B6sujVWhcaC2Um4H","runtimeConfig":{"npm_package_version":"0.1.0"},"nextExport":true,"autoExport":true,"isFallback":false,"scriptLoader":[]}</script><next-route-announcer><p aria-live="assertive" id="__next-route-announcer__" role="alert" style="border: 0px; clip: rect(0px, 0px, 0px, 0px); height: 1px; margin: -1px; overflow: hidden; padding: 0px; position: absolute; top: 0px; width: 1px; white-space: nowrap; overflow-wrap: normal;">Test Platform</p></next-route-announcer><script src="./Test Platform_files/js" data-nscript="afterInteractive"></script><script id="ga-config" data-nscript="afterInteractive">
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-3X7C0KZ1X0',{"page_path":"/results/final/index.html"});
+          </script><script src="./Test Platform_files/interim-8ab0f1ea0c31ddf8.js.download"></script><span id="recharts_measurement_span" aria-hidden="true" style="position: absolute; top: -20000px; left: 0px; padding: 0px; margin: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; white-space: pre; font-weight: 500; font-size: 14px; letter-spacing: normal;">15</span></body></html>

@@ -89,18 +89,21 @@ class IppInstance:
             interp = _ipp_get_interpreter()
             if interp:
                 saved = interp.environment
+                saved_ret = interp.return_value          # BUG-04 fix
                 interp.environment = new_env
+                interp.return_value = None               # BUG-04 fix
                 try:
                     for stmt in repr_method.body:
                         stmt.accept(interp)
                         if interp.return_value is not None:
-                            return str(interp.return_value)
+                            result = str(interp.return_value)
+                            return result
                 finally:
                     interp.environment = saved
+                    interp.return_value = saved_ret      # BUG-04 fix
         return f"<{self.ipp_class.name} instance>"
-    
+
     def __len__(self):
-        # FIX v1.7.8.3: Check for __len__ method
         len_method = self.ipp_class.get_method('__len__')
         if len_method:
             new_env = Environment(len_method.closure)
@@ -108,16 +111,20 @@ class IppInstance:
             interp = _ipp_get_interpreter()
             if interp:
                 saved = interp.environment
+                saved_ret = interp.return_value          # BUG-05 fix
                 interp.environment = new_env
+                interp.return_value = None               # BUG-05 fix
                 try:
                     for stmt in len_method.body:
                         stmt.accept(interp)
                         if interp.return_value is not None:
-                            return interp.return_value
+                            result = interp.return_value
+                            return result
                 finally:
                     interp.environment = saved
+                    interp.return_value = saved_ret      # BUG-05 fix
         raise TypeError(f"len() not supported for {self.ipp_class.name}")
-    
+
     def __str__(self):
         str_method = self.ipp_class.get_method('__str__')
         if str_method:
@@ -126,17 +133,34 @@ class IppInstance:
             interp = _ipp_get_interpreter()
             if interp:
                 saved = interp.environment
+                saved_ret = interp.return_value          # BUG-03 fix
                 interp.environment = new_env
+                interp.return_value = None               # BUG-03 fix
                 try:
                     for stmt in str_method.body:
                         stmt.accept(interp)
                         if interp.return_value is not None:
-                            return str(interp.return_value)
+                            result = str(interp.return_value)
+                            return result
                 finally:
                     interp.environment = saved
+                    interp.return_value = saved_ret      # BUG-03 fix
         return self.__repr__()
     
     def get(self, name):
+        # Private field enforcement: __ prefix blocks external access
+        if name.startswith('__') and not name.endswith('__'):
+            interp = _ipp_get_interpreter()
+            # Allow access from within the class (self is current instance in env)
+            inside = False
+            if interp:
+                try:
+                    s = interp.environment.get('self')
+                    inside = (s is self)
+                except Exception:
+                    pass
+            if not inside:
+                raise RuntimeError(f"Cannot access private field '{name}' of '{self.ipp_class.name}'")
         if name in self.fields:
             return self.fields[name]
         prop = self.ipp_class.get_property(name)
@@ -580,6 +604,35 @@ class Interpreter:
             return left if bool(left) else right
         elif node.operator == "..":
             return list(range(int(left), int(right)))
+        elif node.operator == "in":
+            # BUG-15: support 'in' for all container types
+            if isinstance(right, IppList):
+                return left in right.elements
+            if isinstance(right, (list, tuple)):
+                return left in right
+            if isinstance(right, str):
+                return str(left) in right
+            if isinstance(right, IppDict):
+                return left in right.data
+            if isinstance(right, dict):
+                return left in right
+            if hasattr(right, '_items'):
+                return left in right._items
+            return left in right
+        elif node.operator == "not in":
+            if isinstance(right, IppList):
+                return left not in right.elements
+            if isinstance(right, (list, tuple)):
+                return left not in right
+            if isinstance(right, str):
+                return str(left) not in right
+            if isinstance(right, IppDict):
+                return left not in right.data
+            if isinstance(right, dict):
+                return left not in right
+            if hasattr(right, '_items'):
+                return left not in right._items
+            return left not in right
         
         raise RuntimeError(f"Unknown operator: {node.operator}")
 
@@ -690,6 +743,7 @@ class Interpreter:
                 if args and isinstance(args[0], IppInstance):
                     instance = args[0]
                     new_env.define("self", instance, constant=False)
+                    new_env.define("this", instance, constant=False)  # alias
                     param_start = 1
                     owning_class = instance.ipp_class
 
@@ -755,22 +809,36 @@ class Interpreter:
     def visit_index_expr(self, node: IndexExpr):
         obj = node.object.accept(self)
         index = node.index.accept(self)
-        
+
+        # Normalise float index to int
+        if isinstance(index, float) and index.is_integer():
+            index = int(index)
+
         if isinstance(obj, IppList):
             if isinstance(index, int):
                 return obj.elements[index]
-            if isinstance(index, float) and index.is_integer():
-                return obj.elements[int(index)]
             raise RuntimeError("List index must be integer")
         if isinstance(obj, IppDict):
             return obj.get(index)
         if isinstance(obj, str):
             if isinstance(index, int):
                 return obj[index]
-            if isinstance(index, float) and index.is_integer():
-                return obj[int(index)]
             raise RuntimeError(f"String index must be integer, got {type(index).__name__}")
-        
+        # BUG-01 / BUG-14: support tuple and plain Python list (e.g. from range())
+        if isinstance(obj, (tuple, list)):
+            if isinstance(index, int):
+                return obj[index]
+            raise RuntimeError("Index must be integer")
+        # Vector4 indexing
+        if type(obj).__name__ in ('Vector4', 'Vector3', 'Vector2', '_Vec4'):
+            components = []
+            for attr in ('x', 'y', 'z', 'w'):
+                if hasattr(obj, attr):
+                    components.append(getattr(obj, attr))
+            if isinstance(index, int) and 0 <= index < len(components):
+                return components[index]
+            raise RuntimeError(f"Vector index {index} out of range")
+
         raise RuntimeError(f"Cannot index '{type(obj).__name__}'. Only list, dict, string support indexing.")
     
     def visit_index_set_expr(self, node: IndexSetExpr):
@@ -791,6 +859,30 @@ class Interpreter:
         
         raise RuntimeError(f"Cannot set index on '{type(obj).__name__}'. Only list and dict support index assignment.")
     
+    def _get_string_method(self, s, name):
+        """Return callable for Ipp string methods that don't exist on Python str."""
+        _map = {
+            'len':         lambda: len(s),
+            'trim':        lambda: s.strip(),
+            'strip':       lambda: s.strip(),
+            'contains':    lambda sub: sub in s,
+            'starts_with': lambda p: s.startswith(p),
+            'ends_with':   lambda p: s.endswith(p),
+            'index_of':    lambda sub: s.find(sub),
+            'substring':   lambda start, end=None: s[int(start):int(end)] if end is not None else s[int(start):],
+            'to_number':   lambda: int(s) if s.lstrip('-').isdigit() else float(s),
+            'chars':       lambda: list(s),
+            'reverse':     lambda: s[::-1],
+            'repeat':      lambda n: s * int(n),
+            'pad_left':    lambda n, c=' ': s.rjust(int(n), c[0] if c else ' '),
+            'pad_right':   lambda n, c=' ': s.ljust(int(n), c[0] if c else ' '),
+        }
+        if name in _map:
+            return _map[name]
+        if hasattr(s, name):
+            return getattr(s, name)
+        return None
+
     def visit_get_expr(self, node: GetExpr):
         obj = node.object.accept(self)
         if isinstance(obj, IppInstance):
@@ -802,12 +894,29 @@ class Interpreter:
         if isinstance(obj, IppList):
             return getattr(obj, node.name)
         if isinstance(obj, IppDict):
-            return getattr(obj, node.name)
-        # FIX v1.5.26: Allow static method access on IppClass
+            val = obj.get(node.name)
+            if val is not None:
+                return val
+            if hasattr(obj, node.name):
+                return getattr(obj, node.name)
+            return None
+        # Allow static method access on IppClass
         if isinstance(obj, IppClass):
             method = obj.get_static_method(node.name)
             if method:
                 return method
+        # IppSet method access
+        if type(obj).__name__ == 'IppSet':
+            if node.name == 'has':
+                return obj.contains
+            if hasattr(obj, node.name):
+                return getattr(obj, node.name)
+            return None
+        # BUG-12: Ipp string methods not on Python str
+        if isinstance(obj, str):
+            m = self._get_string_method(obj, node.name)
+            if m is not None:
+                return m
         if hasattr(obj, node.name):
             return getattr(obj, node.name)
         raise RuntimeError(f"Only instances have properties, got {type(obj)}")
@@ -818,7 +927,18 @@ class Interpreter:
         if isinstance(obj, IppInstance):
             obj.set(node.name, value)
             return value
-        raise RuntimeError("Only instances have properties")
+        if isinstance(obj, IppDict):
+            obj.set(node.name, value)
+            return value
+        if isinstance(obj, dict):
+            obj[node.name] = value
+            return value
+        try:
+            setattr(obj, node.name, value)
+            return value
+        except AttributeError:
+            pass
+        raise RuntimeError(f"Cannot set property '{node.name}' on {type(obj).__name__}")
 
     def visit_list_literal(self, node: ListLiteral):
         result = []
@@ -1054,9 +1174,9 @@ class Interpreter:
         
         # v1.6.2 - apply decorator if present
         if node.decorator:
-            decorator_fn = self.execute(node.decorator)
-            if hasattr(decorator_fn, 'call'):
-                func = decorator_fn.call([func], {})
+            decorator_fn = node.decorator.accept(self)
+            # BUG-17: IppFunction has no .call() — use call_function
+            func = self.call_function(decorator_fn, [func])
         
         self.environment.define(node.name, func, constant=False)
     
@@ -1301,6 +1421,7 @@ class Interpreter:
 
     def visit_try_stmt(self, node: TryStmt):
         error = None
+        thrown_value = None  # preserve original thrown value (BUG fix)
         try:
             for stmt in node.try_body:
                 if self.return_value is not None:
@@ -1308,42 +1429,41 @@ class Interpreter:
                 stmt.accept(self)
         except Exception as e:
             error = e
-        
+            # Recover original thrown value if available (from ThrowStmt)
+            thrown_value = getattr(e, '_thrown_value', str(e))
+
         # Handle multiple catch blocks with types
         if error and node.catches:
             error_str = str(error)
             for catch_type, catch_var, catch_body in node.catches:
                 if error:
-                    # Check if typed catch matches
                     if catch_type:
-                        # Check if error matches the type (error_str starts with TypeName:)
                         if error_str.startswith(catch_type + ":"):
                             if catch_var:
-                                self.environment.define(catch_var, error_str)
+                                self.environment.define(catch_var, thrown_value, constant=False)
                             for stmt in catch_body:
                                 if self.return_value is not None:
                                     break
                                 stmt.accept(self)
-                            error = None  # caught
+                            error = None
                             break
                     else:
-                        # Untyped catch - catches all
                         if catch_var:
-                            self.environment.define(catch_var, error_str)
+                            self.environment.define(catch_var, thrown_value, constant=False)
                         for stmt in catch_body:
                             if self.return_value is not None:
                                 break
                             stmt.accept(self)
-                        error = None  # caught
+                        error = None
                         break
-        
+
         # Finally block
         if node.finally_body:
             for stmt in node.finally_body:
                 if self.return_value is not None:
                     break
                 stmt.accept(self)
-        
+
         if error:
             raise error
 
@@ -1421,7 +1541,7 @@ class Interpreter:
 
     def visit_do_while_stmt(self, node: DoWhileStmt):
         saved_env = self.environment
-        
+
         while True:
             for stmt in node.body:
                 if self.break_flag:
@@ -1430,19 +1550,29 @@ class Interpreter:
                     return
                 if self.continue_flag:
                     self.continue_flag = False
+                    break
                 stmt.accept(self)
                 if self.return_value is not None:
                     self.environment = saved_env
                     return
-            
-            if not node.condition.accept(self):
-                break
-        
+
+            cond = node.condition.accept(self)
+            # BUG-02: is_until=True means "stop when condition is True" (repeat..until)
+            #         is_until=False means "stop when condition is False" (do..while)
+            if node.is_until:
+                if cond:
+                    break
+            else:
+                if not cond:
+                    break
+
         self.environment = saved_env
 
     def visit_throw_stmt(self, node: ThrowStmt):
         value = node.expression.accept(self)
-        raise RuntimeError(str(value))
+        exc = RuntimeError(str(value))
+        exc._thrown_value = value  # preserve for catch binding
+        raise exc
 
     def visit_with_stmt(self, node: WithStmt):
         saved_env = self.environment
@@ -1469,10 +1599,10 @@ class Interpreter:
     def visit_assert_stmt(self, node: AssertStmt):
         cond = node.condition.accept(self)
         if not cond:
-            msg = "Assertion failed"
             if node.message:
                 msg = node.message.accept(self)
-            raise RuntimeError(str(msg))
+                raise RuntimeError(f"Assertion failed: {msg}")
+            raise RuntimeError("Assertion failed")
 
     def visit_break_stmt(self, node: BreakStmt):
         self.break_flag = True

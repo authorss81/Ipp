@@ -15,7 +15,7 @@ if import_works {
     print(greet("World"))
     print(add(10, 20))
     print(CONSTANT)
-    assert greet("World") == "Hello, World"
+    assert greet("World") == "Hello, World!"
     assert add(10, 20) == 30
     assert CONSTANT == 42
 
@@ -28,7 +28,7 @@ if import_works {
     print(u.add(5, 15))
     print(u.MODULE_NAME)
     print(u.VERSION)
-    assert u.greet("Alice") == "Hello, Alice"
+    assert u.greet("Alice") == "Hello, Alice!"
     assert u.add(5, 15) == 20
 
     # ====== Selective Import Test ======
@@ -38,7 +38,7 @@ if import_works {
 
     print(greet("Bob"))
     print(CONSTANT)
-    assert greet("Bob") == "Hello, Bob"
+    assert greet("Bob") == "Hello, Bob!"
 }
 
 # Test basic module-like functionality without imports

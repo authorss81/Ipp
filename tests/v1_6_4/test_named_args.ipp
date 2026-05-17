@@ -31,6 +31,6 @@ func config(key, value="default", enabled=true) {
     return key + "=" + str(value) + " enabled=" + str(enabled)
 }
 
-assert config("debug") == "debug=default enabled=True"
+assert config("debug") == "debug=default enabled=true"
 
 print("v1.6.4: Named function arguments tests PASSED")

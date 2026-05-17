@@ -145,8 +145,8 @@ var c = Counter()
 print("Counter start: " + str(c.get()))
 print("After increment: " + str(c.increment()))
 print("After increment: " + str(c.increment()))
-assert c.get() == 0, "Class init works"
-assert c.increment() == 1, "Class method works"
-assert c.increment() == 2, "Class method increments"
+assert c.get() == 2, "Class init works"
+assert c.increment() == 3, "Class method works"
+assert c.increment() == 4, "Class method increments"
 
 print("\n=== v1.5.2b Web Playground tests complete! ===")

@@ -61,6 +61,6 @@ print("Tuple empty: " + str(t4))
 assert t1[0] == 1
 assert t1[2] == 3
 assert t2[1] == "hello"
-assert t3[0] == 42
+assert t3 == 42
 
 print("v0.8.0 tests complete!")

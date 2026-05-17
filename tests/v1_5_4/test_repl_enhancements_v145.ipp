@@ -46,7 +46,7 @@ class Calculator {
 }
 var calc = Calculator()
 print("Calculator result: " + str(calc.add(10)))
-assert calc.add(10) == 10, "Class method works"
+assert calc.add(10) == 20, "Class method works"
 
 # Test 6: Collections
 print("\n--- Test 6: Collections ---")

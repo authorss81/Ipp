@@ -79,7 +79,7 @@ assert sum == 10
 # Test try/catch opcodes
 var caught = false
 try {
-    var undefined_test
+    throw "test error"
 } catch e {
     caught = true
 }

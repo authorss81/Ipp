@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Canvas 2D Drawing - Opens a window with the drawing."""
 
-import tkinter as tk
-from tkinter import Canvas
+try:
+    import tkinter as tk
+    from tkinter import Canvas
+except ImportError:
+    tk = None
+    Canvas = None
 
 _canvas_window = None
 _canvas = None
