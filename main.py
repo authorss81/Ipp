@@ -328,7 +328,8 @@ def _run_tutorial_step():
     step = _tutorial_steps[_tutorial_step]
     print()
     print(f"  {colour(C_CMD, '═' * 50)}")
-    print(f"  {colour(C_CMD, f'Lesson {_tutorial_step + 1}/8: {step['title']}')}")
+    _title = step['title']
+    print(f"  {colour(C_CMD, f'Lesson {_tutorial_step + 1}/8: {_title}')}")
     print(f"  {colour(C_CMD, '═' * 50)}")
     print()
     print(f"  {colour(DIM, step['desc'])}")
