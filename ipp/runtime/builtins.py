@@ -2562,12 +2562,11 @@ def ipp_sha512(data):
 
 
 def ipp_hash(data):
-    """Compute generic hash — always positive"""
-    if isinstance(data, str):
-        return abs(hash(data))
-    if isinstance(data, (int, float)):
-        return abs(hash(data))
-    return abs(hash(str(data)))
+    """Compute generic hash — deterministic across runs (uses hashlib, not Python hash())"""
+    import hashlib
+    if not isinstance(data, str):
+        data = str(data)
+    return int(hashlib.md5(data.encode('utf-8')).hexdigest(), 16) % (2**63)
 
 
 # Base64 encoding/decoding
@@ -3108,10 +3107,10 @@ import io
 
 
 def ipp_gzip_compress(data):
-    """Compress data using gzip"""
+    """Compress data using gzip — mtime=0 for deterministic output"""
     if isinstance(data, str):
         data = data.encode('utf-8')
-    compressed = gzip.compress(data)
+    compressed = gzip.compress(data, mtime=0)
     import base64
     return base64.b64encode(compressed).decode('utf-8')
 
@@ -3126,7 +3125,7 @@ def ipp_gzip_decompress(data):
 
 
 def ipp_zip_create(files):
-    """Create ZIP archive from dict of filename->content"""
+    """Create ZIP archive from dict of filename->content — fixed timestamp for deterministic output"""
     import base64
     output = io.BytesIO()
     with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -3135,7 +3134,10 @@ def ipp_zip_create(files):
         for name, content in files.items():
             if isinstance(content, str):
                 content = content.encode('utf-8')
-            zf.writestr(name, content)
+            info = zipfile.ZipInfo(filename=name, date_time=(2024, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            zf.writestr(info, content)
+    return base64.b64encode(output.getvalue()).decode('utf-8')
     return base64.b64encode(output.getvalue()).decode('utf-8')
 
 
