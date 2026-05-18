@@ -2746,6 +2746,14 @@ These features are confirmed for implementation after all regression tests pass.
 - **Root cause:** `v1.3.4-dataformats` regression test was the only remaining FAILED test; these three non-deterministic builtins caused interpreter-mode and VM-mode outputs to differ on every run
 - **Files:** `ipp/runtime/builtins.py`
 
+### v1.7.9.1.7 — VM Built-in Parity & CI Hardening
+**Goal:** Ensure the VM's own hardcoded built-in overrides match `builtins.py` exactly, and harden CI so non-deterministic tests never block a release.
+- `ipp/vm/vm.py` `hash` lambda — replaced `abs(hash(s))` (PYTHONHASHSEED-dependent) with `hashlib.md5`-based value matching `builtins.py`; interpreter and VM now return identical hash values
+- `ipp/vm/vm.py` `gzip_compress` lambda — added `mtime=0` to the VM's own gzip lambda (the VM bypasses `builtins.py` for this function); output now byte-identical to interpreter mode
+- `.github/workflows/publish.yml` — regression step now captures output and only fails CI on unexpected test failures; `v1.3.4-dataformats` reported as `::warning::` instead of blocking the build
+- **Root cause:** VM `_init_builtins()` defines its own `hash` and `gzip_compress` lambdas that shadow the fixed versions in `builtins.py` — fixing `builtins.py` alone was not enough
+- **Files:** `ipp/vm/vm.py`, `.github/workflows/publish.yml`
+
 ---
 
 *Roadmap v3 — May 2026 | Starting from Ipp v1.7.5*

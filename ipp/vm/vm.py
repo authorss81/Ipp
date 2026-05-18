@@ -558,7 +558,7 @@ class VM:
             'sha256': lambda s: hashlib.sha256(str(s).encode()).hexdigest(),
             'sha1': lambda s: hashlib.sha1(str(s).encode()).hexdigest(),
             'sha512': lambda s: hashlib.sha512(str(s).encode()).hexdigest(),
-            'hash': lambda s: abs(hash(s)),
+            'hash': lambda s: __import__('hashlib').md5((s if isinstance(s, str) else str(s)).encode()).hexdigest().__hash__() and int(__import__('hashlib').md5((s if isinstance(s, str) else str(s)).encode()).hexdigest(), 16) % (2**63),
             'base64_encode': lambda s: base64.b64encode(str(s).encode()).decode(),
             'base64_decode': lambda s: base64.b64decode(str(s).encode()).decode(),
             'clock': time_mod.perf_counter,
@@ -615,7 +615,7 @@ class VM:
             'url_encode': lambda s: __import__('urllib.parse').parse.quote(str(s)),
             'url_decode': lambda s: __import__('urllib.parse').parse.unquote(str(s)),
             # GZIP
-            'gzip_compress': lambda s: base64.b64encode(__import__('gzip').compress(str(s).encode())).decode(),
+            'gzip_compress': lambda s: base64.b64encode(__import__('gzip').compress(str(s).encode(), mtime=0)).decode(),  # mtime=0 → deterministic
             'gzip_decompress': lambda s: __import__('gzip').decompress(base64.b64decode(str(s))).decode(),
             # UUID
             'uuid4': lambda: str(__import__('uuid').uuid4()),
