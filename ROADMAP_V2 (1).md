@@ -2738,6 +2738,14 @@ These features are confirmed for implementation after all regression tests pass.
 - Badges: test count, Python version support, license
 - **Files:** `README.md`, `TUTORIAL.md`, `docs/index.html` (new), `CONTRIBUTING.md`
 
+### v1.7.9.1.6 — Deterministic Built-ins & Test Reliability
+**Goal:** Make all built-in functions produce identical output across runs, modes, and platforms so the regression suite is 100% reliable.
+- `hash(x)` — replaced Python's `hash()` (PYTHONHASHSEED-dependent) with `hashlib.md5`-based implementation; always returns the same value for the same input regardless of interpreter run or platform
+- `gzip_compress(data)` — pass `mtime=0` to `gzip.compress()` so the Base64-encoded output is byte-for-byte identical across calls (previously the embedded GZIP timestamp differed between interpreter and VM mode)
+- `zip_create(files)` — use a fixed `date_time=(2024,1,1,0,0,0)` for every ZIP entry so the archive bytes are deterministic (previously current system time was embedded in each entry header)
+- **Root cause:** `v1.3.4-dataformats` regression test was the only remaining FAILED test; these three non-deterministic builtins caused interpreter-mode and VM-mode outputs to differ on every run
+- **Files:** `ipp/runtime/builtins.py`
+
 ---
 
 *Roadmap v3 — May 2026 | Starting from Ipp v1.7.5*

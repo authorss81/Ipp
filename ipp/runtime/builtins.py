@@ -3107,10 +3107,10 @@ import io
 
 
 def ipp_gzip_compress(data):
-    """Compress data using gzip — mtime=0 for deterministic output"""
+    """Compress data using gzip"""
     if isinstance(data, str):
         data = data.encode('utf-8')
-    compressed = gzip.compress(data, mtime=0)
+    compressed = gzip.compress(data, mtime=0)  # mtime=0 → deterministic output
     import base64
     return base64.b64encode(compressed).decode('utf-8')
 
@@ -3125,7 +3125,7 @@ def ipp_gzip_decompress(data):
 
 
 def ipp_zip_create(files):
-    """Create ZIP archive from dict of filename->content — fixed timestamp for deterministic output"""
+    """Create ZIP archive from dict of filename->content"""
     import base64
     output = io.BytesIO()
     with zipfile.ZipFile(output, 'w', zipfile.ZIP_DEFLATED) as zf:
@@ -3137,7 +3137,6 @@ def ipp_zip_create(files):
             info = zipfile.ZipInfo(filename=name, date_time=(2024, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             zf.writestr(info, content)
-    return base64.b64encode(output.getvalue()).decode('utf-8')
     return base64.b64encode(output.getvalue()).decode('utf-8')
 
 

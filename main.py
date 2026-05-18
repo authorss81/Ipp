@@ -73,7 +73,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "1.7.9.1.5"
+VERSION = "1.7.9.1.6"
 
 # ─── Windows ANSI enablement — v1.7.9.1.2 ────────────────────────────────────
 # Windows 10+ supports ANSI via ENABLE_VIRTUAL_TERMINAL_PROCESSING.
