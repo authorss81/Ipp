@@ -67,84 +67,55 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "1.7.9.1"
+VERSION = "1.7.9.1.5"
 
-# ─── Windows ANSI enablement ──────────────────────────────────────────────────
-# Windows 10 supports ANSI but requires ENABLE_VIRTUAL_TERMINAL_PROCESSING.
-# Without this, escape codes print as literal garbage.
+# ─── Windows ANSI enablement — v1.7.9.1.2 ────────────────────────────────────
 def _enable_windows_ansi() -> bool:
-    """Enable ANSI escape processing on Windows 10+. Returns True if succeeded."""
+    """Enable ANSI escape processing on Windows 10+. Returns True on success."""
     if sys.platform != "win32":
         return True
     try:
-        import ctypes
-        import ctypes.wintypes
+        import ctypes, ctypes.wintypes
         kernel32 = ctypes.windll.kernel32
+        ENABLE_VTP = 0x0004
         hout = kernel32.GetStdHandle(-11)
-        if hout == -1:
+        if hout in (0, -1):
             return False
-        mode = ctypes.wintypes.DWORD()
+        mode = ctypes.wintypes.DWORD(0)
         if not kernel32.GetConsoleMode(hout, ctypes.byref(mode)):
             return False
-        ENABLE_VTP = 0x0004
-        if mode.value & ENABLE_VTP:
-            return True
-        new_mode = mode.value | ENABLE_VTP
-        if kernel32.SetConsoleMode(hout, new_mode):
-            return True
-        return False
-    except Exception as e:
+        kernel32.SetConsoleMode(hout, mode.value | ENABLE_VTP)
+        hin = kernel32.GetStdHandle(-10)
+        if hin not in (0, -1):
+            mode2 = ctypes.wintypes.DWORD(0)
+            if kernel32.GetConsoleMode(hin, ctypes.byref(mode2)):
+                kernel32.SetConsoleMode(hin, mode2.value | 0x0001)
+        final = ctypes.wintypes.DWORD(0)
+        kernel32.GetConsoleMode(hout, ctypes.byref(final))
+        return bool(final.value & ENABLE_VTP)
+    except Exception:
         return False
 
 _ANSI_OK = _enable_windows_ansi()
-IS_TTY = sys.stdout.isatty()
+IS_TTY   = sys.stdout.isatty()
 
-# Disable ANSI on Windows by default unless explicitly enabled
-# This prevents garbage output on terminals that don't properly support ANSI
-_FORCE_ANSI = False
-
-def _check_ansi_support():
-    """Check if ANSI codes are actually supported by trying to write one."""
-    if not sys.stdout.isatty():
+def _ansi_supported() -> bool:
+    if not IS_TTY:
         return False
-    try:
-        import os
-        if hasattr(os, 'getenv') and os.getenv('IPP_COLORS', '').lower() in ('1', 'true', 'yes'):
-            # Force enable with virtual terminal processing on Windows
-            if sys.platform.startswith('win'):
-                import ctypes
-                kernel32 = ctypes.windll.kernel32
-                h = kernel32.GetStdHandle(-11)
-                mode = ctypes.c_ulong()
-                kernel32.GetConsoleMode(h, ctypes.byref(mode))
-                mode.value |= 4  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
-                kernel32.SetConsoleMode(h, mode)
-            return True
-        return _ANSI_OK and not sys.platform.startswith('win')
-    except:
+    if os.environ.get('IPP_COLORS', '').lower() in ('0', 'false', 'no', 'off'):
         return False
+    if os.environ.get('NO_COLOR'):
+        return False
+    if sys.platform == 'win32':
+        return _ANSI_OK
+    return True
 
 # ─── ANSI colour helpers ──────────────────────────────────────────────────────
-# Enable colors by default on all platforms
-_USE_ANSI = True
+_USE_ANSI = _ansi_supported()
 
-# Enable virtual terminal processing on Windows at startup
-if sys.platform.startswith('win'):
-    try:
-        import ctypes
-        kernel32 = ctypes.windll.kernel32
-        h = kernel32.GetStdHandle(-11)
-        mode = ctypes.c_ulong()
-        kernel32.GetConsoleMode(h, ctypes.byref(mode))
-        mode.value |= 4  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
-        kernel32.SetConsoleMode(h, mode)
-        # Also enable Ctrl+C processing
-        h_in = kernel32.GetStdHandle(-10)
-        kernel32.GetConsoleMode(h_in, ctypes.byref(mode))
-        mode.value |= 0x0001  # ENABLE_PROCESSED_INPUT
-        kernel32.SetConsoleMode(h_in, mode)
-    except Exception:
-        pass
+def _refresh_ansi():
+    global _USE_ANSI
+    _USE_ANSI = _ansi_supported()
 
 def _fg(n, t):
     if not _USE_ANSI or not IS_TTY:
@@ -171,7 +142,42 @@ def ITALIC(t):
         return t
     return f"\033[3m{t}\033[0m"
 
-# ── Palette ───────────────────────────────────────────────────────────────────
+# ── v1.7.9.1.4 Theme system (mirrors main.py) ────────────────────────────────
+_THEMES: dict = {
+    'default':   dict(prompt=(100,200,255),cont=(100,140,200),result=(180,255,180),error=(255,100,100),warn=(255,200,80),ok=(80,220,120),cmd=(150,120,255),type_=(255,160,80),kw=(100,200,255),string=(150,255,150),num=(255,180,100),comment=(120,120,140),fn=(180,100,255),bool_=(220,130,255),header=(80,200,255)),
+    'dracula':   dict(prompt=(189,147,249),cont=(98,114,164), result=(80,250,123), error=(255,85,85),  warn=(241,250,140),ok=(80,250,123), cmd=(255,121,198),type_=(255,184,108),kw=(189,147,249),string=(241,250,140),num=(255,184,108),comment=(98,114,164), fn=(255,121,198),bool_=(139,233,253),header=(139,233,253)),
+    'monokai':   dict(prompt=(102,217,239),cont=(117,113,94), result=(166,226,46), error=(249,38,114), warn=(253,151,31), ok=(166,226,46), cmd=(174,129,255),type_=(253,151,31), kw=(249,38,114), string=(230,219,116),num=(174,129,255),comment=(117,113,94), fn=(174,129,255),bool_=(102,217,239),header=(102,217,239)),
+    'solarized': dict(prompt=(38,139,210),  cont=(88,110,117), result=(133,153,0),  error=(220,50,47),  warn=(181,137,0),  ok=(133,153,0),  cmd=(108,113,196),type_=(203,75,22),  kw=(38,139,210),  string=(42,161,152), num=(211,54,130), comment=(88,110,117), fn=(108,113,196),bool_=(42,161,152), header=(38,139,210)),
+    'nord':      dict(prompt=(136,192,208),cont=(76,86,106),  result=(163,190,140),error=(191,97,106), warn=(235,203,139),ok=(163,190,140),cmd=(180,142,173),type_=(208,135,112),kw=(136,192,208),string=(163,190,140),num=(208,135,112),comment=(76,86,106),  fn=(180,142,173),bool_=(136,192,208),header=(129,161,193)),
+    'gruvbox':   dict(prompt=(131,165,152),cont=(102,92,84),  result=(184,187,38), error=(204,36,29),  warn=(215,153,33), ok=(152,151,26), cmd=(211,134,155),type_=(214,93,14),  kw=(250,189,47),  string=(184,187,38), num=(211,134,155),comment=(146,131,116),fn=(211,134,155),bool_=(131,165,152),header=(250,189,47)),
+}
+_current_theme_name: str = 'default'
+
+def _apply_theme(name: str) -> bool:
+    global _current_theme_name, C_PROMPT, C_CONT, C_RESULT, C_ERROR, C_WARN
+    global C_OK, C_CMD, C_TYPE, C_KW, C_STR, C_NUM, C_COMMENT, C_FN, C_BOOL, C_HEADER
+    t = _THEMES.get(name)
+    if t is None:
+        return False
+    _current_theme_name = name
+    C_PROMPT  = lambda text, _c=t['prompt']:  _rgb(*_c, text)
+    C_CONT    = lambda text, _c=t['cont']:    _rgb(*_c, text)
+    C_RESULT  = lambda text, _c=t['result']:  _rgb(*_c, text)
+    C_ERROR   = lambda text, _c=t['error']:   _rgb(*_c, text)
+    C_WARN    = lambda text, _c=t['warn']:    _rgb(*_c, text)
+    C_OK      = lambda text, _c=t['ok']:      _rgb(*_c, text)
+    C_CMD     = lambda text, _c=t['cmd']:     _rgb(*_c, text)
+    C_TYPE    = lambda text, _c=t['type_']:   _rgb(*_c, text)
+    C_KW      = lambda text, _c=t['kw']:      _rgb(*_c, text)
+    C_STR     = lambda text, _c=t['string']:  _rgb(*_c, text)
+    C_NUM     = lambda text, _c=t['num']:     _rgb(*_c, text)
+    C_COMMENT = lambda text, _c=t['comment']: _rgb(*_c, text)
+    C_FN      = lambda text, _c=t['fn']:      _rgb(*_c, text)
+    C_BOOL    = lambda text, _c=t['bool_']:   _rgb(*_c, text)
+    C_HEADER  = lambda text, _c=t['header']:  _rgb(*_c, text)
+    return True
+
+# ── Palette (default theme) ───────────────────────────────────────────────────
 C_PROMPT  = lambda t: _rgb(100, 200, 255, t)
 C_CONT    = lambda t: _rgb(100, 140, 200, t)
 C_RESULT  = lambda t: _rgb(180, 255, 180, t)
@@ -184,7 +190,7 @@ C_KW      = lambda t: _rgb(100, 200, 255, t)
 C_STR     = lambda t: _rgb(150, 255, 150, t)
 C_NUM     = lambda t: _rgb(255, 180, 100, t)
 C_COMMENT = lambda t: _rgb(120, 120, 140, t)
-C_FN      = lambda t: _rgb(180, 100, 255, t)  # Purple for function repr
+C_FN      = lambda t: _rgb(180, 100, 255, t)
 C_BOOL    = lambda t: _rgb(220, 130, 255, t)
 C_HEADER  = lambda t: _rgb( 80, 200, 255, t)
 C_LOGO1   = lambda t: _fg(51, t)
@@ -196,7 +202,7 @@ C_LOGO5   = lambda t: _fg(27, t)
 def colour(fn, text):
     return fn(text)   # lambdas already no-op when IS_TTY=False
 
-def strip_ansi(s):
+
     return re.sub(r'\033\[[0-9;]*m', '', s)
 
 def visible_len(s):
@@ -672,10 +678,10 @@ def print_help():
         c_desc = colour(DIM, desc)
         print(f"    {c_cmd} {c_desc}")
 
-    # Windows color warning
-    if sys.platform.startswith('win') and _USE_ANSI:
+    # v1.7.9.1.2: warn only if ANSI was requested but not supported
+    if not _ANSI_OK and _USE_ANSI and sys.platform == "win32":
         print()
-        print("  " + colour(C_WARN, "Note: If you see garbage numbers/escape codes, run .colors off"))
+        print("  " + colour(C_WARN, "Colors may not display correctly. Run .colors off to disable."))
 
     _section("Quick Reference")
     snippets = [
@@ -1267,19 +1273,8 @@ def run_repl():
             if m:
                 global _USE_ANSI
                 if m.group(1) == 'on':
+                    _enable_windows_ansi()
                     _USE_ANSI = True
-                    # Enable virtual terminal processing on Windows
-                    if sys.platform.startswith('win'):
-                        try:
-                            import ctypes
-                            kernel32 = ctypes.windll.kernel32
-                            h = kernel32.GetStdHandle(-11)
-                            mode = ctypes.c_ulong()
-                            kernel32.GetConsoleMode(h, ctypes.byref(mode))
-                            mode.value |= 4  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
-                            kernel32.SetConsoleMode(h, mode)
-                        except Exception:
-                            pass
                     print(f"  {colour(C_OK, 'Colors enabled')}")
                 else:
                     _USE_ANSI = False
@@ -1655,21 +1650,34 @@ def run_repl():
                     print(f"  {colour(C_ERROR, f'Table error: {e}')}")
                 continue
 
-            # .theme <name> — Set color theme
+            # .theme <name> — Set color theme (v1.7.9.1.4)
             m = re.match(r'\.theme\s+(\w+)$', stripped)
             if m:
                 theme = m.group(1).lower()
-                themes = {
-                    'dark': {'prompt': '\033[38;2;100;200;255m', 'error': '\033[38;2;255;100;100m'},
-                    'light': {'prompt': '\033[38;2;0;100;200m', 'error': '\033[38;2;200;0;0m'},
-                    'solarized': {'prompt': '\033[38;2;100;150;200m', 'error': '\033[38;2;200;100;50m'},
-                }
-                if theme in themes:
-                    print(f"  {colour(C_OK, f'Theme set to {theme}')}")
+                if _apply_theme(theme):
+                    print(f"  {colour(C_OK, f'✓ Theme: {theme}')}")
+                    print(f"    {colour(C_PROMPT, '●')} prompt   "
+                          f"{colour(C_RESULT, '●')} result   "
+                          f"{colour(C_ERROR,  '●')} error   "
+                          f"{colour(C_WARN,   '●')} warn")
                 else:
-                    _avail = ", ".join(themes.keys())
-                    _avail = ", ".join(themes.keys())
-                    print(f"  " + colour(C_WARN, f"Unknown theme: {theme}. Available: {_avail}"))
+                    _avail = ', '.join(_THEMES.keys())
+                    print(f"  {colour(C_WARN, f'Unknown theme: {theme}')}")
+                    print(f"  {colour(C_WARN, f'Available: {_avail}')}")
+                continue
+
+            # .themes — List all themes (v1.7.9.1.4)
+            if stripped == '.themes':
+                print(f"  {colour(C_HEADER, 'Available themes:')}")
+                for tname, tdata in _THEMES.items():
+                    mark = colour(C_OK, '✓') if tname == _current_theme_name else ' '
+                    p = lambda text, c=tdata['prompt']:  _rgb(*c, text)
+                    r = lambda text, c=tdata['result']:  _rgb(*c, text)
+                    e = lambda text, c=tdata['error']:   _rgb(*c, text)
+                    w = lambda text, c=tdata['warn']:    _rgb(*c, text)
+                    print(f"  {mark} {colour(C_CMD, tname.ljust(10))} "
+                          f"{p('●')} {r('●')} {e('●')} {w('●')}  "
+                          f"{DIM('.theme ' + tname)}")
                 continue
 
             # .tutorial — Start interactive tutorial

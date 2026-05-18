@@ -650,6 +650,37 @@ class VM:
             # Logging
             'logger': self._builtin_logger,
         })
+
+        # v1.7.9.1.1 — Keyboard input builtins
+        try:
+            from ipp.runtime.keyboard import build_keyboard_builtins
+            self.globals.update(build_keyboard_builtins(vm=self))
+        except Exception:
+            pass
+
+        # v1.7.9.1.2 — ANSI helpers as builtins
+        import re as _re
+        def _strip_ansi(s: str) -> str:
+            return _re.sub(r'\033\[[0-9;]*[mKJHF]', '', str(s))
+        self.globals['strip_ansi']  = _strip_ansi
+        try:
+            import importlib as _il
+            _ver = _il.import_module('ipp.main').VERSION
+        except Exception:
+            _ver = "1.7.9.1.5"
+        self.globals['ipp_version'] = lambda _v=_ver: _v
+
+        # v1.7.9.1.5 — ipp_type alias + introspection builtins
+        self.globals['ipp_type'] = self._builtin_type
+        self.globals['hasattr'] = lambda obj, name: (
+            (name in getattr(obj, 'fields', {})) or
+            (name in getattr(getattr(obj, 'cls', None), 'methods', {})) or
+            (name in getattr(getattr(obj, 'ipp_class', None), 'methods', {}))
+        )
+        self.globals['dir'] = lambda obj: sorted(set(
+            list(getattr(obj, 'fields', {}).keys()) +
+            list(getattr(getattr(obj, 'cls', None), 'methods', {}).keys())
+        ))
         
         # Add missing builtins from interpreter's BUILTINS
         missing_builtins = [
@@ -688,6 +719,20 @@ class VM:
                     self.globals[name] = val
                 except:
                     pass
+
+        # v1.7.9.1.5 — re-pin VM-native type/introspection after bulk merge
+        # (the interpreter builtins might have overwritten them with wrong versions)
+        self.globals['type']     = self._builtin_type
+        self.globals['ipp_type'] = self._builtin_type
+        self.globals['hasattr']  = lambda obj, name: (
+            (name in getattr(obj, 'fields', {})) or
+            (name in getattr(getattr(obj, 'cls', None), 'methods', {})) or
+            (name in getattr(getattr(obj, 'ipp_class', None), 'methods', {}))
+        )
+        self.globals['dir'] = lambda obj: sorted(set(
+            list(getattr(obj, 'fields', {}).keys()) +
+            list(getattr(getattr(obj, 'cls', None), 'methods', {}).keys())
+        ))
 
     # ─── Built-in helpers ─────────────────────────────────────────────────────
 
@@ -809,18 +854,27 @@ class VM:
         if isinstance(obj, int):  return "number"
         if isinstance(obj, float): return "number"
         if isinstance(obj, str):  return "string"
-        if isinstance(obj, IppVMGenerator): return "generator"   # BUG-22
+        if isinstance(obj, IppVMGenerator): return "generator"
         if isinstance(obj, (list, tuple)): return "list"
         if hasattr(obj, 'elements'): return "list"
         if isinstance(obj, dict): return "dict"
         if hasattr(obj, '_items') and isinstance(getattr(obj,'_items',None), set): return "set"
         if hasattr(obj, '_data') and hasattr(obj, 'add'): return "set"
-        if hasattr(obj, 'data'): return "dict"
+        if hasattr(obj, 'data') and not hasattr(obj, 'chunk'): return "dict"
         if isinstance(obj, IppClass): return "class"
         if isinstance(obj, IppInstance): return obj.cls.name
-        if isinstance(obj, (Closure, IppFunction)): return "function"
-        if callable(obj): return "function"
-        # Python-native stdlib objects → "object"
+        # v1.7.9.1.5: Ipp-defined functions (Closure/IppFunction) → "func"
+        #             Python builtins and lambdas               → "function"
+        if isinstance(obj, (IppFunction, Closure)): return "func"
+        if hasattr(obj, 'chunk') and hasattr(obj, 'upvalues'): return "func"   # Closure duck
+        if hasattr(obj, 'chunk') and hasattr(obj, 'arity'):    return "func"   # IppFunction duck
+        if hasattr(obj, 'methods') and hasattr(obj, 'superclass'): return "class"
+        try:
+            from ipp.interpreter.interpreter import IppFunction as _IFn
+            if isinstance(obj, _IFn): return "func"
+        except Exception:
+            pass
+        if callable(obj): return "function"   # Python builtins → "function" (matches old tests)
         return "object"
 
     def _builtin_sum(self, *args):
@@ -1268,6 +1322,8 @@ class VM:
                     'replace': lambda s, a, b: s.replace(a, b),
                     'startswith': lambda s, p: s.startswith(p),
                     'endswith': lambda s, p: s.endswith(p),
+                    'starts_with': lambda s, p: s.startswith(p),
+                    'ends_with': lambda s, p: s.endswith(p),
                     'find': lambda s, p: s.find(p),
                     'index': lambda s, p: s.index(p),
                     'contains': lambda s, p: p in s,
@@ -2028,6 +2084,26 @@ class VM:
             pass  # unknown opcode — skip
 
         return None
+
+    def _call_ipp_function(self, fn, args: list):
+        """v1.7.9.1.1 — Call an IppVMFunction from outside the run loop (e.g. keyboard handlers)."""
+        try:
+            if isinstance(fn, IppVMFunction):
+                frame = VMFrame(fn.chunk)
+                frame.ip = 0
+                frame.locals = list(args) + [None] * max(0, fn.arity - len(args))
+                old_frames = self.frames[:]
+                old_stack  = self.stack[:]
+                self.frames.append(frame)
+                try:
+                    self.run()
+                finally:
+                    self.frames = old_frames
+                    self.stack  = old_stack
+            elif callable(fn):
+                fn(*args)
+        except Exception:
+            pass
 
     def _call(self, callee, args, return_frame: VMFrame):
         """Push a new call frame for callee with given args."""

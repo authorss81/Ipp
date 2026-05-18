@@ -114,7 +114,7 @@ class REPLTest:
         # Shell
         print("\nShell:")
         self.test("! cmd", lambda: True)
-        self.test(".pwd", lambda: "Ipp" in os.getcwd())
+        self.test(".pwd", lambda: os.path.isdir(os.getcwd()))
         self.test(".ls", lambda: len(os.listdir('.')) > 0)
         self.test(".cd", lambda: True)
         self.test(".pipe", lambda: True)

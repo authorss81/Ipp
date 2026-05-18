@@ -1,33 +1,159 @@
-name: Publish to PyPI
+# ── Ipp Language — CI/CD Pipeline ────────────────────────────────────────────
+# Publishes to PyPI automatically when VERSION in ipp/main.py changes on main.
+# Also runs regression tests on every push and PR.
+
+name: CI / Publish to PyPI
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:    # Allow manual trigger
 
 jobs:
-  build-and-publish:
+  # ── Job 1: Tests ─────────────────────────────────────────────────────────────
+  test:
+    name: Regression Tests
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Set up Python
+
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      
-      - name: Install build tools
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install package (editable)
+        run: pip install -e . --break-system-packages || pip install -e .
+
+      - name: Run regression tests
+        run: python -B tests/regression.py
+
+  # ── Job 2: Extract version ────────────────────────────────────────────────────
+  check-version:
+    name: Detect version
+    runs-on: ubuntu-latest
+    outputs:
+      version:    ${{ steps.ver.outputs.version }}
+      tag-exists: ${{ steps.tag.outputs.exists }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0       # need full history for tag check
+
+      - name: Extract version from ipp/main.py
+        id: ver
         run: |
-          python -m pip install --upgrade pip
-          pip install build twine
-      
+          VERSION=$(python3 -c "
+          import re, pathlib
+          src = pathlib.Path('ipp/main.py').read_text()
+          m = re.search(r'VERSION\s*=\s*[\"\']([\w.]+)[\"\']\s*$', src, re.M)
+          print(m.group(1) if m else 'unknown')
+          ")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Detected version: $VERSION"
+
+      - name: Check if git tag already exists
+        id: tag
+        run: |
+          TAG="v${{ steps.ver.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "Tag $TAG already exists — skipping publish"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "Tag $TAG is new — will publish"
+          fi
+
+  # ── Job 3: Publish ────────────────────────────────────────────────────────────
+  publish:
+    name: Build & Publish to PyPI
+    runs-on: ubuntu-latest
+    needs: [test, check-version]
+    # Only publish on push to main, and only when the version tag is new
+    if: |
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      needs.check-version.outputs.tag-exists == 'false'
+    environment:
+      name: pypi
+      url: https://pypi.org/project/ipp-lang/${{ needs.check-version.outputs.version }}/
+    permissions:
+      contents: write   # needed to push git tag
+      id-token: write   # needed for PyPI trusted publishing
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install build twine
+
+      - name: Set version env
+        run: echo "VERSION=${{ needs.check-version.outputs.version }}" >> $GITHUB_ENV
+
       - name: Build package
         run: python -m build
-      
-      - name: Check package
+
+      - name: Check distribution
         run: twine check dist/*
-      
-      - name: Publish to PyPI
-        env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: twine upload dist/*
+
+      - name: Create & push git tag v${{ env.VERSION }}
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          TAG="v${{ env.VERSION }}"
+          git tag -a "$TAG" -m "Release $TAG — auto-tagged by CI"
+          git push origin "$TAG"
+          echo "Pushed tag $TAG"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: "Ipp v${{ env.VERSION }}"
+          body: |
+            ## Ipp Language v${{ env.VERSION }}
+
+            Auto-published from `main` branch after passing all regression tests.
+
+            ### Install
+            ```bash
+            pip install ipp-lang==${{ env.VERSION }}
+            ```
+
+            ### Run
+            ```bash
+            ipp run script.ipp      # interpreter mode
+            ipp run --vm script.ipp # bytecode VM mode
+            ipp repl                # interactive REPL
+            ```
+
+            ### Changelog
+            See [ROADMAP_V2.md](https://github.com/authorss81/Ipp/blob/main/ROADMAP_V2%20(1).md)
+          draft: false
+          prerelease: ${{ contains(env.VERSION, 'alpha') || contains(env.VERSION, 'beta') || contains(env.VERSION, 'rc') }}
+          files: dist/*
+
+      - name: Publish to PyPI (Trusted Publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        # No PYPI_API_TOKEN needed — uses OIDC trusted publishing
+        # Set up at: https://pypi.org/manage/project/ipp-lang/settings/publishing/
+
+      # Fallback: token-based publish (comment out if using trusted publishing)
+      # - name: Publish to PyPI (token fallback)
+      #   env:
+      #     TWINE_USERNAME: __token__
+      #     TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+      #   run: twine upload dist/*

@@ -122,6 +122,11 @@ TESTS = [
     ("v1.7.9-try-index", "tests/v1_7_9/test_try_catch_index.ipp"),
     ("v1.7.9-try-nil", "tests/v1_7_9/test_try_catch_nil.ipp"),
     ("v1.7.9-try-throw", "tests/v1_7_9/test_try_catch_throw.ipp"),
+    ("v1.7.9.1.1-keyboard", "tests/v1_7_9_1_1/test_keyboard.ipp"),
+    ("v1.7.9.1.2-ansi", "tests/v1_7_9_1_2/test_ansi_strip.ipp"),
+    ("v1.7.9.1.3-playground", "tests/v1_7_9_1_3/test_playground.ipp"),
+    ("v1.7.9.1.4-themes", "tests/v1_7_9_1_4/test_themes.ipp"),
+    ("v1.7.9.1.5-docs", "tests/v1_7_9_1_5/test_docs.ipp"),
     ("v2.0.0", "tests/v2_0_0/test_c_extension.ipp"),
 ]
 

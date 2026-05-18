@@ -73,84 +73,65 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "1.7.9.1"
+VERSION = "1.7.9.1.5"
 
-# ─── Windows ANSI enablement ──────────────────────────────────────────────────
-# Windows 10 supports ANSI but requires ENABLE_VIRTUAL_TERMINAL_PROCESSING.
-# Without this, escape codes print as literal garbage.
+# ─── Windows ANSI enablement — v1.7.9.1.2 ────────────────────────────────────
+# Windows 10+ supports ANSI via ENABLE_VIRTUAL_TERMINAL_PROCESSING.
+# We attempt to enable it; on failure we fall back to plain text.
 def _enable_windows_ansi() -> bool:
-    """Enable ANSI escape processing on Windows 10+. Returns True if succeeded."""
+    """Enable ANSI escape processing on Windows 10+. Returns True on success."""
     if sys.platform != "win32":
         return True
     try:
-        import ctypes
-        import ctypes.wintypes
+        import ctypes, ctypes.wintypes
         kernel32 = ctypes.windll.kernel32
+        ENABLE_VTP = 0x0004
+        # stdout handle
         hout = kernel32.GetStdHandle(-11)
-        if hout == -1:
+        if hout in (0, -1):
             return False
-        mode = ctypes.wintypes.DWORD()
+        mode = ctypes.wintypes.DWORD(0)
         if not kernel32.GetConsoleMode(hout, ctypes.byref(mode)):
             return False
-        ENABLE_VTP = 0x0004
         if mode.value & ENABLE_VTP:
-            return True
-        new_mode = mode.value | ENABLE_VTP
-        if kernel32.SetConsoleMode(hout, new_mode):
-            return True
-        return False
-    except Exception as e:
+            pass  # already set
+        else:
+            kernel32.SetConsoleMode(hout, mode.value | ENABLE_VTP)
+        # stdin handle — keep Ctrl+C working
+        hin = kernel32.GetStdHandle(-10)
+        if hin not in (0, -1):
+            mode2 = ctypes.wintypes.DWORD(0)
+            if kernel32.GetConsoleMode(hin, ctypes.byref(mode2)):
+                kernel32.SetConsoleMode(hin, mode2.value | 0x0001)
+        # Verify the flag is now set
+        final = ctypes.wintypes.DWORD(0)
+        kernel32.GetConsoleMode(hout, ctypes.byref(final))
+        return bool(final.value & ENABLE_VTP)
+    except Exception:
         return False
 
 _ANSI_OK = _enable_windows_ansi()
-IS_TTY = sys.stdout.isatty()
+IS_TTY   = sys.stdout.isatty()
 
-# Disable ANSI on Windows by default unless explicitly enabled
-# This prevents garbage output on terminals that don't properly support ANSI
-_FORCE_ANSI = False
-
-def _check_ansi_support():
-    """Check if ANSI codes are actually supported by trying to write one."""
-    if not sys.stdout.isatty():
+def _ansi_supported() -> bool:
+    """True when ANSI escape codes will render correctly in this terminal."""
+    if not IS_TTY:
         return False
-    try:
-        import os
-        if hasattr(os, 'getenv') and os.getenv('IPP_COLORS', '').lower() in ('1', 'true', 'yes'):
-            # Force enable with virtual terminal processing on Windows
-            if sys.platform.startswith('win'):
-                import ctypes
-                kernel32 = ctypes.windll.kernel32
-                h = kernel32.GetStdHandle(-11)
-                mode = ctypes.c_ulong()
-                kernel32.GetConsoleMode(h, ctypes.byref(mode))
-                mode.value |= 4  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
-                kernel32.SetConsoleMode(h, mode)
-            return True
-        return _ANSI_OK and not sys.platform.startswith('win')
-    except:
+    if os.environ.get('IPP_COLORS', '').lower() in ('0', 'false', 'no', 'off'):
         return False
+    if os.environ.get('NO_COLOR'):          # https://no-color.org
+        return False
+    if sys.platform == 'win32':
+        return _ANSI_OK
+    return True   # Unix/Mac always support ANSI
 
 # ─── ANSI colour helpers ──────────────────────────────────────────────────────
-# Enable colors by default on all platforms
-_USE_ANSI = True
+_USE_ANSI = _ansi_supported()
 
-# Enable virtual terminal processing on Windows at startup
-if sys.platform.startswith('win'):
-    try:
-        import ctypes
-        kernel32 = ctypes.windll.kernel32
-        h = kernel32.GetStdHandle(-11)
-        mode = ctypes.c_ulong()
-        kernel32.GetConsoleMode(h, ctypes.byref(mode))
-        mode.value |= 4  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
-        kernel32.SetConsoleMode(h, mode)
-        # Also enable Ctrl+C processing
-        h_in = kernel32.GetStdHandle(-10)
-        kernel32.GetConsoleMode(h_in, ctypes.byref(mode))
-        mode.value |= 0x0001  # ENABLE_PROCESSED_INPUT
-        kernel32.SetConsoleMode(h_in, mode)
-    except Exception:
-        pass
+def _refresh_ansi():
+    """Re-evaluate ANSI support (called after .colors on/off commands)."""
+    global _USE_ANSI
+    _USE_ANSI = _ansi_supported()
 
 def _fg(n, t):
     if not _USE_ANSI or not IS_TTY:
@@ -177,21 +158,93 @@ def ITALIC(t):
         return t
     return f"\033[3m{t}\033[0m"
 
-# ── Palette ───────────────────────────────────────────────────────────────────
+# ── v1.7.9.1.4 Theme system ───────────────────────────────────────────────────
+_THEMES: dict[str, dict] = {
+    'default': dict(
+        prompt=(100, 200, 255), cont=(80, 110, 160),    result=(160, 255, 160),
+        error=(255,  80,  80),  warn=(255, 210,  60),   ok=( 60, 220, 120),
+        cmd=(170, 120, 255),    type_=(255, 170,  60),  kw=( 80, 190, 255),
+        string=(100, 230, 140), num=(255, 200,  80),    comment=( 90, 100, 140),
+        fn=(170,  90, 255),     bool_=(230, 110, 255),  header=( 80, 200, 255),
+    ),
+    'dracula': dict(
+        prompt=(189,147,249),   cont=( 98,114,164),     result=( 80,250,123),
+        error=(255, 85, 85),    warn=(241,250,140),      ok=( 80,250,123),
+        cmd=(255,121,198),      type_=(255,184,108),     kw=(189,147,249),
+        string=(241,250,140),   num=(255,184,108),       comment=( 98,114,164),
+        fn=(255,121,198),       bool_=(139,233,253),     header=(139,233,253),
+    ),
+    'monokai': dict(
+        prompt=(102,217,239),   cont=(117,113, 94),     result=(166,226, 46),
+        error=(249, 38,114),    warn=(253,151, 31),      ok=(166,226, 46),
+        cmd=(174,129,255),      type_=(253,151, 31),     kw=(249, 38,114),
+        string=(230,219,116),   num=(174,129,255),       comment=(117,113, 94),
+        fn=(174,129,255),       bool_=(102,217,239),     header=(102,217,239),
+    ),
+    'solarized': dict(
+        prompt=( 38,139,210),   cont=( 88,110,117),     result=(133,153,  0),
+        error=(220, 50, 47),    warn=(181,137,  0),      ok=(133,153,  0),
+        cmd=(108,113,196),      type_=(203, 75, 22),     kw=( 38,139,210),
+        string=( 42,161,152),   num=(211, 54,130),       comment=( 88,110,117),
+        fn=(108,113,196),       bool_=( 42,161,152),     header=( 38,139,210),
+    ),
+    'nord': dict(
+        prompt=(136,192,208),   cont=( 76, 86,106),     result=(163,190,140),
+        error=(191, 97,106),    warn=(235,203,139),      ok=(163,190,140),
+        cmd=(180,142,173),      type_=(208,135,112),     kw=(136,192,208),
+        string=(163,190,140),   num=(208,135,112),       comment=( 76, 86,106),
+        fn=(180,142,173),       bool_=(136,192,208),     header=(129,161,193),
+    ),
+    'gruvbox': dict(
+        prompt=(131,165,152),   cont=(102, 92, 84),     result=(184,187, 38),
+        error=(204, 36, 29),    warn=(215,153, 33),      ok=(152,151, 26),
+        cmd=(211,134,155),      type_=(214, 93, 14),     kw=(250,189, 47),
+        string=(184,187, 38),   num=(211,134,155),       comment=(146,131,116),
+        fn=(211,134,155),       bool_=(131,165,152),     header=(250,189, 47),
+    ),
+}
+_current_theme_name: str = 'default'
+
+def _apply_theme(name: str) -> bool:
+    """Apply a named theme. Returns True on success."""
+    global _current_theme_name, C_PROMPT, C_CONT, C_RESULT, C_ERROR, C_WARN
+    global C_OK, C_CMD, C_TYPE, C_KW, C_STR, C_NUM, C_COMMENT, C_FN, C_BOOL, C_HEADER
+    t = _THEMES.get(name)
+    if t is None:
+        return False
+    _current_theme_name = name
+    C_PROMPT  = lambda text, _c=t['prompt']:  _rgb(*_c, text)
+    C_CONT    = lambda text, _c=t['cont']:    _rgb(*_c, text)
+    C_RESULT  = lambda text, _c=t['result']:  _rgb(*_c, text)
+    C_ERROR   = lambda text, _c=t['error']:   _rgb(*_c, text)
+    C_WARN    = lambda text, _c=t['warn']:    _rgb(*_c, text)
+    C_OK      = lambda text, _c=t['ok']:      _rgb(*_c, text)
+    C_CMD     = lambda text, _c=t['cmd']:     _rgb(*_c, text)
+    C_TYPE    = lambda text, _c=t['type_']:   _rgb(*_c, text)
+    C_KW      = lambda text, _c=t['kw']:      _rgb(*_c, text)
+    C_STR     = lambda text, _c=t['string']:  _rgb(*_c, text)
+    C_NUM     = lambda text, _c=t['num']:     _rgb(*_c, text)
+    C_COMMENT = lambda text, _c=t['comment']: _rgb(*_c, text)
+    C_FN      = lambda text, _c=t['fn']:      _rgb(*_c, text)
+    C_BOOL    = lambda text, _c=t['bool_']:   _rgb(*_c, text)
+    C_HEADER  = lambda text, _c=t['header']:  _rgb(*_c, text)
+    return True
+
+# ── Palette (default theme) ──────────────────────────────────────────────────
 C_PROMPT  = lambda t: _rgb(100, 200, 255, t)
-C_CONT    = lambda t: _rgb(100, 140, 200, t)
-C_RESULT  = lambda t: _rgb(180, 255, 180, t)
-C_ERROR   = lambda t: _rgb(255, 100, 100, t)
-C_WARN    = lambda t: _rgb(255, 200,  80, t)
-C_OK      = lambda t: _rgb( 80, 220, 120, t)
-C_CMD     = lambda t: _rgb(150, 120, 255, t)
-C_TYPE    = lambda t: _rgb(255, 160,  80, t)
-C_KW      = lambda t: _rgb(100, 200, 255, t)
-C_STR     = lambda t: _rgb(150, 255, 150, t)
-C_NUM     = lambda t: _rgb(255, 180, 100, t)
-C_COMMENT = lambda t: _rgb(120, 120, 140, t)
-C_FN      = lambda t: _rgb(180, 100, 255, t)  # Purple for function repr
-C_BOOL    = lambda t: _rgb(220, 130, 255, t)
+C_CONT    = lambda t: _rgb( 80, 110, 160, t)
+C_RESULT  = lambda t: _rgb(160, 255, 160, t)
+C_ERROR   = lambda t: _rgb(255,  80,  80, t)
+C_WARN    = lambda t: _rgb(255, 210,  60, t)
+C_OK      = lambda t: _rgb( 60, 220, 120, t)
+C_CMD     = lambda t: _rgb(170, 120, 255, t)
+C_TYPE    = lambda t: _rgb(255, 170,  60, t)
+C_KW      = lambda t: _rgb( 80, 190, 255, t)
+C_STR     = lambda t: _rgb(100, 230, 140, t)
+C_NUM     = lambda t: _rgb(255, 200,  80, t)
+C_COMMENT = lambda t: _rgb( 90, 100, 140, t)
+C_FN      = lambda t: _rgb(170,  90, 255, t)
+C_BOOL    = lambda t: _rgb(230, 110, 255, t)
 C_HEADER  = lambda t: _rgb( 80, 200, 255, t)
 C_LOGO1   = lambda t: _fg(51, t)
 C_LOGO2   = lambda t: _fg(45, t)
@@ -477,7 +530,10 @@ def print_banner():
             print(sp + DIM("  (colors disabled - ANSI not supported)"))
         print(sp + DIM("  Use .colors on to force colors"))
     else:
-        print(sp + colour(C_OK, "  (colors enabled)"))
+        hl_status = (colour(C_OK, "  ✓ syntax highlighting on") + " " + DIM("(.highlight)")
+                     if _HAS_HIGHLIGHT else
+                     DIM("  syntax highlighting off  pip install prompt_toolkit"))
+        print(sp + hl_status)
     print()
 
 # ─── Readline / autocomplete ──────────────────────────────────────────────────
@@ -486,6 +542,23 @@ try:
     HAS_RL = True
 except ImportError:
     HAS_RL = False
+
+# ─── prompt_toolkit highlighting session (v1.7.9.1.5) ────────────────────────
+try:
+    from ipp.runtime.highlighter import (
+        make_session as _make_hl_session,
+        highlight_line as _hl_line,
+        set_highlight_theme as _set_hl_theme,
+        _HAS_PT,
+    )
+    _HAS_HIGHLIGHT = _HAS_PT
+except Exception:
+    _HAS_HIGHLIGHT = False
+    _HAS_PT = False
+    def _hl_line(src, theme='default'): return src
+    def _set_hl_theme(name): return False
+
+_hl_session = None   # created lazily in repl()
 
 # On Windows, pyreadline intercepts Ctrl+C. Use msvcrt to detect it.
 if sys.platform.startswith('win'):
@@ -517,6 +590,8 @@ class IppCompleter:
             '.colors', '.vm', '.clear', '.types', '.version',
             '.load', '.save', '.doc', '.time', '.which', '.last',
             '.undo', '.redo', '.edit', '.profile', '.alias',
+            '.theme', '.themes',     # v1.7.9.1.4
+            '.highlight',            # v1.7.9.1.5
             'exit', 'quit',
         ])
 
@@ -625,11 +700,26 @@ class IppCompleter:
             return []
 
 def setup_readline(interp):
+    global _hl_session
+    hdir  = os.path.join(os.path.expanduser("~"), ".ipp")
+    hfile = os.path.join(hdir, "history")
+    os.makedirs(hdir, exist_ok=True)
+
+    # ── prompt_toolkit session (preferred) ───────────────────────────────────
+    if _HAS_HIGHLIGHT and _hl_session is None:
+        try:
+            _hl_session = _make_hl_session(history_file=hfile)
+            _hl_session.set_theme(_current_theme_name)
+        except Exception:
+            _hl_session = None
+
+    if _hl_session and _hl_session.available:
+        _refresh_symbols(interp)
+        return  # prompt_toolkit handles history + completion natively
+
+    # ── readline fallback ─────────────────────────────────────────────────────
     if not HAS_RL: return
     try:
-        hdir = os.path.join(os.path.expanduser("~"), ".ipp")
-        os.makedirs(hdir, exist_ok=True)
-        hfile = os.path.join(hdir, "history")
         try: readline.read_history_file(hfile)
         except FileNotFoundError: pass
         readline.set_history_length(2000)
@@ -638,28 +728,35 @@ def setup_readline(interp):
         readline.set_completer_delims(" \t\n`~!@#$%^&*()-=+[]{}|;:',.<>?/")
         comp = IppCompleter(interp)
         readline.set_completer(comp.complete)
-        
-        # Auto-indentation: after Enter, if line ends with {, (, [, add indent
-        def auto_indent_hook(text):
-            if text and text[-1] in '{([':
-                return text + '    '
-            return text
-        
-        # Bracket matching: highlight matching brackets
         readline.parse_and_bind("set show-all-if-ambiguous on")
         readline.parse_and_bind("set mark-directories on")
-        
-        # Windows-specific: use libedit-style binding if needed
         if sys.platform.startswith('win'):
-            try:
-                readline.parse_and_bind("bind ^I rl_complete")
-            except:
-                pass
-        
+            try: readline.parse_and_bind("bind ^I rl_complete")
+            except: pass
         atexit.register(readline.write_history_file, hfile)
         return comp
     except Exception:
         return None
+
+
+def _refresh_symbols(interp):
+    """Push user-defined names into the highlight session's completer."""
+    global _hl_session
+    if not _hl_session:
+        return
+    try:
+        syms = []
+        env = getattr(interp, 'environment', None)
+        if env:
+            syms = list(getattr(env, 'values', {}).keys())
+        # Also grab globals dict from VM if running in VM mode
+        vm = getattr(interp, '_vm', None)
+        if vm:
+            syms += [k for k in getattr(vm, 'globals', {}).keys()
+                     if not k.startswith('_')]
+        _hl_session.update_symbols(syms)
+    except Exception:
+        pass
 
 # ─── Brace balance check ──────────────────────────────────────────────────────
 def _balanced(src: str) -> bool:
@@ -811,7 +908,9 @@ def print_help():
         (".watch <expr>",   "Watch expression value"),
         (".locals",         "Show local variables"),
         (".table <var>",    "Show list of dicts as table"),
-        (".theme <name>",   "Set color theme (dark/light/solarized)"),
+        (".theme <name>",   "Set color theme (default/dracula/monokai/solarized/nord/gruvbox)"),
+        (".themes",         "List all themes with colour preview"),
+        (".highlight",      "Show syntax highlighting status (needs prompt_toolkit)"),
         (".html <expr>",    "Preview HTML in browser"),
         (".plot <data>",   "Plot data with matplotlib"),
         (".bg <expr>",     "Run in background"),
@@ -827,10 +926,10 @@ def print_help():
         c_desc = colour(DIM, desc)
         print(f"    {c_cmd} {c_desc}")
 
-    # Windows color warning
-    if sys.platform.startswith('win') and _USE_ANSI:
+    # v1.7.9.1.2: warn only if ANSI was requested but not supported
+    if not _ANSI_OK and _USE_ANSI and sys.platform == "win32":
         print()
-        print("  " + colour(C_WARN, "Note: If you see garbage numbers/escape codes, run .colors off"))
+        print("  " + colour(C_WARN, "Colors may not display correctly. Run .colors off to disable."))
 
     _section("Quick Reference")
     snippets = [
@@ -857,20 +956,188 @@ def print_help():
 def print_types():
     _section("Type System")
     types_info = [
-        ("number",    "42, 3.14, 0xFF, 0b1010"),
-        ("string",    '"hello", escape \\n \\t supported'),
-        ("bool",      "true / false"),
-        ("nil",       "null value"),
-        ("list",      "[1, 2, 3]"),
-        ("dict",      '{"key": val}'),
-        ("tuple",     "(1, 2, 3)"),
-        ("function",  "first-class, closures, lambdas"),
-        ("class",     "OOP with inheritance"),
-        ("enum",      "enum Direction { UP, DOWN }"),
+        ("number",   "#ffd580", "42, 3.14, 0xFF, 0b1010, 1_000_000"),
+        ("string",   "#67e5a0", '"hello"  escape \\n \\t \\xHH \\uXXXX \\e'),
+        ("bool",     "#ff9f7e", "true / false"),
+        ("nil",      "#8891b8", "null / None equivalent"),
+        ("list",     "#7eb3ff", "[1, 2, 3]   mutable sequence"),
+        ("dict",     "#c78dff", '{"key": val}  hash map'),
+        ("set",      "#67e5a0", "{1, 2, 3}   unique values"),
+        ("func",     "#a8c8ff", "func f(x) {}   closures, async, generators"),
+        ("class",    "#ffd580", "class Foo extends Bar {}"),
+        ("enum",     "#ff9f7e", "enum Dir { UP DOWN LEFT RIGHT }"),
+        ("generator","#c78dff", "func gen() { yield x }"),
     ]
-    for t, desc in types_info:
-        print(f"    {colour(C_TYPE, t.ljust(12))} {colour(DIM, desc)}")
+    for t, col, desc in types_info:
+        r = int(col[1:3], 16); g = int(col[3:5], 16); b = int(col[5:7], 16)
+        c = lambda text, r=r, g=g, b=b: _rgb(r, g, b, text)
+        print(f"    {colour(c, t.ljust(12))}  {colour(DIM, desc)}")
     print()
+
+def _is_ipp_function(val):
+    t = type(val).__name__
+    return t in ('IppFunction', 'IppCoroutine', 'IppBoundMethod')
+
+def show_vars(interp):
+    _section("User Variables")
+    try:
+        from ipp.runtime.builtins import BUILTINS as _RB
+    except ImportError:
+        _RB = {}
+
+    env = interp.global_env
+    all_vars = {}
+    while env:
+        if hasattr(env, 'values'):
+            for k, v in env.values.items():
+                if k not in all_vars and not k.startswith('_'):
+                    all_vars[k] = v
+        env = env.parent
+
+    user_vars = {k: v for k, v in all_vars.items()
+                 if k not in _RB and not callable(v) and not _is_ipp_function(v)}
+
+    if not user_vars:
+        print(f"    {colour(DIM, '(no user variables yet — try: var x = 42)')}")
+    else:
+        # Header row
+        print(f"    {colour(DIM, 'name'.ljust(18))} {colour(DIM, 'type'.ljust(10))} {colour(DIM, 'value')}")
+        print(f"    {colour(DIM, '─' * 52)}")
+        for name, val in sorted(user_vars.items()):
+            vt = type(val).__name__
+            if hasattr(val, 'cls'):                          vt = val.cls.name
+            elif hasattr(val, 'name') and hasattr(val, 'methods'): vt = 'class'
+            elif isinstance(val, bool):                      vt = 'bool'
+            elif isinstance(val, (int, float)):              vt = 'number'
+            elif isinstance(val, str):                       vt = 'string'
+            elif isinstance(val, list):                      vt = 'list'
+            elif isinstance(val, dict):                      vt = 'dict'
+            elif val is None:                                vt = 'nil'
+            val_str = _format_val(val)
+            if len(strip_ansi(val_str)) > 38: val_str = _format_val(val, truncate=True)
+            print(f"    {colour(C_STR, name.ljust(18))} "
+                  f"{colour(C_TYPE, vt.ljust(10))} "
+                  f"{val_str}")
+    print()
+
+def show_fns(interp):
+    _section("User Functions")
+    try:
+        from ipp.runtime.builtins import BUILTINS as _RB
+    except ImportError:
+        _RB = {}
+
+    env = interp.global_env
+    all_items = {}
+    while env:
+        if hasattr(env, 'values'):
+            for k, v in env.values.items():
+                if k not in all_items and not k.startswith('_'):
+                    all_items[k] = v
+        env = env.parent
+
+    user_fns = {k: v for k, v in all_items.items()
+                if k not in _RB and (callable(v) or _is_ipp_function(v))}
+
+    if not user_fns:
+        print(f"    {colour(DIM, '(no user functions yet — try: func f(x) { return x * 2 })')}")
+    else:
+        print(f"    {colour(DIM, 'name'.ljust(18))} {colour(DIM, 'params')}")
+        print(f"    {colour(DIM, '─' * 44)}")
+        for name, val in sorted(user_fns.items()):
+            params = ''
+            if hasattr(val, 'parameters'):
+                params = ', '.join(
+                    p.name if hasattr(p, 'name') else str(p)
+                    for p in val.parameters
+                )
+            tag = colour(C_FN, f"func {name}")
+            param_str = colour(DIM, f"({params})")
+            print(f"    {tag.ljust(18 + len(name) + 5)}  {param_str}")
+    print()
+
+def show_builtins():
+    _section("Built-in Functions")
+    try:
+        from ipp.runtime.builtins import BUILTINS
+    except ImportError:
+        print(f"    {colour(DIM, '(unable to load builtins)')}")
+        print()
+        return
+
+    # Modern grouped display — name only, no raw Python repr spam
+    categories = [
+        ("I/O",         ["print", "input", "exit"],                               "#67e5a0"),
+        ("Types",       ["type", "ipp_type", "str", "int", "float", "bool",
+                         "ipp_version"],                                            "#ffd580"),
+        ("Math",        ["abs", "min", "max", "sum", "round", "floor", "ceil",
+                         "sqrt", "pow", "sin", "cos", "tan", "atan2", "log",
+                         "exp", "pi", "tau", "inf", "random", "randint",
+                         "choice", "shuffle", "seed"],                             "#7eb3ff"),
+        ("Strings",     ["len", "repr", "chr", "ord", "hex", "bin", "oct",
+                         "format", "sprintf", "strip_ansi"],                       "#a8c8ff"),
+        ("Collections", ["range", "sorted", "reversed", "enumerate", "zip",
+                         "map", "filter", "all", "any", "slice",
+                         "deque", "PriorityQueue", "Tree", "Graph"],               "#c78dff"),
+        ("Data",        ["json_parse", "json_stringify", "base64_encode",
+                         "base64_decode"],                                          "#ff9f7e"),
+        ("Files",       ["read_file", "write_file", "file_exists",
+                         "list_dir", "mkdir"],                                     "#ffd580"),
+        ("Network",     ["http_get", "http_post", "http_put",
+                         "websocket_connect", "websocket_send",
+                         "websocket_close"],                                       "#67e5a0"),
+        ("Introspect",  ["assert", "eval", "hash", "id", "callable",
+                         "hasattr", "getattr", "dir", "isinstance"],               "#8891b8"),
+        ("Vectors",     ["vec2", "vec3", "vec4", "mat4", "quat",
+                         "complex", "Color", "Rect"],                              "#c78dff"),
+        ("Keyboard",    ["key_pressed", "get_key", "get_key_async",
+                         "on_keydown", "on_keyup", "advance_frame",
+                         "simulate_key_press", "KEY"],                             "#ffd580"),
+        ("Async",       ["async_run"],                                             "#7eb3ff"),
+        ("Logging",     ["logger"],                                                "#ff9f7e"),
+    ]
+
+    for group, names, hex_col in categories:
+        available = [n for n in names if n in BUILTINS]
+        if not available:
+            continue
+        r = int(hex_col[1:3], 16); g = int(hex_col[3:5], 16); b = int(hex_col[5:7], 16)
+        grp_col = lambda text, r=r, g=g, b=b: _rgb(r, g, b, text)
+
+        # Group header with count
+        hdr = f"  {colour(grp_col, BOLD(group))}  {colour(DIM, str(len(available)))}"
+        print(hdr)
+
+        # Names in a compact multi-column layout (4 per row)
+        cols = 4
+        for i in range(0, len(available), cols):
+            row = available[i:i+cols]
+            line = "    " + "  ".join(colour(C_KW, n.ljust(22)) for n in row)
+            print(line)
+        print()
+
+def show_modules():
+    _section("Module Reference")
+    # Concise grouped reference, no Python internals shown
+    modules = [
+        ("Core",      "#7eb3ff",  "print  input  exit  assert  eval  type  ipp_type"),
+        ("Strings",   "#67e5a0",  ".upper  .lower  .trim  .split  .join  .replace  .contains"),
+        ("Lists",     "#c78dff",  ".push  .pop  .join  sorted  reversed  enumerate  zip"),
+        ("Dicts",     "#ffd580",  ".get  .set  .has  .keys  .values  .items  json_parse"),
+        ("Math",      "#ff9f7e",  "sqrt  sin cos tan  floor ceil  abs  min max  pi tau"),
+        ("Files",     "#a8c8ff",  "read_file  write_file  file_exists  list_dir  mkdir"),
+        ("Network",   "#67e5a0",  "http_get  http_post  websocket_connect  websocket_send"),
+        ("Async",     "#c78dff",  "async func  await  yield  next  async_run"),
+        ("Keyboard",  "#ffd580",  "key_pressed  get_key  on_keydown  advance_frame  KEY"),
+        ("Vectors",   "#7eb3ff",  "vec2  vec3  vec4  mat4  quat  complex  Color  Rect"),
+        ("REPL",      "#8891b8",  ".help  .vars  .fns  .builtins  .theme  .highlight  .doc"),
+    ]
+    for group, hex_col, items in modules:
+        r = int(hex_col[1:3], 16); g = int(hex_col[3:5], 16); b = int(hex_col[5:7], 16)
+        grp_col = lambda text, r=r, g=g, b=b: _rgb(r, g, b, text)
+        print(f"  {colour(grp_col, BOLD(group.ljust(12)))}  {colour(DIM, items)}")
+    print()
+
 
 def _is_ipp_function(val):
     return type(val).__name__ == 'IppFunction'
@@ -1382,7 +1649,12 @@ def run_repl():
                 arrow = _PROMPT_ARROW + ' '
                 prompt_txt = colour(C_PROMPT, f"  {arrow}")
 
-            raw = input(prompt_txt)
+            # v1.7.9.1.5: use highlight session when available, fall back to input()
+            if _hl_session and _hl_session.available:
+                _refresh_symbols(interp)
+                raw = _hl_session.prompt(prompt_txt, continuation=bool(buf))
+            else:
+                raw = input(prompt_txt)
 
         except KeyboardInterrupt:
             # Ctrl+C always exits the REPL immediately
@@ -1407,6 +1679,15 @@ def run_repl():
             if stripped == '.builtins':     show_builtins();      continue
             if stripped == '.modules':      show_modules();       continue
             if stripped == '.version':      print(f"  Ipp v{VERSION}"); continue
+            if stripped == '.highlight':
+                if _HAS_HIGHLIGHT and _hl_session and _hl_session.available:
+                    print(f"  {colour(C_OK, '✓ Syntax highlighting: ON')}  (prompt_toolkit)")
+                    print(f"  {colour(DIM, 'Keywords, builtins, strings, numbers all highlighted')}")
+                    print(f"  {colour(DIM, 'Use .theme <name> to change colours')}")
+                else:
+                    print(f"  {colour(C_WARN, '✗ Syntax highlighting: OFF')}")
+                    print(f"  {colour(DIM, 'Install prompt_toolkit:  pip install prompt_toolkit')}")
+                continue
             if stripped in ('.clear', 'clear()'):
                 buf.clear()
                 interp_manager.reset()
@@ -1441,19 +1722,8 @@ def run_repl():
             if m:
                 global _USE_ANSI
                 if m.group(1) == 'on':
+                    _enable_windows_ansi()
                     _USE_ANSI = True
-                    # Enable virtual terminal processing on Windows
-                    if sys.platform.startswith('win'):
-                        try:
-                            import ctypes
-                            kernel32 = ctypes.windll.kernel32
-                            h = kernel32.GetStdHandle(-11)
-                            mode = ctypes.c_ulong()
-                            kernel32.GetConsoleMode(h, ctypes.byref(mode))
-                            mode.value |= 4  # ENABLE_VIRTUAL_TERMINAL_PROCESSING
-                            kernel32.SetConsoleMode(h, mode)
-                        except Exception:
-                            pass
                     print(f"  {colour(C_OK, 'Colors enabled')}")
                 else:
                     _USE_ANSI = False
@@ -1908,26 +2178,37 @@ def run_repl():
             m = re.match(r'\.theme\s+(\w+)$', stripped)
             if m:
                 theme = m.group(1).lower()
-                themes = {
-                    'dark': {'prompt': '100,200,255', 'error': '255,100,100', 'ok': '80,220,120', 'warn': '255,200,80'},
-                    'light': {'prompt': '0,100,200', 'error': '200,0,0', 'ok': '0,150,0', 'warn': '200,100,0'},
-                    'solarized': {'prompt': '100,150,200', 'error': '200,100,50', 'ok': '100,200,100', 'warn': '180,150,0'},
-                    'monokai': {'prompt': '249,38,114', 'error': '249,38,114', 'ok': '166,226,46', 'warn': '253,151,31'},
-                    'gruvbox': {'prompt': '191,145,0', 'error': '204,46,46', 'ok': '142,191,107', 'warn': '215,133,18'},
-                }
-                global _current_theme
-                if theme in themes:
-                    _current_theme = theme
-                    t = themes[theme]
-                    print(f"  {colour(C_OK, f'✓ Theme set to {theme}')}")
-                    print(f"    {colour(C_PROMPT, 'Prompt:  RGB(' + t['prompt'] + ')')}")
-                    print(f"    {colour(C_ERROR, 'Error:   RGB(' + t['error'] + ')')}")
-                    print(f"    {colour(C_OK,    'OK:      RGB(' + t['ok'] + ')')}")
-                    print(f"    {colour(C_WARN,  'Warn:    RGB(' + t['warn'] + ')')}")
+                if _apply_theme(theme):
+                    # v1.7.9.1.5: sync highlight session
+                    if _hl_session:
+                        _hl_session.set_theme(theme)
+                    _set_hl_theme(theme)
+                    t = _THEMES[theme]
+                    print(f"  {colour(C_OK, f'✓ Theme: {theme}')}")
+                    print(f"    {colour(C_PROMPT, '●')} prompt   "
+                          f"{colour(C_RESULT, '●')} result   "
+                          f"{colour(C_ERROR,  '●')} error   "
+                          f"{colour(C_WARN,   '●')} warn")
+                    if _hl_session and _hl_session.available:
+                        print(f"    {colour(DIM, '✓ Editor highlighting updated')}")
                 else:
                     print(f"  {colour(C_WARN, f'Unknown theme: {theme}')}")
-                    _avail = ", ".join(themes.keys())
-                    print(f"  " + colour(DIM, f"Available: {_avail}"))
+                    _avail = ', '.join(_THEMES.keys())
+                    print(f"  {colour(DIM, f'Available: {_avail}')}")
+                continue
+
+            # .themes — List all available themes with preview
+            if stripped == '.themes':
+                print(f"  {colour(C_HEADER, 'Available themes:')}")
+                for tname, tdata in _THEMES.items():
+                    mark = colour(C_OK, '✓') if tname == _current_theme_name else ' '
+                    p = lambda text, c=tdata['prompt']:  _rgb(*c, text)
+                    r = lambda text, c=tdata['result']:  _rgb(*c, text)
+                    e = lambda text, c=tdata['error']:   _rgb(*c, text)
+                    w = lambda text, c=tdata['warn']:    _rgb(*c, text)
+                    print(f"  {mark} {colour(C_CMD, tname.ljust(10))} "
+                          f"{p('●')} {r('●')} {e('●')} {w('●')}  "
+                          f"{DIM('.theme ' + tname)}")
                 continue
 
             # .html <expr> — Preview HTML in browser
