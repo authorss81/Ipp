@@ -217,6 +217,18 @@ def ipp_type(obj):
         return "rect"
     if hasattr(obj, 'ipp_class'):
         return obj.ipp_class.name
+    # v1.7.9.1.5 — explicit checks for Ipp function/class objects
+    t = type(obj).__name__
+    if t in ('IppFunction', 'IppVMFunction', 'IppBoundMethod', 'IppCoroutine'):
+        return 'func'
+    if t == 'IppClass':
+        return 'class'
+    # duck-type: objects with a chunk/arity are VM functions
+    if hasattr(obj, 'chunk') and hasattr(obj, 'arity'):
+        return 'func'
+    # duck-type: objects with methods dict are Ipp classes
+    if hasattr(obj, 'methods') and hasattr(obj, 'superclass') and not hasattr(obj, 'ipp_class'):
+        return 'class'
     if callable(obj):
         return "function"
     # Python-native stdlib objects (PriorityQueue, deque, etc.) → "object"
@@ -3940,6 +3952,21 @@ BUILTINS = {
     "eval": lambda src: _ipp_eval(src),
     "len": ipp_len,
     "type": ipp_type,
+    "ipp_type": ipp_type,   # v1.7.9.1.5 explicit alias
+    # v1.7.9.1.5 — attribute introspection builtins
+    "hasattr": lambda obj, name: (
+        (name in getattr(obj, 'fields', {})) or
+        (name in getattr(getattr(obj, 'ipp_class', None), 'methods', {})) or
+        (getattr(getattr(obj, 'ipp_class', None), 'get_method', lambda n: None)(name) is not None)
+    ),
+    "getattr": lambda obj, name, *dflt: (
+        obj.fields.get(name) if hasattr(obj, 'fields') and name in obj.fields else
+        (dflt[0] if dflt else None)
+    ),
+    "dir": lambda obj: sorted(set(
+        list(getattr(obj, 'fields', {}).keys()) +
+        list(getattr(getattr(obj, 'ipp_class', None), 'methods', {}).keys())
+    )),
     "to_number": ipp_to_number,
     "to_string": ipp_to_string,
     "to_int": ipp_to_int,
@@ -4249,4 +4276,9 @@ BUILTINS = {
         else lst[start:end:step] if isinstance(lst, (list, tuple, str))
         else lst
     ),
+    # v1.7.9.1.1 — Keyboard input builtins (simulation-safe)
+    **__import__('ipp.runtime.keyboard', fromlist=['build_keyboard_builtins']).build_keyboard_builtins(),
+    # v1.7.9.1.2 — ANSI helpers
+    "strip_ansi": lambda s: __import__('re').sub(r'\033\[[0-9;]*[mKJHF]', '', str(s)),
+    "ipp_version": lambda: "1.7.9.1.2",
 }

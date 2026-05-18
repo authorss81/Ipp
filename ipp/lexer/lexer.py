@@ -4,6 +4,7 @@ from .token import Token, TokenType, KEYWORDS
 _ESCAPES = {
     'n': '\n', 't': '\t', 'r': '\r', '\\': '\\',
     '"': '"', "'": "'", '0': '\0', 'b': '\b', 'f': '\f',
+    'e': '\x1b',   # v1.7.9.1.2: ESC shorthand for ANSI sequences
 }
 
 
@@ -271,6 +272,14 @@ class Lexer:
                     for _ in range(4):
                         if self.is_at_end or not self.peek() in '0123456789abcdefABCDEF':
                             self.error("Invalid \\u escape sequence")
+                        hex_str += self.advance()
+                    value_chars.append(chr(int(hex_str, 16)))
+                elif esc == 'x':
+                    # v1.7.9.1.2: Hex escape \xHH
+                    hex_str = ''
+                    for _ in range(2):
+                        if self.is_at_end or self.peek() not in '0123456789abcdefABCDEF':
+                            self.error("Invalid \\x escape sequence (need 2 hex digits)")
                         hex_str += self.advance()
                     value_chars.append(chr(int(hex_str, 16)))
                 elif esc in _ESCAPES:
