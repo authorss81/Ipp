@@ -943,6 +943,16 @@ def show_modules():
     print()
 
 # ─── VM Interpreter Wrapper ─────────────────────────────────────────────────────
+class _VMGlobalEnvShim:
+    """Thin shim so VMInterpreter.global_env.values works like Interpreter's Environment."""
+    def __init__(self, vm):
+        self._vm = vm
+
+    @property
+    def values(self):
+        return self._vm.globals
+
+
 class VMInterpreter:
     """Wrapper around VM to provide Interpreter-like interface for REPL."""
     def __init__(self):
@@ -951,6 +961,7 @@ class VMInterpreter:
         self.return_value = None
         self.last_value = None
         self.current_file = None
+        self.global_env = _VMGlobalEnvShim(self.vm)
     
     def run(self, ast):
         from ipp.vm.compiler import compile_ast
@@ -1002,7 +1013,7 @@ class InterpreterManager:
     
     @property
     def global_env(self):
-        return self.get_interpreter().interpreter.global_env if self.use_vm else self.get_interpreter().global_env
+        return self.get_interpreter().global_env
 
 # ─── Output formatter ─────────────────────────────────────────────────────────
 C_FN_PURPLE = lambda t: _rgb(180, 100, 255, t)  # Purple for <function and >
