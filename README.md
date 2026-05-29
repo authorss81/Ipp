@@ -629,7 +629,6 @@ All 103 test suites pass with zero failures.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-Fork → Branch → Fix → Pull Request
 
 ---
 
