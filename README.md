@@ -49,7 +49,7 @@ ipp run hello.ipp
 
 ---
 
-## VSCode Extension
+## VSCode Extension (coming soon)
 
 > **Note:** VSCode extension marketplace publish coming soon. Currently available for local installation.
 
