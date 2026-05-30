@@ -162,6 +162,12 @@ class OpCode(IntEnum):
     # Assert with message (v1.7.9.1.17)
     ASSERT_MSG = 106  # pops (condition, message) — message is on stack below condition
 
+    # Call with spread args (v1.8.6)
+    CALL_SPREAD = 107  # like CALL but positional args are in a list
+
+    # Convert list to tuple (v1.8.6 — for spread in tuple literals)
+    LIST_TO_TUPLE = 108  # pops a list, pushes tuple(list)
+
 
 # ─── Operand size table (authoritative) ──────────────────────────────────────
 # Every opcode is exactly one of: 0-operand (size=1), 1-byte operand (size=2),
@@ -197,6 +203,8 @@ _SIZE1 = frozenset([
     OpCode.MATCH_EXC_TYPE,
     # FIX: ASSERT_MSG has no operands
     OpCode.ASSERT_MSG,
+    # v1.8.6: LIST_TO_TUPLE has no operands
+    OpCode.LIST_TO_TUPLE,
 ])
 
 _SIZE2 = frozenset([
@@ -215,6 +223,7 @@ _SIZE2 = frozenset([
     OpCode.GET_CAPTURED,
     OpCode.CLOSURE,
     OpCode.OPTIONAL_CHAIN,
+    OpCode.CALL_SPREAD,
 ])
 
 _SIZE4 = frozenset([

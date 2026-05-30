@@ -1753,6 +1753,48 @@ class VM:
             self._call(callee, args, frame)
             return _SUSPEND  # new frame will be executed
 
+        elif opcode == OpCode.CALL_SPREAD:
+            argc = code[ip + 1]
+            raw = []
+            for _ in range(argc):
+                raw.append(self.stack.pop() if self.stack else None)
+            raw.reverse()
+            callee = self.stack.pop() if self.stack else None
+
+            # Split positional from named args using sentinel marker
+            if "\x00KWARGS\x00" in raw:
+                sentinel_idx = raw.index("\x00KWARGS\x00")
+                positional = raw[:sentinel_idx]
+                named_pairs = raw[sentinel_idx + 1:]
+                kwargs = {}
+                for i in range(0, len(named_pairs) - 1, 2):
+                    if isinstance(named_pairs[i], str):
+                        kwargs[named_pairs[i]] = named_pairs[i + 1]
+            else:
+                positional = raw
+                kwargs = {}
+
+            # The first positional item is the args list — unpack it
+            args_list = positional[0] if positional else []
+            if isinstance(args_list, list):
+                args = args_list
+            else:
+                args = [args_list]
+
+            # For Ipp closures: reorder positionals using param names
+            if kwargs:
+                if isinstance(callee, (Closure, IppFunction)):
+                    args = _reorder_named_args(callee, args, kwargs)
+                    self._kwargs_for_call = None
+                else:
+                    self._kwargs_for_call = kwargs
+            else:
+                self._kwargs_for_call = None
+
+            frame.ip += 2
+            self._call(callee, args, frame)
+            return _SUSPEND
+
         elif opcode == OpCode.INVOKE:
             # Direct method call:  INVOKE argc, name_idx
             argc = code[ip + 1]
@@ -1966,7 +2008,7 @@ class VM:
         elif opcode == OpCode.LIST_EXTEND:
             iterable = self.stack.pop()
             lst = self.stack[-1]
-            if hasattr(iterable, '__iter__') and not isinstance(iterable, (str, dict)):
+            if hasattr(iterable, '__iter__') and not isinstance(iterable, dict):
                 lst.extend(list(iterable))
 
         elif opcode == OpCode.DICT:
@@ -1989,6 +2031,13 @@ class VM:
             else:
                 items = []
             self.stack.append(tuple(items))
+
+        elif opcode == OpCode.LIST_TO_TUPLE:
+            lst = self.stack.pop() if self.stack else []
+            if isinstance(lst, list):
+                self.stack.append(tuple(lst))
+            else:
+                self.stack.append(lst)
 
         elif opcode == OpCode.SPREAD:
             obj = self.stack.pop() if self.stack else None

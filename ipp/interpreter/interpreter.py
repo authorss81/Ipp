@@ -293,6 +293,9 @@ class IppSet:
     def __len__(self):
         return len(self._items)
 
+    def __iter__(self):
+        return iter(self._items)
+
     def clear(self):
         self._items.clear()
     
@@ -661,8 +664,17 @@ class Interpreter:
     def visit_call_expr(self, node: CallExpr):
         callee = node.callee.accept(self)
         
-        # Evaluate positional arguments
-        args = [arg.accept(self) for arg in node.arguments]
+        # Evaluate positional arguments (handling spread)
+        args = []
+        for arg in node.arguments:
+            if isinstance(arg, SpreadExpr):
+                spread_result = arg.iterable.accept(self)
+                if hasattr(spread_result, '__iter__'):
+                    args.extend(list(spread_result))
+                else:
+                    args.append(spread_result)
+            else:
+                args.append(arg.accept(self))
         
         # Evaluate named arguments
         named_args = {}
@@ -1215,7 +1227,17 @@ class Interpreter:
         return []
 
     def visit_tuple_literal(self, node: TupleLiteral):
-        return tuple(elem.accept(self) for elem in node.elements)
+        result = []
+        for elem in node.elements:
+            if isinstance(elem, SpreadExpr):
+                spread_result = elem.iterable.accept(self)
+                if hasattr(spread_result, '__iter__'):
+                    result.extend(list(spread_result))
+                else:
+                    result.append(spread_result)
+            else:
+                result.append(elem.accept(self))
+        return tuple(result)
 
     def visit_unpack_expr(self, node: UnpackExpr):
         iterable = node.iterable.accept(self)

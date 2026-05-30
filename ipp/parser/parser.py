@@ -689,8 +689,11 @@ class Parser:
             while True:
                 self.skip_newlines()
                 
+                # Check for spread operator: ...expr
+                if self.match(TokenType.TRIPLE_DOT):
+                    arguments.append(SpreadExpr(self.expression()))
                 # Check if this is a named argument: identifier = expr
-                if self.check(TokenType.IDENTIFIER):
+                elif self.check(TokenType.IDENTIFIER):
                     # Peek ahead to see if next token is EQUAL
                     if self.current + 1 < len(self.tokens) and self.tokens[self.current + 1].type == TokenType.EQUAL:
                         # Named argument
@@ -810,16 +813,23 @@ class Parser:
             if self.check(TokenType.RIGHT_PAREN):
                 self.advance()
                 return TupleLiteral([])
-            elements = [self.expression()]
+            elements = []
+            if self.match(TokenType.TRIPLE_DOT):
+                elements.append(SpreadExpr(self.expression()))
+            else:
+                elements.append(self.expression())
             self.skip_newlines()
             while self.match(TokenType.COMMA):
                 self.skip_newlines()
                 if self.check(TokenType.RIGHT_PAREN):
                     break
-                elements.append(self.expression())
+                if self.match(TokenType.TRIPLE_DOT):
+                    elements.append(SpreadExpr(self.expression()))
+                else:
+                    elements.append(self.expression())
                 self.skip_newlines()
             self.consume(TokenType.RIGHT_PAREN, "Expect ')' after tuple elements")
-            if len(elements) == 1:
+            if len(elements) == 1 and not isinstance(elements[0], SpreadExpr):
                 return elements[0]
             return TupleLiteral(elements)
 

@@ -1089,10 +1089,25 @@ class Compiler:
 
     def compile_call(self, node: CallExpr):
         self.compile_expr(node.callee)
-        # Push positional args
-        for arg in node.arguments:
-            self.compile_expr(arg)
-        total_args = len(node.arguments)
+        # Check if any argument is a spread expression
+        has_spread_args = any(isinstance(arg, SpreadExpr) for arg in node.arguments)
+        if has_spread_args:
+            # Build positional args into a list
+            self.chunk.write(OpCode.LIST, self.current_line)
+            self.chunk.write(0, self.current_line)
+            for arg in node.arguments:
+                if isinstance(arg, SpreadExpr):
+                    self.compile_expr(arg.iterable)
+                    self.chunk.write(OpCode.LIST_EXTEND, self.current_line)
+                else:
+                    self.compile_expr(arg)
+                    self.chunk.write(OpCode.LIST_APPEND, self.current_line)
+            total_args = 1  # the list is one item
+        else:
+            # Fast path: no spread, push individual args
+            for arg in node.arguments:
+                self.compile_expr(arg)
+            total_args = len(node.arguments)
         # FIX: push named args as sentinel+pairs so VM can split correctly
         # Format: [pos0..posN, "\x00KWARGS\x00", name0, val0, name1, val1, ...]
         if hasattr(node, 'named_arguments') and node.named_arguments:
@@ -1113,8 +1128,12 @@ class Compiler:
                 # Push value
                 self.compile_expr(named.value)
                 total_args += 2
-        self.chunk.write(OpCode.CALL, self.current_line)
-        self.chunk.write(total_args, self.current_line)
+        if has_spread_args:
+            self.chunk.write(OpCode.CALL_SPREAD, self.current_line)
+            self.chunk.write(total_args, self.current_line)
+        else:
+            self.chunk.write(OpCode.CALL, self.current_line)
+            self.chunk.write(total_args, self.current_line)
 
     def compile_get(self, node: GetExpr):
         self.compile_expr(node.object)
@@ -1161,10 +1180,23 @@ class Compiler:
         self.chunk.write(len(node.entries), self.current_line)
 
     def compile_tuple(self, node: TupleLiteral):
-        for elem in node.elements:
-            self.compile_expr(elem)
-        self.chunk.write(OpCode.TUPLE, self.current_line)
-        self.chunk.write(len(node.elements), self.current_line)
+        has_spread = any(isinstance(e, SpreadExpr) for e in node.elements)
+        if has_spread:
+            self.chunk.write(OpCode.LIST, self.current_line)
+            self.chunk.write(0, self.current_line)
+            for elem in node.elements:
+                if isinstance(elem, SpreadExpr):
+                    self.compile_expr(elem.iterable)
+                    self.chunk.write(OpCode.LIST_EXTEND, self.current_line)
+                else:
+                    self.compile_expr(elem)
+                    self.chunk.write(OpCode.LIST_APPEND, self.current_line)
+            self.chunk.write(OpCode.LIST_TO_TUPLE, self.current_line)
+        else:
+            for elem in node.elements:
+                self.compile_expr(elem)
+            self.chunk.write(OpCode.TUPLE, self.current_line)
+            self.chunk.write(len(node.elements), self.current_line)
 
     def compile_ternary(self, node: ConditionalExpr):
         self.compile_expr(node.condition)
