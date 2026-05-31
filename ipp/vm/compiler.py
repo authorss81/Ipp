@@ -984,6 +984,15 @@ class Compiler:
             self.compile_dict(node)
         elif isinstance(node, TupleLiteral):
             self.compile_tuple(node)
+        elif isinstance(node, IsExpr):
+            self.compile_expr(node.left)
+            cidx = len(self.chunk.constants)
+            self.chunk.constants.append(node.type_name)
+            self.chunk.write(OpCode.CONSTANT, self.current_line)
+            self.chunk.write(cidx, self.current_line)
+            self.chunk.write(OpCode.IS_CHECK, self.current_line)
+            if node.negated:
+                self.chunk.write(OpCode.NOT, self.current_line)
         elif isinstance(node, ConditionalExpr):
             self.compile_ternary(node)
         elif isinstance(node, SpreadExpr):

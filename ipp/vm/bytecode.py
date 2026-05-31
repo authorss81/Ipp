@@ -175,6 +175,9 @@ class OpCode(IntEnum):
     # Property definition (v1.8.7)
     PROP_DEFINE = 111  # pops name, setter_closure (or nil), getter_closure (or nil); registers on class at stack[-1]
 
+    # Type-check (v1.8.8)
+    IS_CHECK = 112  # pops value and type_name (str); pushes bool
+
 
 # ─── Operand size table (authoritative) ──────────────────────────────────────
 # Every opcode is exactly one of: 0-operand (size=1), 1-byte operand (size=2),
@@ -217,6 +220,8 @@ _SIZE1 = frozenset([
     OpCode.DICT_UPDATE,
     # v1.8.7: PROP_DEFINE has no operands
     OpCode.PROP_DEFINE,
+    # v1.8.8: IS_CHECK has no operands
+    OpCode.IS_CHECK,
 ])
 
 _SIZE2 = frozenset([

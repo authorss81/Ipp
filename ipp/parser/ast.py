@@ -190,6 +190,13 @@ class DictComprehension(ASTNode):
     def accept(self, visitor): return visitor.visit_dict_comprehension(self)
 
 @dataclass
+class IsExpr(ASTNode):
+    left: ASTNode
+    type_name: str
+    negated: bool = False
+    def accept(self, visitor): return visitor.visit_is_expr(self)
+
+@dataclass
 class ConditionalExpr(ASTNode):
     condition: ASTNode
     then_expr: ASTNode

@@ -609,6 +609,15 @@ class Parser:
             self.advance()  # consume 'in'
             right = self.range_expr()
             return BinaryExpr(left, "not in", right)
+        # v1.8.8: 'is' / 'is not' type-check operator
+        if self.match(TokenType.IS):
+            negated = False
+            if (self.check(TokenType.BANG) and
+                    self.peek().lexeme == 'not'):
+                self.advance()  # consume 'not'
+                negated = True
+            type_name = self.consume_type_name()
+            return IsExpr(left, type_name, negated=negated)
         return left
 
     def range_expr(self):
@@ -1005,6 +1014,18 @@ class Parser:
         if self.check(t):
             return self.advance()
         self.error(message)
+
+    def consume_type_name(self):
+        """Consume a type name token (IDENTIFIER or type keyword like int, string, etc.)."""
+        type_keywords = {
+            TokenType.INT: "int", TokenType.FLOAT: "float", TokenType.BOOL: "bool",
+            TokenType.NIL: "nil", TokenType.FUNC: "function", TokenType.CLASS: "class",
+        }
+        if self.check(TokenType.IDENTIFIER):
+            return self.advance().lexeme
+        if self.peek().type in type_keywords:
+            return type_keywords[self.advance().type]
+        self.error("Expect type name after 'is'")
 
     def is_at_end(self):
         return self.peek().type == TokenType.EOF

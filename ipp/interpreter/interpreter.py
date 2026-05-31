@@ -1225,13 +1225,45 @@ class Interpreter:
         defaults = getattr(node, 'defaults', None) or []
         return IppFunction(node.parameters, node.body, closure, defaults)
 
+    def visit_is_expr(self, node: IsExpr):
+        value = node.left.accept(self)
+        type_name = node.type_name
+        result = False
+        if type_name == "int":
+            result = isinstance(value, (int, float)) and not isinstance(value, bool)
+        elif type_name == "float":
+            result = isinstance(value, float)
+        elif type_name == "number":
+            result = isinstance(value, (int, float)) and not isinstance(value, bool)
+        elif type_name == "string":
+            result = isinstance(value, str)
+        elif type_name == "bool":
+            result = isinstance(value, bool)
+        elif type_name == "list":
+            result = isinstance(value, (list, IppList))
+        elif type_name == "dict":
+            result = isinstance(value, (dict, IppDict))
+        elif type_name == "tuple":
+            result = isinstance(value, tuple)
+        elif type_name == "set":
+            result = isinstance(value, (set, frozenset, IppSet))
+        elif type_name == "nil":
+            result = value is None
+        elif type_name == "function":
+            result = isinstance(value, IppFunction) or (callable(value) and not isinstance(value, (IppClass, int, float, str, bool, list, dict, tuple, IppList, IppDict)))
+        elif type_name == "class":
+            result = isinstance(value, IppClass)
+        if node.negated:
+            result = not result
+        return result
+    
     def visit_conditional_expr(self, node: ConditionalExpr):
         condition = node.condition.accept(self)
         if condition:
             return node.then_expr.accept(self)
         else:
             return node.else_expr.accept(self)
-
+    
     def visit_nullish_coalescing_expr(self, node: NullishCoalescingExpr):
         left = node.left.accept(self)
         if left is None:

@@ -1948,6 +1948,54 @@ class VM:
                 raise VMError(f"PROP_DEFINE expected IppClass on stack, got {type(cls).__name__}")
             cls.properties[name] = (getter, setter)
 
+        elif opcode == OpCode.IS_CHECK:
+            type_name = self.stack.pop() if self.stack else None
+            value = self.stack.pop() if self.stack else None
+            result = False
+            if type_name == "int":
+                result = isinstance(value, (int, float)) and not isinstance(value, bool)
+            elif type_name == "float":
+                result = isinstance(value, float)
+            elif type_name == "number":
+                result = isinstance(value, (int, float)) and not isinstance(value, bool)
+            elif type_name == "string":
+                result = isinstance(value, str)
+            elif type_name == "bool":
+                result = isinstance(value, bool)
+            elif type_name == "list":
+                result = isinstance(value, list)
+                if not result:
+                    try:
+                        from ipp.interpreter.interpreter import IppList as _IppList
+                        result = isinstance(value, _IppList)
+                    except ImportError:
+                        pass
+            elif type_name == "dict":
+                result = isinstance(value, dict)
+                if not result:
+                    try:
+                        from ipp.interpreter.interpreter import IppDict as _IppDict
+                        result = isinstance(value, _IppDict)
+                    except ImportError:
+                        pass
+            elif type_name == "tuple":
+                result = isinstance(value, tuple)
+            elif type_name == "set":
+                result = isinstance(value, (set, frozenset))
+                if not result:
+                    try:
+                        from ipp.interpreter.interpreter import IppSet as _IppSet
+                        result = isinstance(value, _IppSet)
+                    except ImportError:
+                        pass
+            elif type_name == "nil":
+                result = value is None
+            elif type_name == "function":
+                result = isinstance(value, (Closure, IppFunction)) or callable(value)
+            elif type_name == "class":
+                result = isinstance(value, IppClass)
+            self.stack.append(result)
+
         # ── Import ───────────────────────────────────────────────────────
         elif opcode == OpCode.IMPORT:
             path_idx = code[ip + 1] | (code[ip + 2] << 8) | (code[ip + 3] << 16)

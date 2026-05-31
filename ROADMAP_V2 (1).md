@@ -1,5 +1,5 @@
 # Ipp Language Roadmap v4
-> **Current version:** `1.8.7`
+> **Current version:** `1.8.8`
 > **Based on:** `new_audit(1).md` v4 — 18 confirmed open bugs (4 new), ~52 confirmed working features
 > **Phase A complete.** Next immediate work: Phase A2 micro-versions (v1.7.9.1.12 onward).
 > **This roadmap:** All original v1.7.6–v2.1.5 sections preserved with full detail + 22 new sub-versions injected from audit v4 findings.
@@ -2175,7 +2175,7 @@ assert h.is_alive == false
 
 ---
 
-### v1.8.8 — Fix: `is` Operator Works in All Expression Positions (BUG-010)
+### v1.8.8 — Fix: `is` Operator Works in All Expression Positions (BUG-010) ✅ DONE
 
 **Root cause:** `is` is parsed at the wrong precedence level or not in the binary expression table, so `var r = x is int` sees `var r = x` then `is` as an unknown identifier.
 
@@ -2227,7 +2227,7 @@ assert label == "integer"
 
 ---
 
-### v1.8.8.1 — Enhancement: `is not` Operator
+### v1.8.8.1 — Enhancement: `is not` Operator (handled in v1.8.8 via `BANG` check) ✅ DONE
 
 **Why here:** `is not` is the natural negative form of `is`. After `is` works, adding `is not` is 3 lines in the parser.
 
@@ -8466,7 +8466,7 @@ ipp build --target android game.ipp
 | v1.8.6 | Done | Spread `[0,...a,4]` (BUG-015) + call/tuple/set/string spread |
 | v1.8.6.1 | Done | Dict spread `{**a, **b}` merge syntax |
 | v1.8.7 | Done | `prop get/set` body (BUG-009) VM + interpreter |
-| v1.8.8 | Planned | `is` operator everywhere (BUG-010) |
+| v1.8.8 | Done | `is` operator everywhere (BUG-010) |
 | v1.8.9 | Planned | Typed exception field access (BUG-017) |
 | v1.9.0 | Planned | `list[a..b]` syntax (BUG-018) |
 | v1.9.1 | Planned | `global` keyword |

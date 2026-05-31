@@ -131,6 +131,7 @@ TESTS = [
     ("v1.8.6.1-dict-spread","tests/v1_8_6_1/test_dict_spread.ipp"),
     ("v1.8.7-prop-basic","tests/v1_8_7/test_prop_basic.ipp"),
     ("v1.8.7-prop-edge","tests/v1_8_7/test_prop_edge.ipp"),
+    ("v1.8.8-is","tests/v1_8_8/test_is_operator.ipp"),
 ]
 
 passed=failed=0

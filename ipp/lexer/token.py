@@ -55,6 +55,7 @@ class TokenType(Enum):
     YIELD = auto()
     ASYNC = auto()
     AWAIT = auto()
+    IS = auto()  # v1.8.8 'is' operator
 
     # Decorator (v1.5.17)
     AT = auto()
@@ -171,4 +172,5 @@ KEYWORDS = {
     "yield": TokenType.YIELD,      # 'yield' keyword for generators
     "async": TokenType.ASYNC,      # 'async' keyword for async functions
     "await": TokenType.AWAIT,      # 'await' keyword for async/await
+    "is": TokenType.IS,            # v1.8.8 'is' operator
 }
