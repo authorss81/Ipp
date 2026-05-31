@@ -180,6 +180,8 @@ TESTS = [
     ("v1.8.5-vec-arithmetic","tests/v1_8_5/test_vec_arithmetic.ipp"),
     ("v1.8.6-spread","tests/v1_8_6/test_spread.ipp"),
     ("v1.8.6.1-dict-spread","tests/v1_8_6_1/test_dict_spread.ipp"),
+    ("v1.8.7-prop-basic","tests/v1_8_7/test_prop_basic.ipp"),
+    ("v1.8.7-prop-edge","tests/v1_8_7/test_prop_edge.ipp"),
 ]
 
 def extract_expected_from_file(filepath):

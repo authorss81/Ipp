@@ -172,7 +172,9 @@ class IppInstance:
         raise AttributeError(f"'{self.ipp_class.name}' object has no attribute '{name}'")
     
     def _execute_property_getter(self, prop):
-        new_env = Environment(prop.getter.closure)
+        if not prop.getter:
+            return None
+        new_env = Environment(prop.closure)
         new_env.define("self", self, constant=False)
         interp = _ipp_get_interpreter()
         if interp:
@@ -181,7 +183,7 @@ class IppInstance:
             interp.environment = new_env
             interp.return_value = None
             try:
-                for stmt in prop.getter.body:
+                for stmt in prop.getter:
                     stmt.accept(interp)
                 return interp.return_value
             finally:
@@ -197,9 +199,11 @@ class IppInstance:
         self.fields[name] = value
     
     def _execute_property_setter(self, prop, value):
-        new_env = Environment(prop.setter.closure)
+        if not prop.setter:
+            return
+        new_env = Environment(prop.closure)
         new_env.define("self", self, constant=False)
-        new_env.define("v", value, constant=False)
+        new_env.define(prop.setter_param, value, constant=False)
         interp = _ipp_get_interpreter()
         if interp:
             saved = interp.environment
@@ -207,7 +211,7 @@ class IppInstance:
             interp.environment = new_env
             interp.return_value = None
             try:
-                for stmt in prop.setter.body:
+                for stmt in prop.setter:
                     stmt.accept(interp)
             finally:
                 interp.environment = saved
@@ -218,11 +222,12 @@ class IppInstance:
 
 
 class IppProperty:
-    def __init__(self, name, getter, setter, closure):
+    def __init__(self, name, getter, setter, closure, setter_param="v"):
         self.name = name
         self.getter = getter
         self.setter = setter
         self.closure = closure
+        self.setter_param = setter_param
 
 
 class IppSignal:  # v1.6.6 signal/event
@@ -1455,7 +1460,8 @@ class Interpreter:
         
         for prop_node in getattr(node, 'properties', []):
             closure = Environment(self.environment)
-            prop = IppProperty(prop_node.name, prop_node.getter, prop_node.setter, closure)
+            prop = IppProperty(prop_node.name, prop_node.getter, prop_node.setter, closure,
+                               setter_param=prop_node.setter_param or "v")
             properties[prop_node.name] = prop
 
         ipp_class = IppClass(node.name, methods, superclass, static_methods, properties)

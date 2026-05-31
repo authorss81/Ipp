@@ -241,6 +241,7 @@ class IppClass:
         self.name = name
         self.superclass = superclass
         self.methods: Dict[str, Any] = {}
+        self.properties: Dict[str, tuple] = {}
 
     def get_method(self, name: str):
         if name in self.methods:
@@ -347,18 +348,15 @@ class IppInstance:
 
     def get(self, name: str) -> Any:
         if name in self.fields:
-            # FIX BUG-N1: block external access to __ private fields
             if self._is_private(name) and self._current_class is None:
                 raise VMError(f"Cannot access private field '{name}' from outside class '{self.cls.name}'")
             return self.fields[name]
         method = self.cls.get_method(name)
         if method is not None:
-            # FIX: BUG-V8 — return a BoundMethod wrapper, not the raw chunk
             return BoundMethod(self, method)
         raise VMError(f"Undefined property '{name}' on {self.cls.name}")
 
     def set(self, name: str, value: Any):
-        # FIX BUG-N1: block external writes to __ private fields
         if self._is_private(name) and self._current_class is None:
             raise VMError(f"Cannot set private field '{name}' from outside class '{self.cls.name}'")
         self.fields[name] = value
@@ -1417,6 +1415,13 @@ class VM:
             name = constants[idx]
             obj = self.stack[-1]
             if isinstance(obj, IppInstance):
+                prop = obj.cls.properties.get(name)
+                if prop is not None and prop[0] is not None:
+                    getter = prop[0]
+                    frame = self.frames[-1] if self.frames else None
+                    frame.ip += 2  # advance past GET_PROPERTY + operand
+                    self._call_method(obj, getter, [], frame)
+                    return _SUSPEND
                 self.stack[-1] = obj.get(name)
             elif isinstance(obj, IppClass):
                 # FIX v1.5.25: Static methods on class
@@ -1593,6 +1598,13 @@ class VM:
             # FIX: pop obj too — compile_set no longer emits DUP
             obj = self.stack.pop()
             if isinstance(obj, IppInstance):
+                prop = obj.cls.properties.get(name)
+                if prop is not None and prop[1] is not None:
+                    setter = prop[1]
+                    frame = self.frames[-1] if self.frames else None
+                    frame.ip += 2  # advance past SET_PROPERTY + operand
+                    self._call_method(obj, setter, [value], frame)
+                    return _SUSPEND
                 obj.set(name, value)
             elif isinstance(obj, dict):
                 obj[name] = value
@@ -1899,8 +1911,14 @@ class VM:
             name = constants[name_idx]
             if self.stack and isinstance(self.stack[-1], Closure):
                 method = self.stack.pop()
-                if self.stack and isinstance(self.stack[-1], IppClass):
-                    self.stack[-1].methods[name] = method
+                # Find IppClass in stack (may be past DUP'd closures for properties)
+                cls = None
+                for i in range(len(self.stack) - 1, -1, -1):
+                    if isinstance(self.stack[i], IppClass):
+                        cls = self.stack[i]
+                        break
+                if cls is not None:
+                    cls.methods[name] = method
                 else:
                     self.stack.append(method)
 
@@ -1919,6 +1937,16 @@ class VM:
                     raise VMError(f"Undefined method '{name}'")
             elif isinstance(obj, IppInstance):
                 self.stack.append(obj.get(name))
+
+        elif opcode == OpCode.PROP_DEFINE:
+            # Pops: name (str), setter_closure (or nil), getter_closure (or nil)
+            name = self.stack.pop() if self.stack else None
+            setter = self.stack.pop() if self.stack else None
+            getter = self.stack.pop() if self.stack else None
+            cls = self.stack[-1] if self.stack else None
+            if not isinstance(cls, IppClass):
+                raise VMError(f"PROP_DEFINE expected IppClass on stack, got {type(cls).__name__}")
+            cls.properties[name] = (getter, setter)
 
         # ── Import ───────────────────────────────────────────────────────
         elif opcode == OpCode.IMPORT:

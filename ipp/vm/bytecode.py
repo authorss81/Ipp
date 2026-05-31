@@ -172,6 +172,9 @@ class OpCode(IntEnum):
     DICT_MERGE = 109  # pops a dict, merges into dict below on stack
     DICT_UPDATE = 110  # pops key and value, sets dict[-1][key] = value
 
+    # Property definition (v1.8.7)
+    PROP_DEFINE = 111  # pops name, setter_closure (or nil), getter_closure (or nil); registers on class at stack[-1]
+
 
 # ─── Operand size table (authoritative) ──────────────────────────────────────
 # Every opcode is exactly one of: 0-operand (size=1), 1-byte operand (size=2),
@@ -212,6 +215,8 @@ _SIZE1 = frozenset([
     # v1.8.6.1: DICT_MERGE and DICT_UPDATE have no operands
     OpCode.DICT_MERGE,
     OpCode.DICT_UPDATE,
+    # v1.8.7: PROP_DEFINE has no operands
+    OpCode.PROP_DEFINE,
 ])
 
 _SIZE2 = frozenset([

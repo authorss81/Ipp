@@ -390,6 +390,67 @@ class Compiler:
                 self.chunk.write(mnidx, self.current_line)
                 self.chunk.lines.append(self.current_line)
 
+        # v1.8.7: Compile property getters/setters — keep closure on stack via DUP + METHOD
+        for prop in node.properties:
+            gname = f"__prop_get_{prop.name}"
+            sname = f"__prop_set_{prop.name}"
+            # Compile getter: push closure, DUP it, METHOD pops one copy, other stays for PROP_DEFINE
+            if prop.getter:
+                sub = Compiler(parent=self)
+                sub.depth = 1
+                sub.define_local("self")
+                for stmt in prop.getter:
+                    sub.compile_stmt(stmt)
+                last = sub.chunk.code[-1] if sub.chunk.code else None
+                if last not in (int(OpCode.RETURN), int(OpCode.RETURN_VAL)):
+                    sub.chunk.write(OpCode.NIL, self.current_line)
+                    sub.chunk.write(OpCode.RETURN_VAL, self.current_line)
+                cidx = len(self.chunk.constants)
+                self.chunk.constants.append(
+                    FunctionProto(sub.chunk, sub.upvalues, name=gname))
+                self.chunk.write(OpCode.CLOSURE, self.current_line)
+                self.chunk.write(cidx, self.current_line)
+                self.chunk.write(OpCode.DUP, self.current_line)
+                self.chunk.write(OpCode.METHOD, self.current_line)
+                mnidx = len(self.chunk.constants)
+                self.chunk.constants.append(gname)
+                self.chunk.write(mnidx, self.current_line)
+                self.chunk.lines.append(self.current_line)
+            else:
+                self.chunk.write(OpCode.NIL, self.current_line)
+            # Compile setter: same DUP trick
+            if prop.setter:
+                sub = Compiler(parent=self)
+                sub.depth = 1
+                sub.define_local("self")
+                param_name = prop.setter_param or "v"
+                sub.define_local(param_name)
+                for stmt in prop.setter:
+                    sub.compile_stmt(stmt)
+                last = sub.chunk.code[-1] if sub.chunk.code else None
+                if last not in (int(OpCode.RETURN), int(OpCode.RETURN_VAL)):
+                    sub.chunk.write(OpCode.RETURN, self.current_line)
+                cidx = len(self.chunk.constants)
+                self.chunk.constants.append(
+                    FunctionProto(sub.chunk, sub.upvalues, name=sname))
+                self.chunk.write(OpCode.CLOSURE, self.current_line)
+                self.chunk.write(cidx, self.current_line)
+                self.chunk.write(OpCode.DUP, self.current_line)
+                self.chunk.write(OpCode.METHOD, self.current_line)
+                mnidx = len(self.chunk.constants)
+                self.chunk.constants.append(sname)
+                self.chunk.write(mnidx, self.current_line)
+                self.chunk.lines.append(self.current_line)
+            else:
+                self.chunk.write(OpCode.NIL, self.current_line)
+            # Push property name
+            pidx = len(self.chunk.constants)
+            self.chunk.constants.append(prop.name)
+            self.chunk.write(OpCode.CONSTANT, self.current_line)
+            self.chunk.write(pidx, self.current_line)
+            # Emit PROP_DEFINE — pops 3: name, setter (or nil), getter (or nil)
+            self.chunk.write(OpCode.PROP_DEFINE, self.current_line)
+
         self.chunk.write(OpCode.END_METHOD, self.current_line)
 
         if self.depth > 0:

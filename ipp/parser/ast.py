@@ -309,6 +309,7 @@ class PropDecl(ASTNode):
     name: str
     getter: Optional[List[ASTNode]] = None
     setter: Optional[List[ASTNode]] = None
+    setter_param: Optional[str] = None
     def accept(self, visitor): return visitor.visit_prop_decl(self)
 
 @dataclass

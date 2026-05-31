@@ -112,20 +112,21 @@ class Parser:
         
         getter = None
         setter = None
+        setter_param = None
         
         while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
             self.skip_newlines()
-            # Check for get/set as identifiers
             if self.match(TokenType.IDENTIFIER):
                 kw = self.previous().lexeme
                 if kw == "get":
                     self.consume(TokenType.LEFT_BRACE, "Expect '{' after get")
                     getter = self.block()
-                    self.consume(TokenType.RIGHT_BRACE, "Expect '}' after getter")
                 elif kw == "set":
+                    if self.match(TokenType.LEFT_PAREN):
+                        setter_param = self.consume(TokenType.IDENTIFIER, "Expect setter parameter name").lexeme
+                        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after setter parameter")
                     self.consume(TokenType.LEFT_BRACE, "Expect '{' after set")
                     setter = self.block()
-                    self.consume(TokenType.RIGHT_BRACE, "Expect '}' after setter")
                 else:
                     break
             else:
@@ -133,7 +134,7 @@ class Parser:
             self.skip_newlines()
         
         self.consume(TokenType.RIGHT_BRACE, "Expect '}' after property")
-        return PropDecl(name.lexeme, getter, setter)
+        return PropDecl(name.lexeme, getter, setter, setter_param)
 
     def enum_declaration(self):
         name_token = self.consume(TokenType.IDENTIFIER, "Expect enum name")

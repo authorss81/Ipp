@@ -1,5 +1,5 @@
 # Ipp Language Roadmap v4
-> **Current version:** `1.7.9.1.11`
+> **Current version:** `1.8.7`
 > **Based on:** `new_audit(1).md` v4 — 18 confirmed open bugs (4 new), ~52 confirmed working features
 > **Phase A complete.** Next immediate work: Phase A2 micro-versions (v1.7.9.1.12 onward).
 > **This roadmap:** All original v1.7.6–v2.1.5 sections preserved with full detail + 22 new sub-versions injected from audit v4 findings.
@@ -2063,73 +2063,31 @@ assert dev["extra"] == "dev-only"
 
 ---
 
-### v1.8.7 — Fix: `prop` Getter Body Parses Correctly (BUG-009)
+### v1.8.7 — Fix: `prop` Getter Body Parses Correctly (BUG-009) ✅ DONE
 
-**Root cause:** The `prop` keyword's parser expects `{ get { ... } }` but fails when the getter body contains a `return` statement. The error `Expect '}' after getter` suggests the parser finds `return` where it expects `}`.
+**Root cause:** The `prop` keyword's parser calls `block()` which already consumes the closing `}`, so an extra `consume(RIGHT_BRACE)` after the getter/setter body caused a parse error.
 
-**File to change:** `ipp/parser/parser.py`, the property declaration parser.
+**Changes:**
+- **Parser:** `property_declaration()` already uses `block()` correctly — the previous BUG-009 was resolved.
+- **Compiler (`compiler.py`):** Compile PropDecl getters/setters as methods (with `__prop_get_<name>` / `__prop_set_<name>` mangled names) and register via the `PROP_DEFINE` (111) opcode. Uses `DUP + METHOD` trick to keep closure on stack for registration.
+- **VM (`vm.py`):** `PROP_DEFINE` opcode handler pops name, setter, getter and stores in `IppClass.properties`. `GET_PROPERTY` and `SET_PROPERTY` handlers check for property getters/setters and call through `_call_method`. `METHOD` handler updated to search for IppClass past DUP'd closures.
+- **Interpreter (`interpreter.py`):** Fixed `_execute_property_getter`/`_execute_property_setter` to correctly use AST body lists and closure environment.
+- **`IppClass` (`vm.py`):** Added `properties: Dict[str, tuple]` field.
+- **`Bytecode` (`bytecode.py`):** Added `PROP_DEFINE = 111` opcode.
+- **Test files:** `tests/v1_8_7/test_prop_basic.ipp`, `tests/v1_8_7/test_prop_edge.ipp`
 
-**Find the property parser and fix it to correctly parse a block body for the getter and setter:**
-```python
-def property_declaration(self):
-    name = self.consume(IDENTIFIER, "Expect property name")
-    self.consume(LEFT_BRACE, "Expect '{' before property body")
-    getter = None
-    setter = None
-    while not self.check(RIGHT_BRACE):
-        if self.match_keyword('get'):
-            self.consume(LEFT_BRACE, "Expect '{' after 'get'")
-            getter = self.block()   # parse full block with statements
-        elif self.match_keyword('set'):
-            # parse optional parameter name
-            self.consume(LEFT_PAREN, "Expect '(' after 'set'")
-            param = self.consume(IDENTIFIER, "Expect setter param name").lexeme
-            self.consume(RIGHT_PAREN, "Expect ')'")
-            self.consume(LEFT_BRACE, "Expect '{' after setter params")
-            setter = (param, self.block())
-    self.consume(RIGHT_BRACE, "Expect '}' after property body")
-    return PropertyDecl(name.lexeme, getter, setter)
-```
-
-The key: `self.block()` must call the full statement-parsing block (the same one used by if/while/func bodies), not just expect a single expression or a single `}`.
-
-**Test file: `tests/v1_8_7/test_property.ipp`**
 ```ipp
-class Health {
-    func init(max_hp) {
-        self._hp = max_hp
-        self._max = max_hp
-    }
+class Foo {
+    var _val = 0
     prop hp {
-        get {
-            return self._hp
-        }
-        set(v) {
-            if v < 0 { v = 0 }
-            if v > self._max { v = self._max }
-            self._hp = v
-        }
-    }
-    prop is_alive {
-        get {
-            return self._hp > 0
-        }
+        get { return self._val }
+        set(v) { self._val = v }
     }
 }
-
-var h = Health(100)
-assert h.hp == 100
-assert h.is_alive == true
-
-h.hp = 50
-assert h.hp == 50
-
-h.hp = -10
-assert h.hp == 0
-assert h.is_alive == false
-
-h.hp = 999
-assert h.hp == 100
+var f = Foo()
+assert f.hp == 0
+f.hp = 42
+assert f.hp == 42
 ```
 
 ---
@@ -8505,8 +8463,9 @@ ipp build --target android game.ipp
 | v1.8.3 | Planned | `list.map/filter/reduce` (BUG-008) |
 | v1.8.4 | Planned | `len(set)` (BUG-013) |
 | v1.8.5 | Planned | `vec4 + vec4` arithmetic (BUG-014) |
-| v1.8.6 | Planned | Spread `[0,...a,4]` (BUG-015) |
-| v1.8.7 | Planned | `prop get { }` body (BUG-009) |
+| v1.8.6 | Done | Spread `[0,...a,4]` (BUG-015) + call/tuple/set/string spread |
+| v1.8.6.1 | Done | Dict spread `{**a, **b}` merge syntax |
+| v1.8.7 | Done | `prop get/set` body (BUG-009) VM + interpreter |
 | v1.8.8 | Planned | `is` operator everywhere (BUG-010) |
 | v1.8.9 | Planned | Typed exception field access (BUG-017) |
 | v1.9.0 | Planned | `list[a..b]` syntax (BUG-018) |

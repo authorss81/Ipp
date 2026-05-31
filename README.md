@@ -2,7 +2,7 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.8.6.1-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.8.7-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-163+-brightgreen.svg" alt="Builtins">
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.8.6.1** includes dict spread `{**a, **b}` merge syntax, in addition to all v1.8.6 features: len(IppSet) fix, full vector arithmetic, spread operator enhancements (calls, tuples, sets, strings).
+**v1.8.7** includes: property getter/setter fix — `prop` getter body now parses correctly (BUG-009), with full VM and interpreter support for `prop name { get { ... } set(v) { ... } }`.
 
 ---
 
@@ -609,6 +609,7 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.8.5 | Vector arithmetic — full vec2/vec3/vec4 add, sub, mul, div, scalar mul, eq, normalize, dot, cross, lerp |
 | v1.8.6 | Spread operator enhancements: items after spread, function call spread `f(...args)`, tuple spread `(...a)`, set iteration, string spread |
 | v1.8.6.1 | Dict spread `{**a, **b}` merge syntax |
+| v1.8.7 | Property getter/setter fix — `prop` body parses correctly (BUG-009), VM + interpreter support |
 | v2.0.0 | C Extension (VM foundation) |
 
 ---
@@ -623,7 +624,7 @@ python tests/regression.py
 python main.py run tests/v1_3_10/test_repl_intelligence.ipp
 ```
 
-All 103 test suites pass with zero failures.
+All 109 test suites pass with zero failures.
 
 ---
 
