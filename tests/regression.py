@@ -183,6 +183,7 @@ TESTS = [
     ("v1.8.7-prop-basic","tests/v1_8_7/test_prop_basic.ipp"),
     ("v1.8.7-prop-edge","tests/v1_8_7/test_prop_edge.ipp"),
     ("v1.8.8-is","tests/v1_8_8/test_is_operator.ipp"),
+    ("v1.9.0-slice","tests/v1_9_0/test_slice_syntax.ipp"),
 ]
 
 def extract_expected_from_file(filepath):

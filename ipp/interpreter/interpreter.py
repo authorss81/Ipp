@@ -856,6 +856,16 @@ class Interpreter:
         if isinstance(index, float) and index.is_integer():
             index = int(index)
 
+        # FIX: v1.9.0 — list[a..b] slice syntax (range evaluates to list)
+        if isinstance(index, list):
+            start = index[0] if index else 0
+            end = (index[-1] + 1) if index else 0
+            if isinstance(obj, IppList):
+                return IppList(obj.elements[start:end])
+            if isinstance(obj, (list, tuple, str)):
+                return obj[start:end]
+            raise RuntimeError(f"Cannot slice '{type(obj).__name__}'")
+
         if isinstance(obj, IppList):
             if isinstance(index, int):
                 return obj.elements[index]

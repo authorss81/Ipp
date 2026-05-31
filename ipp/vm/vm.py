@@ -1629,8 +1629,17 @@ class VM:
         elif opcode == OpCode.GET_INDEX:
             idx = self.stack.pop()
             obj = self.stack.pop()
-            # FIX: generators are collected to a list by _builtin_len; use that list here
-            if isinstance(obj, IppVMGenerator):
+            # FIX: v1.9.0 — list[a..b] slice syntax (range evaluates to list)
+            if isinstance(idx, list):
+                start = idx[0] if idx else 0
+                end = (idx[-1] + 1) if idx else 0
+                if isinstance(obj, (list, tuple, str)):
+                    self.stack.append(obj[start:end])
+                elif hasattr(obj, 'elements'):
+                    self.stack.append(type(obj)(obj.elements[start:end]))
+                else:
+                    raise VMError(f"Cannot slice {type(obj).__name__}{line_info}")
+            elif isinstance(obj, IppVMGenerator):
                 if not hasattr(obj, '_collected'):
                     items = []
                     while True:

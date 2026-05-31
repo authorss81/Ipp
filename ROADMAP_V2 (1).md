@@ -1,5 +1,5 @@
 # Ipp Language Roadmap v4
-> **Current version:** `1.8.8`
+> **Current version:** `1.9.0`
 > **Based on:** `new_audit(1).md` v4 — 18 confirmed open bugs (4 new), ~52 confirmed working features
 > **Phase A complete.** Next immediate work: Phase A2 micro-versions (v1.7.9.1.12 onward).
 > **This roadmap:** All original v1.7.6–v2.1.5 sections preserved with full detail + 22 new sub-versions injected from audit v4 findings.
@@ -2429,7 +2429,7 @@ After Phase B, the core language is reliable. Phase C rounds out the standard li
 
 ---
 
-### v1.9.0 — Feature: `list[a..b]` Slice Syntax Fixed (BUG-018)
+### v1.9.0 — Feature: `list[a..b]` Slice Syntax Fixed (BUG-018) ✅ DONE
 
 **Root cause:** The `[a..b]` range is being evaluated to a list object `[a, a+1, ...]` and then passed as the index. The VM's index handler receives a list where it expects an int and fails.
 
@@ -8468,7 +8468,7 @@ ipp build --target android game.ipp
 | v1.8.7 | Done | `prop get/set` body (BUG-009) VM + interpreter |
 | v1.8.8 | Done | `is` operator everywhere (BUG-010) |
 | v1.8.9 | Planned | Typed exception field access (BUG-017) |
-| v1.9.0 | Planned | `list[a..b]` syntax (BUG-018) |
+| v1.9.0 | Done | `list[a..b]` syntax (BUG-018) |
 | v1.9.1 | Planned | `global` keyword |
 | v1.9.2 | Planned | `map/filter/reduce` global builtins |
 | v1.9.3 | Planned | Multi-line strings `"""` |
