@@ -402,6 +402,19 @@ class IppDict:
     def set(self, key, value):
         self.data[key] = value
 
+    def __eq__(self, other):
+        if isinstance(other, IppDict):
+            return self.data == other.data
+        if isinstance(other, dict):
+            return self.data == other
+        return NotImplemented
+
+    def __contains__(self, key):
+        return key in self.data
+
+    def items(self):
+        return self.data.items()
+
 
 _ipp_current_interpreter = None
 
@@ -1186,10 +1199,20 @@ class Interpreter:
 
     def visit_dict_literal(self, node: DictLiteral):
         data = {}
-        for key_node, value_node in node.entries:
-            key = key_node.accept(self)
-            value = value_node.accept(self)
-            data[key] = value
+        for is_spread, item in node.all_entries():
+            if is_spread:
+                spread_result = item.iterable.accept(self)
+                if isinstance(spread_result, IppDict):
+                    for k, v in spread_result.data.items():
+                        data[k] = v
+                elif hasattr(spread_result, 'items'):
+                    for k, v in spread_result.items():
+                        data[k] = v
+            else:
+                key_node, value_node = item
+                key = key_node.accept(self)
+                value = value_node.accept(self)
+                data[key] = value
         return IppDict(data)
 
     def visit_lambda_expr(self, node: LambdaExpr):

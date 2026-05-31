@@ -136,7 +136,24 @@ class GetExpr(ASTNode):
 @dataclass
 class DictLiteral(ASTNode):
     entries: List[tuple]
+    spread_entries: List[ASTNode] = field(default_factory=list)
+    _order: List[str] = field(default_factory=list)
     def accept(self, visitor): return visitor.visit_dict_literal(self)
+
+    def all_entries(self):
+        """Yield entries in source order: (is_spread, item).
+        For regular entries: (False, (key, value)).
+        For spread entries: (True, spread_expr).
+        """
+        ri = 0
+        si = 0
+        for t in self._order:
+            if t == 'r':
+                yield (False, self.entries[ri])
+                ri += 1
+            else:
+                yield (True, self.spread_entries[si])
+                si += 1
 
 @dataclass
 class ListLiteral(ASTNode):

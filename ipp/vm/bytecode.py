@@ -168,6 +168,10 @@ class OpCode(IntEnum):
     # Convert list to tuple (v1.8.6 — for spread in tuple literals)
     LIST_TO_TUPLE = 108  # pops a list, pushes tuple(list)
 
+    # Dict merge/update (v1.8.6.1 — for dict spread {**a, **b})
+    DICT_MERGE = 109  # pops a dict, merges into dict below on stack
+    DICT_UPDATE = 110  # pops key and value, sets dict[-1][key] = value
+
 
 # ─── Operand size table (authoritative) ──────────────────────────────────────
 # Every opcode is exactly one of: 0-operand (size=1), 1-byte operand (size=2),
@@ -205,6 +209,9 @@ _SIZE1 = frozenset([
     OpCode.ASSERT_MSG,
     # v1.8.6: LIST_TO_TUPLE has no operands
     OpCode.LIST_TO_TUPLE,
+    # v1.8.6.1: DICT_MERGE and DICT_UPDATE have no operands
+    OpCode.DICT_MERGE,
+    OpCode.DICT_UPDATE,
 ])
 
 _SIZE2 = frozenset([

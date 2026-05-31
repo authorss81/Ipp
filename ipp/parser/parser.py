@@ -922,29 +922,41 @@ class Parser:
             self.advance()
             return self.dict_comprehension(None, None)
         entries = []
+        spread_entries = []
+        order = []
         if not self.check(TokenType.RIGHT_BRACE):
             self.skip_newlines()
-            key_expr = self.expression()
-            if self.match(TokenType.COLON):
-                value_expr = self.expression()
-                if self.match(TokenType.FOR):
-                    return self.dict_comprehension(key_expr, value_expr)
-                entries.append((key_expr, value_expr))
-            elif self.match(TokenType.FOR):
-                return self.dict_comprehension(key_expr, None)
+            if self.match(TokenType.DOUBLE_STAR):
+                spread_entries.append(SpreadExpr(self.expression()))
+                order.append('s')
             else:
-                self.error("Expect ':' or 'for' in dict literal")
+                key_expr = self.expression()
+                if self.match(TokenType.COLON):
+                    value_expr = self.expression()
+                    if self.match(TokenType.FOR):
+                        return self.dict_comprehension(key_expr, value_expr)
+                    entries.append((key_expr, value_expr))
+                    order.append('r')
+                elif self.match(TokenType.FOR):
+                    return self.dict_comprehension(key_expr, None)
+                else:
+                    self.error("Expect ':' or 'for' in dict literal")
             while self.match(TokenType.COMMA):
                 self.skip_newlines()
                 if self.check(TokenType.RIGHT_BRACE):
                     break
-                key = self.expression()
-                self.consume(TokenType.COLON, "Expect ':' after key")
-                value = self.expression()
-                entries.append((key, value))
+                if self.match(TokenType.DOUBLE_STAR):
+                    spread_entries.append(SpreadExpr(self.expression()))
+                    order.append('s')
+                else:
+                    key = self.expression()
+                    self.consume(TokenType.COLON, "Expect ':' after key")
+                    value = self.expression()
+                    entries.append((key, value))
+                    order.append('r')
         self.skip_newlines()
         self.consume(TokenType.RIGHT_BRACE, "Expect '}' after dict entries")
-        return DictLiteral(entries)
+        return DictLiteral(entries, spread_entries, order)
 
     def list_comprehension(self, element):
         variable = self.consume(TokenType.IDENTIFIER, "Expect variable after 'for'")

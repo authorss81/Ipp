@@ -2023,6 +2023,19 @@ class VM:
                 d[k] = v
             self.stack.append(d)
 
+        elif opcode == OpCode.DICT_UPDATE:
+            value = self.stack.pop() if self.stack else None
+            key = self.stack.pop() if self.stack else None
+            target = self.stack[-1] if self.stack else {}
+            if isinstance(target, dict):
+                target[key] = value
+
+        elif opcode == OpCode.DICT_MERGE:
+            other = self.stack.pop() if self.stack else {}
+            target = self.stack[-1] if self.stack else {}
+            if isinstance(other, dict) and isinstance(target, dict):
+                target.update(other)
+
         elif opcode == OpCode.TUPLE:
             count = code[ip + 1]
             if count > 0 and count <= len(self.stack):

@@ -2025,7 +2025,7 @@ assert e == [0, 1, 2, 99, 3, 4, 100]
 
 ---
 
-### v1.8.6.1 — Enhancement: Dict Spread `{**a, **b}` Merge Syntax
+### v1.8.6.1 — Enhancement: Dict Spread `{**a, **b}` Merge Syntax ✅ DONE
 
 **Why here:** After list spread is fixed, dict spread is a natural companion. Merging two dicts with `{**defaults, **custom}` is the standard pattern for configuration and default-with-override in every modern language.
 

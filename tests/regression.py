@@ -179,6 +179,7 @@ TESTS = [
     ("v1.8.4-set-len","tests/v1_8_4/test_set_len.ipp"),
     ("v1.8.5-vec-arithmetic","tests/v1_8_5/test_vec_arithmetic.ipp"),
     ("v1.8.6-spread","tests/v1_8_6/test_spread.ipp"),
+    ("v1.8.6.1-dict-spread","tests/v1_8_6_1/test_dict_spread.ipp"),
 ]
 
 def extract_expected_from_file(filepath):

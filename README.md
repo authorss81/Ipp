@@ -2,7 +2,7 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.8.6-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.8.6.1-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-163+-brightgreen.svg" alt="Builtins">
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.8.6** includes len(IppSet) fix, full vector arithmetic (vec2/vec3/vec4 add, sub, mul, div, normalize, dot, cross, lerp), and spread operator enhancements: spread in function calls `f(...args)`, spread in tuple literals `(...[1,2,3])`, set iteration `[...set([1,2,3])]`, and string spread `[..."abc"]`.
+**v1.8.6.1** includes dict spread `{**a, **b}` merge syntax, in addition to all v1.8.6 features: len(IppSet) fix, full vector arithmetic, spread operator enhancements (calls, tuples, sets, strings).
 
 ---
 
@@ -608,6 +608,7 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.8.4 | len(IppSet) fix — add `__len__` to IppSet for proper `len()` support |
 | v1.8.5 | Vector arithmetic — full vec2/vec3/vec4 add, sub, mul, div, scalar mul, eq, normalize, dot, cross, lerp |
 | v1.8.6 | Spread operator enhancements: items after spread, function call spread `f(...args)`, tuple spread `(...a)`, set iteration, string spread |
+| v1.8.6.1 | Dict spread `{**a, **b}` merge syntax |
 | v2.0.0 | C Extension (VM foundation) |
 
 ---

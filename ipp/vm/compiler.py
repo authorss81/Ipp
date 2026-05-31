@@ -1173,11 +1173,17 @@ class Compiler:
                     self.chunk.write(OpCode.LIST_APPEND, self.current_line)
 
     def compile_dict(self, node: DictLiteral):
-        for key, value in node.entries:
-            self.compile_expr(key)
-            self.compile_expr(value)
         self.chunk.write(OpCode.DICT, self.current_line)
-        self.chunk.write(len(node.entries), self.current_line)
+        self.chunk.write(0, self.current_line)
+        for is_spread, item in node.all_entries():
+            if is_spread:
+                self.compile_expr(item.iterable)
+                self.chunk.write(OpCode.DICT_MERGE, self.current_line)
+            else:
+                key, value = item
+                self.compile_expr(key)
+                self.compile_expr(value)
+                self.chunk.write(OpCode.DICT_UPDATE, self.current_line)
 
     def compile_tuple(self, node: TupleLiteral):
         has_spread = any(isinstance(e, SpreadExpr) for e in node.elements)
