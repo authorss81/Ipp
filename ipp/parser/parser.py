@@ -723,7 +723,16 @@ class Parser:
                     break
         
         return arguments, named_arguments
-    
+
+    def _parse_index_or_slice(self):
+        expr = self.expression()
+        if isinstance(expr, BinaryExpr) and expr.operator == "..":
+            if self.match(TokenType.DOTDOT):
+                step = self.bitwise_or()
+                return SliceExpr(expr.left, expr.right, step)
+            return SliceExpr(expr.left, expr.right, None)
+        return expr
+
     def call(self):
         expr = self.primary()
         while True:
@@ -732,7 +741,7 @@ class Parser:
                 self.consume(TokenType.RIGHT_PAREN, "Expect ')' after arguments")
                 expr = CallExpr(expr, arguments, named_arguments)
             elif self.match(TokenType.LEFT_BRACKET):
-                index = self.expression()
+                index = self._parse_index_or_slice()
                 self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after index")
                 expr = IndexExpr(expr, index)
             elif self.match(TokenType.DOT):

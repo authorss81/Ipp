@@ -1629,14 +1629,20 @@ class VM:
         elif opcode == OpCode.GET_INDEX:
             idx = self.stack.pop()
             obj = self.stack.pop()
-            # FIX: v1.9.0 — list[a..b] slice syntax (range evaluates to list)
-            if isinstance(idx, list):
-                start = idx[0] if idx else 0
-                end = (idx[-1] + 1) if idx else 0
+            # FIX: v1.9.0 — list[a..b] slice syntax
+            if isinstance(idx, (list, slice)):
+                if isinstance(idx, list):
+                    start = idx[0] if idx else 0
+                    end = (idx[-1] + 1) if idx else 0
+                    step = 1
+                else:
+                    start = idx.start if idx.start is not None else 0
+                    end = idx.stop if idx.stop is not None else len(obj) if hasattr(obj, '__len__') else 0
+                    step = idx.step if idx.step is not None else 1
                 if isinstance(obj, (list, tuple, str)):
-                    self.stack.append(obj[start:end])
+                    self.stack.append(obj[start:end:step])
                 elif hasattr(obj, 'elements'):
-                    self.stack.append(type(obj)(obj.elements[start:end]))
+                    self.stack.append(type(obj)(obj.elements[start:end:step]))
                 else:
                     raise VMError(f"Cannot slice {type(obj).__name__}{line_info}")
             elif isinstance(obj, IppVMGenerator):
@@ -2004,6 +2010,16 @@ class VM:
             elif type_name == "class":
                 result = isinstance(value, IppClass)
             self.stack.append(result)
+
+        # ── Slice (v1.9.0.1) ───────────────────────────────────────────
+        elif opcode == OpCode.BUILD_SLICE:
+            step = self.stack.pop()
+            end = self.stack.pop()
+            start = self.stack.pop()
+            if step is None:
+                self.stack.append(slice(start, end))
+            else:
+                self.stack.append(slice(start, end, step))
 
         # ── Import ───────────────────────────────────────────────────────
         elif opcode == OpCode.IMPORT:

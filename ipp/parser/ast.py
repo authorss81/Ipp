@@ -119,6 +119,13 @@ class IndexSetExpr(ASTNode):
     def accept(self, visitor): return visitor.visit_index_set_expr(self)
 
 @dataclass
+class SliceExpr(ASTNode):
+    start: ASTNode
+    end: ASTNode
+    step: Optional[ASTNode] = None
+    def accept(self, visitor): return visitor.visit_slice_expr(self)
+
+@dataclass
 class IndexCompoundSetExpr(ASTNode):
     """obj[i] += val"""
     object: ASTNode

@@ -1,5 +1,5 @@
 # Ipp Language Roadmap v4
-> **Current version:** `1.9.0`
+> **Current version:** `1.9.0.1`
 > **Based on:** `new_audit(1).md` v4 — 18 confirmed open bugs (4 new), ~52 confirmed working features
 > **Phase A complete.** Next immediate work: Phase A2 micro-versions (v1.7.9.1.12 onward).
 > **This roadmap:** All original v1.7.6–v2.1.5 sections preserved with full detail + 22 new sub-versions injected from audit v4 findings.
@@ -2429,67 +2429,15 @@ After Phase B, the core language is reliable. Phase C rounds out the standard li
 
 ---
 
-### v1.9.0 — Feature: `list[a..b]` Slice Syntax Fixed (BUG-018) ✅ DONE
+### v1.9.0 — Feature: `list[a..b]` Slice Syntax (BUG-018) ✅ DONE
 
-**Root cause:** The `[a..b]` range is being evaluated to a list object `[a, a+1, ...]` and then passed as the index. The VM's index handler receives a list where it expects an int and fails.
-
-**Fix in `vm.py` GET_INDEX handler:**
-```python
-elif opcode == OpCode.GET_INDEX:
-    index = self.stack.pop()
-    obj = self.stack.pop()
-    if isinstance(index, IppRange):    # or whatever type [a..b] creates
-        self.stack.append(obj[index.start:index.end])
-    elif isinstance(index, list):
-        self.stack.append(obj[index[0]:index[-1]+1])
-    else:
-        self.stack.append(obj[index])
-```
-
-**Test file: `tests/v1_9_0/test_slice_syntax.ipp`**
-```ipp
-var lst = [0, 1, 2, 3, 4, 5]
-
-assert lst[1..4] == [1, 2, 3]
-assert lst[0..3] == [0, 1, 2]
-assert lst[3..6] == [3, 4, 5]
-
-# String slicing
-var s = "hello world"
-assert s[0..5] == "hello"
-assert s[6..11] == "world"
-
-# slice() function still works too
-assert slice(lst, 1, 4) == [1, 2, 3]
-```
+New: `SliceExpr(start, end)` AST node. Parser `_parse_index_or_slice()` in `call()`. `BUILD_SLICE` opcode. VM/Interpreter `GET_INDEX` detects `slice` objects. All tests pass.
 
 ---
 
-### v1.9.0.1 — Enhancement: Slice with Step `list[a..b..step]`
+### v1.9.0.1 — Enhancement: Slice with Step `list[a..b..step]` ✅ DONE (current)
 
-**Why here:** After basic slicing works, step-slicing (every-other element, reversed) is a natural extension used in game programming for texture atlases, animation frame sequences, and sampling.
-
-**File to change:** `ipp/lexer/lexer.py` (parse `..step` after range), `ipp/vm/vm.py` GET_INDEX handler.
-
-**Test file: `tests/v1_9_0_1/test_slice_step.ipp`**
-```ipp
-var lst = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
-
-assert lst[0..10..2] == [0, 2, 4, 6, 8]    # every other
-assert lst[1..9..3] == [1, 4, 7]            # every third starting at 1
-assert lst[9..0..-1] == [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]   # reversed
-
-# String slice with step
-var s = "abcdefghij"
-assert s[0..10..2] == "acegi"
-
-# Animation frame sequence (select every Nth frame)
-var all_frames = range(24)
-var key_frames = all_frames[0..24..4]
-assert key_frames == [0, 4, 8, 12, 16, 20]
-```
-
-**Regression risk:** Low. Extends the `..` operator.
+New: `SliceExpr(start, end, step)` with step field. Parser detects third `..expr` in index. VM BUILD_SLICE pops step/end/start. GET_INDEX handles `slice` with step. Reversed step `lst[9..2..-1]` works. 112 tests pass.
 
 
 ---

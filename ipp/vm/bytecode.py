@@ -178,6 +178,9 @@ class OpCode(IntEnum):
     # Type-check (v1.8.8)
     IS_CHECK = 112  # pops value and type_name (str); pushes bool
 
+    # Build slice object (v1.9.0.1)
+    BUILD_SLICE = 113  # pops step (or nil), end, start; pushes Python slice object
+
 
 # ─── Operand size table (authoritative) ──────────────────────────────────────
 # Every opcode is exactly one of: 0-operand (size=1), 1-byte operand (size=2),
@@ -222,6 +225,8 @@ _SIZE1 = frozenset([
     OpCode.PROP_DEFINE,
     # v1.8.8: IS_CHECK has no operands
     OpCode.IS_CHECK,
+    # v1.9.0.1: BUILD_SLICE has no operands
+    OpCode.BUILD_SLICE,
 ])
 
 _SIZE2 = frozenset([

@@ -2,11 +2,11 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.9.0-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.9.0.1-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-163+-brightgreen.svg" alt="Builtins">
-<img src="https://img.shields.io/badge/tests-111%20passing-brightgreen.svg" alt="Tests">
+<img src="https://img.shields.io/badge/tests-112%20passing-brightgreen.svg" alt="Tests">
 <img src="https://img.shields.io/badge/status-stable-green.svg" alt="Status">
 
 **A beginner-friendly scripting language for game development.**  
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.9.0** includes: `list[a..b]` slice syntax — use range expressions as slice indices for lists and strings (e.g., `lst[1..4]` returns elements 1-3).
+**v1.9.0.1** includes: `list[a..b..step]` slice with step — range expressions with optional step as slice indices (e.g., `lst[0..10..2]` for every other element).
 
 ---
 
@@ -612,6 +612,7 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.8.7 | Property getter/setter fix — `prop` body parses correctly (BUG-009), VM + interpreter support |
 | v1.8.8 | `is` type-check operator — `value is Type` / `value is not Type` for runtime type checking |
 | v1.9.0 | `list[a..b]` slice syntax — range expressions as slice indices |
+| v1.9.0.1 | `list[a..b..step]` slice with step — range expressions with optional step |
 | v2.0.0 | C Extension (VM foundation) |
 
 ---
@@ -626,7 +627,7 @@ python tests/regression.py
 python main.py run tests/v1_3_10/test_repl_intelligence.ipp
 ```
 
-All 111 test suites pass with zero failures.
+All 112 test suites pass with zero failures.
 
 ---
 

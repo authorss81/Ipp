@@ -856,14 +856,20 @@ class Interpreter:
         if isinstance(index, float) and index.is_integer():
             index = int(index)
 
-        # FIX: v1.9.0 — list[a..b] slice syntax (range evaluates to list)
-        if isinstance(index, list):
-            start = index[0] if index else 0
-            end = (index[-1] + 1) if index else 0
+        # FIX: v1.9.0/1.9.0.1 — list[a..b] and list[a..b..step] slice syntax
+        if isinstance(index, (list, slice)):
+            if isinstance(index, list):
+                start = index[0] if index else 0
+                end = (index[-1] + 1) if index else 0
+                step = 1
+            else:
+                start = index.start if index.start is not None else 0
+                end = index.stop if index.stop is not None else (len(obj) if hasattr(obj, '__len__') else 0)
+                step = index.step if index.step is not None else 1
             if isinstance(obj, IppList):
-                return IppList(obj.elements[start:end])
+                return IppList(obj.elements[start:end:step])
             if isinstance(obj, (list, tuple, str)):
-                return obj[start:end]
+                return obj[start:end:step]
             raise RuntimeError(f"Cannot slice '{type(obj).__name__}'")
 
         if isinstance(obj, IppList):
@@ -1266,7 +1272,15 @@ class Interpreter:
         if node.negated:
             result = not result
         return result
-    
+
+    def visit_slice_expr(self, node: SliceExpr):
+        start = node.start.accept(self)
+        end = node.end.accept(self)
+        step = node.step.accept(self) if node.step else None
+        if step is None:
+            return slice(start, end)
+        return slice(start, end, step)
+
     def visit_conditional_expr(self, node: ConditionalExpr):
         condition = node.condition.accept(self)
         if condition:

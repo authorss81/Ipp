@@ -993,6 +993,14 @@ class Compiler:
             self.chunk.write(OpCode.IS_CHECK, self.current_line)
             if node.negated:
                 self.chunk.write(OpCode.NOT, self.current_line)
+        elif isinstance(node, SliceExpr):
+            self.compile_expr(node.start)
+            self.compile_expr(node.end)
+            if node.step:
+                self.compile_expr(node.step)
+            else:
+                self.chunk.write(OpCode.NIL, self.current_line)
+            self.chunk.write(OpCode.BUILD_SLICE, self.current_line)
         elif isinstance(node, ConditionalExpr):
             self.compile_ternary(node)
         elif isinstance(node, SpreadExpr):
