@@ -1492,7 +1492,7 @@ class Compiler:
         self.compile_expr(node.key)
         self.compile_expr(node.value)
         self.chunk.write(OpCode.SET_INDEX, self.current_line)
-        # SET_INDEX pops all 3 (obj,key,val) and pushes nothing — no POP needed
+        self.chunk.write(OpCode.POP, self.current_line)  # discard value pushed by SET_INDEX
 
         if if_jump is not None:
             self.chunk.patch_jump(if_jump)
