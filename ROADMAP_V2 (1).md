@@ -1,5 +1,5 @@
 # Ipp Language Roadmap v4
-> **Current version:** `1.9.0.1`
+> **Current version:** `1.9.1`
 > **Based on:** `new_audit(1).md` v4 — 18 confirmed open bugs (4 new), ~52 confirmed working features
 > **Phase A complete.** Next immediate work: Phase A2 micro-versions (v1.7.9.1.12 onward).
 > **This roadmap:** All original v1.7.6–v2.1.5 sections preserved with full detail + 22 new sub-versions injected from audit v4 findings.
@@ -2435,9 +2435,19 @@ New: `SliceExpr(start, end)` AST node. Parser `_parse_index_or_slice()` in `call
 
 ---
 
-### v1.9.0.1 — Enhancement: Slice with Step `list[a..b..step]` ✅ DONE (current)
+### v1.9.0.1 — Enhancement: Slice with Step `list[a..b..step]` ✅ DONE
 
 New: `SliceExpr(start, end, step)` with step field. Parser detects third `..expr` in index. VM BUILD_SLICE pops step/end/start. GET_INDEX handles `slice` with step. Reversed step `lst[9..2..-1]` works. 112 tests pass.
+
+---
+
+### v1.9.1 — Feature: `global` Keyword for Explicit Global Writes ✅ DONE (current)
+
+- New: `GLOBAL` token type, `GlobalDeclStmt(names)` AST node, parser support for `global x, y`.
+- Compiler: `global_names` set per function; `compile_identifier`/`compile_assign_name` skip local/upvalue for globals.
+- Interpreter: `_global_names` set, saved/reset per function call; `visit_identifier`/`visit_assign_expr` route to `global_env`.
+- Test file: `tests/v1_9_1/test_global_keyword.ipp` (score counter, multi-global swap, compose, etc.)
+- 113 tests pass.
 
 
 ---

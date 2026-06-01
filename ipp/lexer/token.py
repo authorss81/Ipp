@@ -56,6 +56,7 @@ class TokenType(Enum):
     ASYNC = auto()
     AWAIT = auto()
     IS = auto()  # v1.8.8 'is' operator
+    GLOBAL = auto()  # v1.9.1 global keyword
 
     # Decorator (v1.5.17)
     AT = auto()
@@ -173,4 +174,5 @@ KEYWORDS = {
     "async": TokenType.ASYNC,      # 'async' keyword for async functions
     "await": TokenType.AWAIT,      # 'await' keyword for async/await
     "is": TokenType.IS,            # v1.8.8 'is' operator
+    "global": TokenType.GLOBAL,    # v1.9.1 global keyword
 }

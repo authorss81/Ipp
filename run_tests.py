@@ -134,6 +134,7 @@ TESTS = [
     ("v1.8.8-is","tests/v1_8_8/test_is_operator.ipp"),
     ("v1.9.0-slice","tests/v1_9_0/test_slice_syntax.ipp"),
     ("v1.9.0.1-slice-step","tests/v1_9_0_1/test_slice_step.ipp"),
+    ("v1.9.1-global","tests/v1_9_1/test_global_keyword.ipp"),
 ]
 
 passed=failed=0

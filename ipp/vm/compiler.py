@@ -52,6 +52,8 @@ class Compiler:
         self.parent = parent
         # FIX BUG-NEW-M5: upvalue descriptors collected while compiling this function
         self.upvalues: List[Tuple[bool, int]] = []
+        # v1.9.1: names declared global in this function scope
+        self.global_names: set = set()
 
     def error(self, msg: str):
         raise CompilerError(f"Compile error at line {self.current_line}: {msg}")
@@ -178,6 +180,9 @@ class Compiler:
             self.compile_enum(node)   # FIX: BUG-CP4
         elif isinstance(node, LabeledStmt):
             self.compile_stmt(node.statement)
+        elif isinstance(node, GlobalDeclStmt):
+            for name in node.names:
+                self.global_names.add(name)
 
     # ─── Variable declarations ────────────────────────────────────────────────
 
@@ -1049,6 +1054,14 @@ class Compiler:
         # Treat "this" as alias for "self" (slot 0)
         if name == "this":
             name = "self"
+        # v1.9.1: If declared global, skip local/upvalue resolution
+        if name in self.global_names:
+            self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
+            cidx = len(self.chunk.constants)
+            self.chunk.constants.append(name)
+            self.chunk.write(cidx, self.current_line)
+            self.chunk.lines.append(self.current_line)
+            return
         # FIX BUG-NEW-M5: check upvalue chain before falling back to globals
         idx = self.resolve_local(name)
         if idx is not None:
@@ -1068,6 +1081,14 @@ class Compiler:
 
     def compile_assign_name(self, name: str):
         """Assign TOS to a named variable (local or global)."""
+        # v1.9.1: If declared global, skip local/upvalue resolution
+        if name in self.global_names:
+            self.chunk.write(OpCode.SET_GLOBAL, self.current_line)
+            cidx = len(self.chunk.constants)
+            self.chunk.constants.append(name)
+            self.chunk.write(cidx, self.current_line)
+            self.chunk.lines.append(self.current_line)
+            return
         # FIX BUG-NEW-M5: assign through upvalue cell when variable is captured
         idx = self.resolve_local(name)
         if idx is not None:

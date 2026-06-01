@@ -344,6 +344,8 @@ class Parser:
         if self.match(TokenType.THROW):
             expr = self.expression()
             return ThrowStmt(expr)
+        if self.match(TokenType.GLOBAL):
+            return self.global_declaration()
         if self.match(TokenType.WITH):
             return self.with_statement()
         # Check for assert statement (identifier "assert" followed by expression)
@@ -464,6 +466,12 @@ class Parser:
         if self.match(TokenType.FINALLY):
             finally_body = self.block_or_statement()
         return TryStmt(try_body, catches, finally_body)
+
+    def global_declaration(self):
+        names = [self.consume(TokenType.IDENTIFIER, "Expect variable name").lexeme]
+        while self.match(TokenType.COMMA):
+            names.append(self.consume(TokenType.IDENTIFIER, "Expect variable name").lexeme)
+        return GlobalDeclStmt(names)
 
     def with_statement(self):
         var_name = self.consume(TokenType.IDENTIFIER, "Expect variable name after 'with'")

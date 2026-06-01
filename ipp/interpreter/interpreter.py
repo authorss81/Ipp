@@ -452,6 +452,7 @@ class Interpreter:
         self.yield_flag = False
         self._gen_yield_count = 0
         self._gen_target_yield = 0
+        self._global_names: set = set()  # v1.9.1 global keyword
         
         for name, func in BUILTINS.items():
             self.global_env.define(name, func, constant=False)
@@ -529,11 +530,16 @@ class Interpreter:
 
     def visit_identifier(self, node: Identifier):
         self.current_line = getattr(node, 'line', 0) or 0
+        if node.name in self._global_names:
+            return self.global_env.get(node.name)
         return self.environment.get(node.name)
 
     def visit_assign_expr(self, node: AssignExpr):
         value = node.value.accept(self)
-        self.environment.assign(node.name, value)
+        if node.name in self._global_names:
+            self.global_env.assign(node.name, value)
+        else:
+            self.environment.assign(node.name, value)
         return value
 
     def visit_binary_expr(self, node: BinaryExpr):
@@ -827,11 +833,13 @@ class Interpreter:
             saved_return = self.return_value
             saved_this = getattr(self, 'this_instance', None)
             saved_class = getattr(self, 'current_class', None)
+            saved_global_names = self._global_names  # v1.9.1: save global names
 
             self.environment = new_env
             self.return_value = None
             self.this_instance = instance
             self.current_class = owning_class
+            self._global_names = set()  # v1.9.1: fresh global names for this function
 
             for stmt in func.body:
                 stmt.accept(self)
@@ -843,6 +851,7 @@ class Interpreter:
             self.return_value = saved_return
             self.this_instance = saved_this
             self.current_class = saved_class
+            self._global_names = saved_global_names  # v1.9.1: restore
         finally:
             self.call_depth -= 1
 
@@ -1527,6 +1536,11 @@ class Interpreter:
     def visit_enum_decl(self, node: EnumDecl):
         enum_class = IppEnum(node.name, node.values)
         self.environment.define(node.name, enum_class, constant=True)
+        return None
+
+    def visit_global_decl_stmt(self, node: GlobalDeclStmt):
+        for name in node.names:
+            self._global_names.add(name)
         return None
 
     def visit_self_expr(self, node: SelfExpr):

@@ -408,6 +408,12 @@ class EnumDecl(ASTNode):
     def accept(self, visitor): return visitor.visit_enum_decl(self)
 
 @dataclass
+class GlobalDeclStmt(ASTNode):
+    """global name — explicit global variable declaration (v1.9.1)"""
+    names: List[str]
+    def accept(self, visitor): return visitor.visit_global_decl_stmt(self)
+
+@dataclass
 class ReturnStmt(ASTNode):
     value: Optional[ASTNode]
     def accept(self, visitor): return visitor.visit_return_stmt(self)
