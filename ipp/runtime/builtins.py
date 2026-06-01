@@ -485,6 +485,51 @@ def ipp_has_key(d, key):
     return key in d
 
 
+def _ipp_get_elements(lst):
+    """Get elements from either IppList or plain Python list."""
+    if hasattr(lst, 'elements'):
+        return lst.elements
+    return lst
+
+
+def _call_ipp_function(fn, args):
+    """Call an Ipp function — works in interpreter and VM modes."""
+    from ipp.interpreter.interpreter import _ipp_get_interpreter
+    interp = _ipp_get_interpreter()
+    if interp is not None:
+        return interp.call_function(fn, args)
+    raise RuntimeError("Cannot call function: not in interpreter or VM context")
+
+
+def ipp_map(fn, lst):
+    result = []
+    for item in _ipp_get_elements(lst):
+        result.append(_call_ipp_function(fn, [item]))
+    return result
+
+
+def ipp_filter(fn, lst):
+    result = []
+    for item in _ipp_get_elements(lst):
+        if _call_ipp_function(fn, [item]):
+            result.append(item)
+    return result
+
+
+def ipp_reduce(fn, lst, initial=None):
+    it = iter(_ipp_get_elements(lst))
+    if initial is None:
+        try:
+            acc = next(it)
+        except StopIteration:
+            raise RuntimeError("reduce() of empty sequence with no initial value")
+    else:
+        acc = initial
+    for item in it:
+        acc = _call_ipp_function(fn, [acc, item])
+    return acc
+
+
 def ipp_str(s):
     if s is None:
         return "nil"
@@ -4054,6 +4099,9 @@ BUILTINS = {
     "values": ipp_values,
     "items": ipp_items,
     "has_key": ipp_has_key,
+    "map": ipp_map,          # v1.9.2 global map(fn, list)
+    "filter": ipp_filter,    # v1.9.2 global filter(fn, list)
+    "reduce": ipp_reduce,    # v1.9.2 global reduce(fn, list, init?)
     "read_file": ipp_read_file,
     "file_read": ipp_read_file,  # Alias FIX: Standard Library
     "write_file": ipp_write_file,

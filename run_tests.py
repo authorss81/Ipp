@@ -136,6 +136,7 @@ TESTS = [
     ("v1.9.0.1-slice-step","tests/v1_9_0_1/test_slice_step.ipp"),
     ("v1.9.1-global","tests/v1_9_1/test_global_keyword.ipp"),
     ("v1.9.1.1-nonlocal","tests/v1_9_1_1/test_nonlocal.ipp"),
+    ("v1.9.2-map-filter-reduce","tests/v1_9_2/test_map_filter_reduce.ipp"),
 ]
 
 passed=failed=0

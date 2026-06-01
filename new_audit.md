@@ -964,7 +964,7 @@ At 4 bugs/week fixed, the checklist could complete in ~2 months of focused work.
 | BUG-005 | ★★ | `str.replace()` — kwarg heuristic | **OPEN** |
 | BUG-006 | ★★ | `var a, b = 1, 2` fails | **OPEN** |
 | BUG-007 | ★★ | Variadic `...args` is int not list | **OPEN** |
-| BUG-008 | ★★ | `list.map/filter/reduce` missing | **OPEN** |
+| BUG-008 | ★★ | `list.map/filter/reduce` missing | Done |
 | BUG-009 | ★★ | `prop get { }` body parse fails | **OPEN** |
 | BUG-010 | ★★ | `is` operator broken | **OPEN** |
 | BUG-011 | ★★ | `str.contains/starts_with/ends_with` missing | **OPEN** |
@@ -976,7 +976,7 @@ At 4 bugs/week fixed, the checklist could complete in ~2 months of focused work.
 | BUG-017 | ★ | Typed exceptions caught as strings | **OPEN** |
 | BUG-018 | ★ | `list[a..b]` syntax broken | **OPEN** |
 | BUG-019 | ★ | Version string mismatch | ✅ **FIXED v1.7.9.1.10** |
-| BUG-020 | ★ | `map()/filter()` global builtins missing | **OPEN** |
+| BUG-020 | ★ | `map()/filter()` global builtins missing | Done |
 | BUG-021 | ★ | `print("label:", val)` crashes everywhere | ✅ **FIXED v1.7.6.1** |
 | BUG-022 | ★ | C extension build fails; `vm_run()` is stub | **OPEN** |
 | BUG-023 | ★★ | Closure-in-loop captures by reference | ✅ **FIXED v1.7.9.1.15** |

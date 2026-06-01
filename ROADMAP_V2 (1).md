@@ -2512,7 +2512,7 @@ assert calls == 1             # only computed once
 
 ---
 
-### v1.9.2 — Feature: `map()` and `filter()` as Global Builtins (BUG-020)
+### v1.9.2 — Feature: `map()`, `filter()`, `reduce()` as Global Builtins (BUG-020) ✅ DONE
 
 ```ipp
 var doubled = map(func(x) { return x * 2 }, [1, 2, 3])
@@ -2524,6 +2524,12 @@ assert evens == [2, 4]
 var total = reduce(func(acc, x) { return acc + x }, [1,2,3,4,5], 0)
 assert total == 15
 ```
+
+**Files changed:**
+- `ipp/runtime/builtins.py` — Added `ipp_map`, `ipp_filter`, `ipp_reduce` functions using interpreter `call_function`
+- `ipp/vm/vm.py` — VM-native versions in `_init_builtins` using `self._call_sync`
+- `tests/v1_9_2/test_map_filter_reduce.ipp` — Comprehensive test (map/filter/reduce with lambdas, named funcs, edge cases, chaining)
+- `run_tests.py` / `tests/regression.py` — Test registered
 
 ---
 
@@ -8412,7 +8418,7 @@ ipp build --target android game.ipp
 | v1.9.0 | Done | `list[a..b]` syntax (BUG-018) |
 | v1.9.1 | Done | `global` keyword |
 | v1.9.1.1 | Done | `nonlocal` keyword for closure writes |
-| v1.9.2 | Planned | `map/filter/reduce` global builtins |
+| v1.9.2 | **CURRENT** | `map/filter/reduce` global builtins |
 | v1.9.3 | Planned | Multi-line strings `"""` |
 | v1.9.4 | Planned | Async return value |
 | v1.9.5 | Planned | Set operations |

@@ -857,6 +857,23 @@ class VM:
             list(getattr(getattr(obj, 'cls', None), 'methods', {}).keys())
         ))
 
+        # v1.9.2 — VM-native map/filter/reduce using _call_sync
+        self.globals['map']    = lambda fn, lst: [self._call_sync(fn, [x]) for x in lst]
+        self.globals['filter'] = lambda fn, lst: [x for x in lst if self._call_sync(fn, [x])]
+        def _vm_reduce(fn, lst, initial=None):
+            it = iter(lst)
+            if initial is None:
+                try:
+                    acc = next(it)
+                except StopIteration:
+                    raise VMError("reduce() of empty sequence with no initial value")
+            else:
+                acc = initial
+            for item in it:
+                acc = self._call_sync(fn, [acc, item])
+            return acc
+        self.globals['reduce'] = _vm_reduce
+
         # v1.7.9.1.9 — highlighter builtins
         def _highlight_line_builtin(src: str) -> str:
             try:
