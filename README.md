@@ -2,11 +2,11 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.9.1-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-1.9.1.1-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-163+-brightgreen.svg" alt="Builtins">
-<img src="https://img.shields.io/badge/tests-113%20passing-brightgreen.svg" alt="Tests">
+<img src="https://img.shields.io/badge/tests-114%20total-brightgreen.svg" alt="Tests">
 <img src="https://img.shields.io/badge/status-stable-green.svg" alt="Status">
 
 **A beginner-friendly scripting language for game development.**  
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.9.1** includes: `global` keyword — explicit global variable declarations inside functions (e.g., `global score; score = score + 1`).
+**v1.9.1.1** includes: `nonlocal` keyword — explicit closure variable writes inside nested functions (e.g., `nonlocal count; count = count + 1` for counter closures and memoization patterns).
 
 ---
 
@@ -614,6 +614,7 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.9.0 | `list[a..b]` slice syntax — range expressions as slice indices |
 | v1.9.0.1 | `list[a..b..step]` slice with step — range expressions with optional step |
 | v1.9.1 | `global` keyword — explicit global variable declarations |
+| v1.9.1.1 | `nonlocal` keyword — explicit closure variable writes inside nested functions |
 | v2.0.0 | C Extension (VM foundation) |
 
 ---

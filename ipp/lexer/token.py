@@ -57,6 +57,7 @@ class TokenType(Enum):
     AWAIT = auto()
     IS = auto()  # v1.8.8 'is' operator
     GLOBAL = auto()  # v1.9.1 global keyword
+    NONLOCAL = auto()  # v1.9.1.1 nonlocal keyword
 
     # Decorator (v1.5.17)
     AT = auto()
@@ -175,4 +176,5 @@ KEYWORDS = {
     "await": TokenType.AWAIT,      # 'await' keyword for async/await
     "is": TokenType.IS,            # v1.8.8 'is' operator
     "global": TokenType.GLOBAL,    # v1.9.1 global keyword
+    "nonlocal": TokenType.NONLOCAL, # v1.9.1.1 nonlocal keyword
 }

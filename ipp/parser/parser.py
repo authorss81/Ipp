@@ -346,6 +346,8 @@ class Parser:
             return ThrowStmt(expr)
         if self.match(TokenType.GLOBAL):
             return self.global_declaration()
+        if self.match(TokenType.NONLOCAL):
+            return self.nonlocal_declaration()
         if self.match(TokenType.WITH):
             return self.with_statement()
         # Check for assert statement (identifier "assert" followed by expression)
@@ -472,6 +474,12 @@ class Parser:
         while self.match(TokenType.COMMA):
             names.append(self.consume(TokenType.IDENTIFIER, "Expect variable name").lexeme)
         return GlobalDeclStmt(names)
+
+    def nonlocal_declaration(self):
+        names = [self.consume(TokenType.IDENTIFIER, "Expect variable name").lexeme]
+        while self.match(TokenType.COMMA):
+            names.append(self.consume(TokenType.IDENTIFIER, "Expect variable name").lexeme)
+        return NonlocalDeclStmt(names)
 
     def with_statement(self):
         var_name = self.consume(TokenType.IDENTIFIER, "Expect variable name after 'with'")

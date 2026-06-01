@@ -2441,35 +2441,9 @@ New: `SliceExpr(start, end, step)` with step field. Parser detects third `..expr
 
 ---
 
-### v1.9.1 — Feature: `global` Keyword for Explicit Global Writes ✅ DONE (current)
+### v1.9.1 — Feature: `global` Keyword for Explicit Global Writes ✅ DONE
 
-- New: `GLOBAL` token type, `GlobalDeclStmt(names)` AST node, parser support for `global x, y`.
-- Compiler: `global_names` set per function; `compile_identifier`/`compile_assign_name` skip local/upvalue for globals.
-- Interpreter: `_global_names` set, saved/reset per function call; `visit_identifier`/`visit_assign_expr` route to `global_env`.
-- Test file: `tests/v1_9_1/test_global_keyword.ipp` (score counter, multi-global swap, compose, etc.)
-- 113 tests pass.
-
-
----
-
-### v1.9.1 — Feature: `global` Keyword for Explicit Global Writes
-
-Currently functions can READ globals but writing to a global from inside a function creates a local instead. Add a `global x` declaration:
-
-```ipp
-var score = 0
-func add_score(n) {
-    global score
-    score = score + n
-}
-add_score(10)
-add_score(5)
-assert score == 15
-```
-
----
-
-### v1.9.1.1 — Enhancement: `nonlocal` Keyword for Closure Writes
+### v1.9.1.1 — Enhancement: `nonlocal` Keyword for Closure Writes ✅ DONE (current)
 
 **Why here:** `global` lets you write to module-level globals. `nonlocal` is the companion that lets closures write to their enclosing function's variables (not just read them). Needed for counter closures, memoization, state machines.
 
@@ -2525,6 +2499,15 @@ assert calls == 1             # only computed once
 ```
 
 **Regression risk:** Medium. Touches upvalue/closure system.
+
+
+> **Done v1.9.1.1:**
+> - Added `NONLOCAL` token, `NonlocalDeclStmt(names)` AST node, parser support for `nonlocal x`.
+> - Compiler: `nonlocal_names` set per function; `compile_identifier`/`compile_assign_name` force upvalue resolution for nonlocal names (error if not found in enclosing scope).
+> - Interpreter: `_nonlocal_names` set, saved/reset per function call; `visit_identifier`/`visit_assign_expr` skip current env (use parent) for nonlocal names.
+> - **SET_INDEX bugfix (v1.5.32 era regression):** `SET_INDEX` now pushes the assigned value back onto the stack. Previously `IndexSetExpr` inside `ExprStmt` (e.g. `cache["key"] = val`) produced an extra `POP` that corrupted the stack, because `SET_INDEX` didn't push any result but the generic `ExprStmt` codegen always emitted `POP`.
+> - Test file: `tests/v1_9_1_1/test_nonlocal.ipp` (counter closure, `nonlocal a, b`, compound assign, memoization, nested nonlocal).
+> - 112/114 tests pass (2 pre-existing failures: v07, v1.5.30).
 
 
 ---
@@ -8427,7 +8410,8 @@ ipp build --target android game.ipp
 | v1.8.8 | Done | `is` operator everywhere (BUG-010) |
 | v1.8.9 | Planned | Typed exception field access (BUG-017) |
 | v1.9.0 | Done | `list[a..b]` syntax (BUG-018) |
-| v1.9.1 | Planned | `global` keyword |
+| v1.9.1 | Done | `global` keyword |
+| v1.9.1.1 | Done | `nonlocal` keyword for closure writes |
 | v1.9.2 | Planned | `map/filter/reduce` global builtins |
 | v1.9.3 | Planned | Multi-line strings `"""` |
 | v1.9.4 | Planned | Async return value |

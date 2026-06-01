@@ -1703,7 +1703,7 @@ class VM:
                 obj.elements[int(idx)] = value
             elif hasattr(obj, 'data'):
                 obj.data[idx] = value
-            # No push - assignment is a statement, not expression
+            self.stack.append(value)  # push assigned value so ExprStmt POP works correctly
 
         # ── Jumps — FIX: BUG-C1/BUG-M8 all use read_int (3-byte operands) ─
         elif opcode == OpCode.JUMP:

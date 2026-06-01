@@ -54,6 +54,8 @@ class Compiler:
         self.upvalues: List[Tuple[bool, int]] = []
         # v1.9.1: names declared global in this function scope
         self.global_names: set = set()
+        # v1.9.1.1: names declared nonlocal in this function scope
+        self.nonlocal_names: set = set()
 
     def error(self, msg: str):
         raise CompilerError(f"Compile error at line {self.current_line}: {msg}")
@@ -183,6 +185,9 @@ class Compiler:
         elif isinstance(node, GlobalDeclStmt):
             for name in node.names:
                 self.global_names.add(name)
+        elif isinstance(node, NonlocalDeclStmt):
+            for name in node.names:
+                self.nonlocal_names.add(name)
 
     # ─── Variable declarations ────────────────────────────────────────────────
 
@@ -1062,6 +1067,14 @@ class Compiler:
             self.chunk.write(cidx, self.current_line)
             self.chunk.lines.append(self.current_line)
             return
+        # v1.9.1.1: If declared nonlocal, force upvalue resolution
+        if name in self.nonlocal_names:
+            idx = self.resolve_upvalue(name)
+            if idx is None:
+                self.error(f"Cannot find enclosing variable for nonlocal '{name}'")
+            self.chunk.write(OpCode.GET_UPVALUE, self.current_line)
+            self.chunk.write(idx, self.current_line)
+            return
         # FIX BUG-NEW-M5: check upvalue chain before falling back to globals
         idx = self.resolve_local(name)
         if idx is not None:
@@ -1088,6 +1101,14 @@ class Compiler:
             self.chunk.constants.append(name)
             self.chunk.write(cidx, self.current_line)
             self.chunk.lines.append(self.current_line)
+            return
+        # v1.9.1.1: If declared nonlocal, force upvalue resolution
+        if name in self.nonlocal_names:
+            idx = self.resolve_upvalue(name)
+            if idx is None:
+                self.error(f"Cannot find enclosing variable for nonlocal '{name}'")
+            self.chunk.write(OpCode.SET_UPVALUE, self.current_line)
+            self.chunk.write(idx, self.current_line)
             return
         # FIX BUG-NEW-M5: assign through upvalue cell when variable is captured
         idx = self.resolve_local(name)

@@ -414,6 +414,12 @@ class GlobalDeclStmt(ASTNode):
     def accept(self, visitor): return visitor.visit_global_decl_stmt(self)
 
 @dataclass
+class NonlocalDeclStmt(ASTNode):
+    """nonlocal name — explicit closure variable declaration (v1.9.1.1)"""
+    names: List[str]
+    def accept(self, visitor): return visitor.visit_nonlocal_decl_stmt(self)
+
+@dataclass
 class ReturnStmt(ASTNode):
     value: Optional[ASTNode]
     def accept(self, visitor): return visitor.visit_return_stmt(self)
