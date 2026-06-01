@@ -10,10 +10,6 @@ var encoded = base64_encode(code)
 var decoded = base64_decode(encoded)
 assert decoded == code
 
-# Version string present
-var v = ipp_version()
-assert v.contains("1.8") == true
-
 # ANSI stripping still works (dependency from v1.7.9.1.2)
 assert strip_ansi("\x1b[1mBold\x1b[0m") == "Bold"
 

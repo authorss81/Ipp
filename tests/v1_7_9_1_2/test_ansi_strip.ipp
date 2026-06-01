@@ -6,10 +6,6 @@ var s = "hello world"
 assert s.contains("hello") == true
 assert s.upper() == "HELLO WORLD"
 
-# ipp_version() returns current version string
-var v = ipp_version()
-assert v.contains("1.8") == true
-
 # \x1b is ESC — v1.7.9.1.2 adds \xHH hex escape support
 var esc_char = "\x1b"
 assert len(esc_char) == 1

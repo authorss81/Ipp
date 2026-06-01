@@ -468,7 +468,7 @@ def ipp_values(d):
 def ipp_items(d):
     # FIX: Handle IppDict objects
     if hasattr(d, 'items') and callable(d.items):
-        return d.items()
+        return list(d.items())
     if hasattr(d, 'data'):
         return list(d.data.items())
     if isinstance(d, dict):

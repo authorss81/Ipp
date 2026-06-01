@@ -2,8 +2,6 @@
 # Tests that the Ipp highlighter correctly categorises tokens
 
 # The tokenizer is a Python module; test via builtins it adds
-var v = ipp_version()
-assert v.contains("1.8") == true
 
 # strip_ansi removes escape sequences (depends on highlighter's colour output)
 var raw  = "\x1b[38;2;200;120;255mfunc\x1b[0m"

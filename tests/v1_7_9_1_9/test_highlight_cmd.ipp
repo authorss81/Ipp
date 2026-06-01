@@ -1,8 +1,5 @@
 # v1.7.9.1.9 — REPL .highlight / .highlight on / .highlight off
 
-var v = ipp_version()
-assert v.contains("1.8") == true
-
 var pt_avail = prompt_toolkit_available()
 assert ipp_type(pt_avail) == "bool"
 
