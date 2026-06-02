@@ -2533,7 +2533,7 @@ assert total == 15
 
 ---
 
-### v1.9.3 — Feature: Multi-line Strings `"""..."""`
+### v1.9.3 — Feature: Multi-line Strings `"""..."""` ✅ DONE
 
 ```ipp
 var s = """
@@ -2546,13 +2546,21 @@ assert len(lines) == 3
 assert lines[0] == "line one"
 ```
 
+**Files changed:**
+- `ipp/lexer/lexer.py` — Added `triple_quote_string()` method, `peek_next_next()` helper, modified `scan_token` to detect `"""` and `f"""` before single-quote path
+- `ipp/interpreter/interpreter.py` — Fixed `visit_fstring_expr` to use `ipp_str()` so bool values render as `"true"`/`"false"` (pre-existing bug)
+- `tests/v1_9_3/test_multiline_strings.ipp` — 16 test cases covering basic multiline, empty, quotes inside, escape sequences, f-string multiline, concat, len, type
+- `run_tests.py` / `tests/regression.py` — Test registered
+
+Also includes fix: `f"""..."""` multi-line f-string variant works.
+
 ---
 
-### v1.9.3.1 — Enhancement: Multi-line F-strings `f"""..."""`
+### v1.9.3.1 — Enhancement: Multi-line F-strings `f"""..."""` ✅ DONE (in v1.9.3)
 
 **Why here:** Game dialogue, quest descriptions, HTML templates, and SQL strings are routinely multi-line AND need interpolation. `f"""..."""` combines both.
 
-**File to change:** `ipp/lexer/lexer.py` — extend the `f"..."` tokenizer to handle `f"""..."""`.
+**File to change:** Already implemented in v1.9.3 — `ipp/lexer/lexer.py` handles `f"""..."""` via `triple_quote_string` with `is_fstring=True`.
 
 **Test file: `tests/v1_9_3_1/test_multiline_fstring.ipp`**
 ```ipp
@@ -8419,7 +8427,7 @@ ipp build --target android game.ipp
 | v1.9.1 | Done | `global` keyword |
 | v1.9.1.1 | Done | `nonlocal` keyword for closure writes |
 | v1.9.2 | **CURRENT** | `map/filter/reduce` global builtins |
-| v1.9.3 | Planned | Multi-line strings `"""` |
+| v1.9.3 | **CURRENT** | Multi-line strings `"""` (incl. `f"""`) |
 | v1.9.4 | Planned | Async return value |
 | v1.9.5 | Planned | Set operations |
 | v2.0.0 | Planned | Native game loop |

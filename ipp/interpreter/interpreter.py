@@ -1181,10 +1181,11 @@ class Interpreter:
         return IppList(result)
 
     def visit_fstring_expr(self, node: FStringExpr):
+        from ipp.runtime.builtins import ipp_str
         parts = []
         for seg in node.segments:
             val = seg.accept(self)
-            parts.append(str(val))
+            parts.append(ipp_str(val))
         return ''.join(parts)
 
     def visit_list_comprehension(self, node: ListComprehension):

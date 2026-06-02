@@ -167,13 +167,27 @@ class Lexer:
                 self.add_token(TokenType.GREATER)
 
         # String literals — with escape processing (FIX: BUG-L5)
-        elif c == '"' or c == "'":
+        elif c == '"':
+            if self.peek() == '"' and self.peek_next() == '"':
+                # Triple-quoted string """..."""
+                self.advance()
+                self.advance()
+                self.triple_quote_string('"')
+            else:
+                self.string(c)
+        elif c == "'":
             self.string(c)
         
-        # f-strings — check for f" or f' prefix
+        # f-strings — check for f" or f' or f""" prefix
         elif c == 'f' and (self.peek() == '"' or self.peek() == "'"):
             quote_char = self.advance()  # consume the quote
-            self.string(quote_char, is_fstring=True)
+            if quote_char == '"' and self.peek() == '"' and self.peek_next() == '"':
+                # f"""..."""
+                self.advance()
+                self.advance()
+                self.triple_quote_string('"', is_fstring=True)
+            else:
+                self.string(quote_char, is_fstring=True)
 
         # Numbers — with hex/octal/binary support (FIX: BUG-L7)
         elif c == '0' and self.peek() in 'xXoObB':
@@ -303,6 +317,61 @@ class Lexer:
         token_type = TokenType.FSTRING if is_fstring else TokenType.STRING
         self.add_token(token_type, literal=value)
 
+    def triple_quote_string(self, quote_char, is_fstring=False):
+        """Lex a triple-quoted string (three double-quotes or f-three-double-quotes)."""
+        value_chars = []
+
+        # Strip leading newline after opening """ (Python convention)
+        if self.peek() == '\n':
+            self.advance()
+            self.line += 1
+            self.column = 1
+
+        while not self.is_at_end:
+            if self.peek() == quote_char and self.peek_next() == quote_char and self.peek_next_next() == quote_char:
+                self.advance()
+                self.advance()
+                self.advance()
+                break
+
+            ch = self.advance()
+            if ch == '\\':
+                if self.is_at_end:
+                    self.error("Unterminated escape sequence")
+                esc = self.advance()
+                if esc == 'u':
+                    hex_str = ''
+                    for _ in range(4):
+                        if self.is_at_end or not self.peek() in '0123456789abcdefABCDEF':
+                            self.error("Invalid \\u escape sequence")
+                        hex_str += self.advance()
+                    value_chars.append(chr(int(hex_str, 16)))
+                elif esc == 'x':
+                    hex_str = ''
+                    for _ in range(2):
+                        if self.is_at_end or self.peek() not in '0123456789abcdefABCDEF':
+                            self.error("Invalid \\x escape sequence (need 2 hex digits)")
+                        hex_str += self.advance()
+                    value_chars.append(chr(int(hex_str, 16)))
+                elif esc in _ESCAPES:
+                    value_chars.append(_ESCAPES[esc])
+                else:
+                    value_chars.append('\\')
+                    value_chars.append(esc)
+            elif ch == '\n':
+                self.line += 1
+                self.column = 1
+                value_chars.append(ch)
+            else:
+                value_chars.append(ch)
+
+        if self.is_at_end:
+            self.error("Unterminated triple-quoted string")
+
+        value = ''.join(value_chars)
+        token_type = TokenType.FSTRING if is_fstring else TokenType.STRING
+        self.add_token(token_type, literal=value)
+
     def skip_whitespace(self):
         while not self.is_at_end:
             ch = self.peek()
@@ -363,6 +432,11 @@ class Lexer:
         if self.current + 1 >= len(self.source):
             return '\0'
         return self.source[self.current + 1]
+
+    def peek_next_next(self):
+        if self.current + 2 >= len(self.source):
+            return '\0'
+        return self.source[self.current + 2]
 
     @property
     def is_at_end(self):

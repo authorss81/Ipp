@@ -137,6 +137,7 @@ TESTS = [
     ("v1.9.1-global","tests/v1_9_1/test_global_keyword.ipp"),
     ("v1.9.1.1-nonlocal","tests/v1_9_1_1/test_nonlocal.ipp"),
     ("v1.9.2-map-filter-reduce","tests/v1_9_2/test_map_filter_reduce.ipp"),
+    ("v1.9.3-multiline-strings","tests/v1_9_3/test_multiline_strings.ipp"),
 ]
 
 passed=failed=0
