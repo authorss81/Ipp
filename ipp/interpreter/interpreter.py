@@ -1937,11 +1937,14 @@ class Interpreter:
             return value
 
     def visit_await_expr(self, node: AwaitExpr):
-        """Await expression - yields control to event loop"""
+        """Await expression - if the value is a coroutine, run it to completion."""
         value = node.expression.accept(self)
-        # If it's a sleep call, actually sleep
+        if isinstance(value, IppCoroutine):
+            loop = IppEventLoop(self)
+            result = loop.run_until_complete(value)
+            return result
         if isinstance(value, bool) and value is True:
-            pass  # sleep already happened
+            return value
         self.return_value = value
         self.yield_flag = True
         return value

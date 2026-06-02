@@ -934,6 +934,9 @@ class Compiler:
             else:
                 self.chunk.write(OpCode.NIL, self.current_line)
             self.chunk.write(OpCode.YIELD, self.current_line)
+        elif isinstance(node, AwaitExpr):
+            self.compile_expr(node.expression)
+            self.chunk.write(OpCode.AWAIT, self.current_line)
         elif isinstance(node, Identifier):
             self.compile_identifier(node.name)
         elif isinstance(node, SelfExpr):

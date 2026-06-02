@@ -2599,9 +2599,11 @@ assert sql.contains("alice@example.com") == true
 
 ---
 
-### v1.9.4 — Feature: Async Return Value Fixed (BUG-016)
+### v1.9.4 — Feature: Async Return Value Fixed (BUG-016) ✅ DONE
 
-`async_run(f())` currently returns `nil`. Fix the coroutine execution to capture and return the function's return value.
+`async_run(f())` already returned correct value. Fixed `await` opcode in both interpreter and VM. 
+
+**Changes:** `interpreter.py` — `visit_await_expr` runs awaited coroutine to completion. `vm.py` — added `AWAIT` opcode (#114) using sub-VM isolation; refactored `_builtin_async_run` to use sub-VM instead of `self.run()` which leaked into parent frames.
 
 ```ipp
 async func double_async(x) {
@@ -2613,7 +2615,7 @@ assert result == 42
 
 ---
 
-### v1.9.4.1 — Enhancement: `await` Works Inside `async` Functions
+### v1.9.4.1 — Enhancement: `await` Works Inside `async` Functions ✅ DONE (merged into v1.9.4)
 
 **Why here:** After async return is fixed, `await other_async_func()` must properly suspend the calling coroutine and return the inner coroutine's result. This is the primitive that makes async code composable.
 
@@ -8427,8 +8429,8 @@ ipp build --target android game.ipp
 | v1.9.1 | Done | `global` keyword |
 | v1.9.1.1 | Done | `nonlocal` keyword for closure writes |
 | v1.9.2 | **CURRENT** | `map/filter/reduce` global builtins |
-| v1.9.3 | **CURRENT** | Multi-line strings `"""` (incl. `f"""`) |
-| v1.9.4 | Planned | Async return value |
+| v1.9.3 | Done | Multi-line strings `"""` (incl. `f"""`) |
+| v1.9.4 | **CURRENT** ✅ DONE | Async return + `await` inside `async` functions |
 | v1.9.5 | Planned | Set operations |
 | v2.0.0 | Planned | Native game loop |
 | v2.0.1–v2.0.8 | Planned | Game dev features |

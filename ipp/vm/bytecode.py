@@ -181,6 +181,9 @@ class OpCode(IntEnum):
     # Build slice object (v1.9.0.1)
     BUILD_SLICE = 113  # pops step (or nil), end, start; pushes Python slice object
 
+    # Await inside async functions (v1.9.4)
+    AWAIT = 114  # pops coroutine, runs it inline, pushes result
+
 
 # ─── Operand size table (authoritative) ──────────────────────────────────────
 # Every opcode is exactly one of: 0-operand (size=1), 1-byte operand (size=2),
@@ -227,6 +230,8 @@ _SIZE1 = frozenset([
     OpCode.IS_CHECK,
     # v1.9.0.1: BUILD_SLICE has no operands
     OpCode.BUILD_SLICE,
+    # v1.9.4: AWAIT has no operands
+    OpCode.AWAIT,
 ])
 
 _SIZE2 = frozenset([

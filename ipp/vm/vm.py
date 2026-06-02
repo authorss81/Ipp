@@ -974,20 +974,15 @@ class VM:
         if isinstance(fn, IppAsyncCoroutine):
             return self._builtin_async_run(fn.closure, *fn.args)
         if isinstance(fn, (Closure, IppFunction)):
-            saved_stack = list(self.stack)
-            saved_frames = list(self.frames)
-            saved_running = self.running
-            # Temporarily clear async flag so it runs immediately
             proto = getattr(fn, '_proto', None)
             orig_async = getattr(proto, 'is_async', False)
             if proto:
                 proto.is_async = False
-            self._call(fn, list(args), None)
-            self.running = True
-            result = self.run()
-            self.stack = saved_stack
-            self.frames = saved_frames
-            self.running = saved_running
+            sub_vm = VM()
+            sub_vm.globals = self.globals
+            sub_vm._call(fn, list(args), None)
+            sub_vm.running = True
+            result = sub_vm.run()
             if proto:
                 proto.is_async = orig_async
             return result
@@ -1907,6 +1902,27 @@ class VM:
 
         elif opcode == OpCode.RETURN_VAL:
             return _RETURN_FRAME
+
+        elif opcode == OpCode.AWAIT:
+            val = self.stack.pop()
+            if isinstance(val, IppAsyncCoroutine):
+                sub_vm = VM()
+                sub_vm.globals = self.globals
+                src = getattr(self, '_current_source_file', None)
+                if src:
+                    sub_vm._current_source_file = src
+                proto = getattr(val.closure, '_proto', None)
+                orig_async = getattr(proto, 'is_async', False)
+                if proto:
+                    proto.is_async = False
+                sub_vm._call(val.closure, list(val.args), None)
+                sub_vm.running = True
+                result = sub_vm.run()
+                if proto:
+                    proto.is_async = orig_async
+                self.stack.append(result)
+            else:
+                self.stack.append(val)
 
         elif opcode == OpCode.YIELD:
             val = self.stack.pop() if self.stack else None
