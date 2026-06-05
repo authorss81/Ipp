@@ -303,6 +303,18 @@ class IppSet:
 
     def clear(self):
         self._items.clear()
+
+    def union(self, other):
+        other_items = other._items if isinstance(other, IppSet) else set(other)
+        return IppSet(self._items | other_items)
+    
+    def intersect(self, other):
+        other_items = other._items if isinstance(other, IppSet) else set(other)
+        return IppSet(self._items & other_items)
+    
+    def difference(self, other):
+        other_items = other._items if isinstance(other, IppSet) else set(other)
+        return IppSet(self._items - other_items)
     
     def __repr__(self):
         return f"{{{', '.join(repr(i) for i in self._items)}}}"
@@ -1241,28 +1253,31 @@ class Interpreter:
         
         return IppDict(result)
 
-    def visit_dict_literal(self, node: DictLiteral):
-        data = {}
-        for is_spread, item in node.all_entries():
-            if is_spread:
-                spread_result = item.iterable.accept(self)
-                if isinstance(spread_result, IppDict):
-                    for k, v in spread_result.data.items():
-                        data[k] = v
-                elif hasattr(spread_result, 'items'):
-                    for k, v in spread_result.items():
-                        data[k] = v
-            else:
-                key_node, value_node = item
-                key = key_node.accept(self)
-                value = value_node.accept(self)
-                data[key] = value
-        return IppDict(data)
+    def visit_set_comprehension(self, node: SetComprehension):
+        result = IppSet()
+        iterable = node.iterator.accept(self)
 
-    def visit_lambda_expr(self, node: LambdaExpr):
-        closure = Environment(self.environment)
-        defaults = getattr(node, 'defaults', None) or []
-        return IppFunction(node.parameters, node.body, closure, defaults)
+        if hasattr(iterable, '__iter__'):
+            iterable = list(iterable)
+
+        old_env = self.environment
+        self.environment = Environment(self.environment)
+
+        try:
+            for item in iterable:
+                self.environment.define(node.variable, item, constant=False)
+
+                if node.condition:
+                    cond = node.condition.accept(self)
+                    if not cond:
+                        continue
+
+                value = node.element.accept(self)
+                result.add(value)
+        finally:
+            self.environment = old_env
+
+        return result
 
     def visit_is_expr(self, node: IsExpr):
         value = node.left.accept(self)

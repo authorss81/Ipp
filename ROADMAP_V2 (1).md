@@ -2655,7 +2655,7 @@ assert async_run(pipeline()) == 20
 
 ---
 
-### v1.9.5 — Feature: Set Operations (`union`, `intersect`, `difference`)
+### v1.9.5 — Feature: Set Operations (`union`, `intersect`, `difference`) ✅ DONE
 
 ```ipp
 var a = set([1, 2, 3, 4])
@@ -2828,7 +2828,7 @@ assert count == 6
 
 ---
 
-### v1.9.5.1 — Enhancement: Set Comprehensions `{expr for x in iterable if cond}`
+### v1.9.5.1 — Enhancement: Set Comprehensions `{expr for x in iterable if cond}` ✅ DONE (merged into v1.9.5)
 
 **Why here:** List and dict comprehensions already exist. Set comprehensions are the natural completion of the comprehension family — same syntax, different collection type.
 
@@ -8430,8 +8430,8 @@ ipp build --target android game.ipp
 | v1.9.1.1 | Done | `nonlocal` keyword for closure writes |
 | v1.9.2 | **CURRENT** | `map/filter/reduce` global builtins |
 | v1.9.3 | Done | Multi-line strings `"""` (incl. `f"""`) |
-| v1.9.4 | **CURRENT** ✅ DONE | Async return + `await` inside `async` functions |
-| v1.9.5 | Planned | Set operations |
+| v1.9.4 | Done | Async return + `await` inside `async` functions |
+| v1.9.5 | **CURRENT** ✅ DONE | Set operations + set comprehensions |
 | v2.0.0 | Planned | Native game loop |
 | v2.0.1–v2.0.8 | Planned | Game dev features |
 | v2.1.0–v2.1.3 | Planned | Architecture cleanup |

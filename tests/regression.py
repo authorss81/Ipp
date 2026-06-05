@@ -190,6 +190,8 @@ TESTS = [
     ("v1.9.2-map-filter-reduce","tests/v1_9_2/test_map_filter_reduce.ipp"),
     ("v1.9.3-multiline-strings","tests/v1_9_3/test_multiline_strings.ipp"),
     ("v1.9.4-async-return","tests/v1_9_4/test_async_return.ipp"),
+    ("v1.9.5-set-ops","tests/v1_9_5/test_set_ops.ipp"),
+    ("v1.9.5.1-set-comprehension","tests/v1_9_5_1/test_set_comprehension.ipp"),
 ]
 
 def extract_expected_from_file(filepath):

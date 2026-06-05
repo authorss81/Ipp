@@ -1045,6 +1045,8 @@ class Compiler:
             self.compile_list_comprehension(node)
         elif isinstance(node, DictComprehension):
             self.compile_dict_comprehension(node)
+        elif isinstance(node, SetComprehension):
+            self.compile_set_comprehension(node)
         elif isinstance(node, SuperExpr):
             # FIX: BUG-C5 — emit GET_LOCAL 0 then GET_SUPER
             self.chunk.write(OpCode.GET_LOCAL, self.current_line)
@@ -1513,6 +1515,94 @@ class Compiler:
 
         self.chunk.write(OpCode.GET_LOCAL, self.current_line)
         self.chunk.write(result_slot, self.current_line)
+        self.pop_scope()
+
+    def compile_set_comprehension(self, node: SetComprehension):
+        self.push_scope()
+
+        self.chunk.write(OpCode.LIST, self.current_line)
+        self.chunk.write(0, self.current_line)
+        res_slot = self.define_local("__sc_res")
+
+        self.compile_expr(node.iterator)
+        src_slot = self.define_local("__sc_src")
+
+        self.chunk.add_constant(0, self.current_line)
+        idx_slot = self.define_local("__sc_idx")
+
+        self.chunk.write(OpCode.NIL, self.current_line)
+        var_slot = self.define_local(node.variable)
+
+        self.chunk.write(OpCode.NIL, self.current_line)
+        elem_slot = self.define_local("__sc_elem")
+
+        loop_start = len(self.chunk.code)
+
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(idx_slot, self.current_line)
+        self.compile_identifier("len")
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(src_slot, self.current_line)
+        self.chunk.write(OpCode.CALL, self.current_line)
+        self.chunk.write(1, self.current_line)
+        self.chunk.write(OpCode.LESS, self.current_line)
+        exit_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(src_slot, self.current_line)
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(idx_slot, self.current_line)
+        self.chunk.write(OpCode.GET_INDEX, self.current_line)
+        self.chunk.write(OpCode.SET_LOCAL, self.current_line)
+        self.chunk.write(var_slot, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
+
+        if_jump = None
+        if node.condition:
+            self.compile_expr(node.condition)
+            if_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+
+        self.compile_expr(node.element)
+        self.chunk.write(OpCode.SET_LOCAL, self.current_line)
+        self.chunk.write(elem_slot, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
+
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(res_slot, self.current_line)
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(elem_slot, self.current_line)
+        self.chunk.write(OpCode.LIST_APPEND, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
+
+        if if_jump is not None:
+            self.chunk.patch_jump(if_jump)
+
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(idx_slot, self.current_line)
+        self.chunk.add_constant(1, self.current_line)
+        self.chunk.write(OpCode.ADD, self.current_line)
+        self.chunk.write(OpCode.SET_LOCAL, self.current_line)
+        self.chunk.write(idx_slot, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
+
+        self.chunk.emit_loop(loop_start, self.current_line)
+        self.chunk.patch_jump(exit_jump)
+
+        self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
+        cidx = len(self.chunk.constants)
+        self.chunk.constants.append("set")
+        self.chunk.write(cidx, self.current_line)
+        self.chunk.lines.append(self.current_line)
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(res_slot, self.current_line)
+        self.chunk.write(OpCode.CALL, self.current_line)
+        self.chunk.write(1, self.current_line)
+        self.chunk.write(OpCode.SET_LOCAL, self.current_line)
+        self.chunk.write(res_slot, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
+
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(res_slot, self.current_line)
         self.pop_scope()
 
 

@@ -197,6 +197,14 @@ class DictComprehension(ASTNode):
     def accept(self, visitor): return visitor.visit_dict_comprehension(self)
 
 @dataclass
+class SetComprehension(ASTNode):
+    element: ASTNode
+    variable: str
+    iterator: ASTNode
+    condition: Optional[ASTNode] = None
+    def accept(self, visitor): return visitor.visit_set_comprehension(self)
+
+@dataclass
 class IsExpr(ASTNode):
     left: ASTNode
     type_name: str

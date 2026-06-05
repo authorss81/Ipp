@@ -973,7 +973,7 @@ class Parser:
                     entries.append((key_expr, value_expr))
                     order.append('r')
                 elif self.match(TokenType.FOR):
-                    return self.dict_comprehension(key_expr, None)
+                    return self.set_comprehension(key_expr)
                 else:
                     self.error("Expect ':' or 'for' in dict literal")
             while self.match(TokenType.COMMA):
@@ -1012,6 +1012,16 @@ class Parser:
             condition = self.expression()
         self.consume(TokenType.RIGHT_BRACE, "Expect '}' after dict comprehension")
         return DictComprehension(key_expr, value_expr, var_token.lexeme, iterator, condition)
+
+    def set_comprehension(self, element):
+        var_token = self.consume(TokenType.IDENTIFIER, "Expect variable after 'for'")
+        self.consume(TokenType.IN, "Expect 'in' after variable")
+        iterator = self.expression()
+        condition = None
+        if self.match(TokenType.IF):
+            condition = self.expression()
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after set comprehension")
+        return SetComprehension(element, var_token.lexeme, iterator, condition)
 
     # ─── Helpers ─────────────────────────────────────────────────────────────
 
