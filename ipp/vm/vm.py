@@ -645,6 +645,7 @@ class VM:
             'sum': self._builtin_sum,
             'range': self._builtin_range,
             'enumerate': self._builtin_enumerate,
+            'zip': self._builtin_zip,
             'random': random.random,
             'randint': random.randint,
             'randfloat': lambda a, b: random.uniform(a, b),
@@ -1054,6 +1055,11 @@ class VM:
         if hasattr(iterable, '__len__'):
             return [[i + start, iterable[i]] for i in range(len(iterable))]
         return [[i + start, v] for i, v in enumerate(iterable, start)]
+
+    def _builtin_zip(self, *args):
+        if not args:
+            return []
+        return [list(pair) for pair in zip(*args)]
 
     def _builtin_read_file(self, path):
         with open(str(path), 'r', encoding='utf-8') as f:

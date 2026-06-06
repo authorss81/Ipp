@@ -343,6 +343,12 @@ def ipp_enumerate(*args):
     return [[i + start, v] for i, v in enumerate(iterable, start)]
 
 
+def ipp_zip(*args):
+    if not args:
+        return []
+    return [list(pair) for pair in zip(*args)]
+
+
 def ipp_random():
     return random.random()
 
@@ -4080,6 +4086,7 @@ BUILTINS = {
     "sum": ipp_sum,
     "range": ipp_range,
     "enumerate": ipp_enumerate,
+    "zip": ipp_zip,
     "random": ipp_random,
     "randint": ipp_randint,
     "randfloat": ipp_randfloat,
