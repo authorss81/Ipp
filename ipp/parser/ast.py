@@ -312,6 +312,12 @@ class FunctionDecl(ASTNode):
     def accept(self, visitor): return visitor.visit_function_decl(self)
 
 @dataclass
+class ExportDecl(ASTNode):
+    """export func/var/let/class — marks a declaration as public API (v1.9.12)"""
+    declaration: ASTNode
+    def accept(self, visitor): return visitor.visit_export_decl(self)
+
+@dataclass
 class ImportDecl(ASTNode):
     module_path: str
     alias: Optional[str] = None

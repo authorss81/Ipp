@@ -149,6 +149,8 @@ class Compiler:
             self.compile_function(node, is_async=True)
         elif isinstance(node, ClassDecl):
             self.compile_class(node)
+        elif isinstance(node, ExportDecl):
+            self.compile_export(node)
         elif isinstance(node, ImportDecl):
             self.compile_import(node)
         elif isinstance(node, ExprStmt):
@@ -484,6 +486,21 @@ class Compiler:
         self.chunk.constants.append(node.name)
         self.chunk.write(cidx, self.current_line)
         self.chunk.lines.append(self.current_line)
+
+    def _decl_name(self, node):
+        """Get the name of a declaration node (func/var/let/class)."""
+        if isinstance(node, (FunctionDecl, AsyncFuncDecl, VarDecl, LetDecl)):
+            return node.name
+        if isinstance(node, ClassDecl):
+            return node.name
+        return None
+
+    def compile_export(self, node: ExportDecl):
+        inner = node.declaration
+        name = self._decl_name(inner)
+        if name:
+            self.chunk.exports.add(name)
+        self.compile_stmt(inner)
 
     def compile_import(self, node: ImportDecl):
         self.chunk.write(OpCode.IMPORT, self.current_line)

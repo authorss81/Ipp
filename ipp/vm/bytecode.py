@@ -288,6 +288,7 @@ class Chunk:
         self.constants: List[Any] = []
         self.lines: List[int] = []
         self.const_locals: set = set()  # slot indices of const locals
+        self.exports: set = set()  # names marked with export keyword (v1.9.12)
 
     def write(self, opcode, line: int = 0):
         if isinstance(opcode, OpCode):

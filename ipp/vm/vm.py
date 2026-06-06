@@ -2147,7 +2147,9 @@ class VM:
             if not hasattr(self, '_module_cache'):
                 self._module_cache = {}
             if module_path in self._module_cache:
-                new_globals = self._module_cache[module_path]
+                cached = self._module_cache[module_path]
+                new_globals = cached.get('globals', {})
+                exports_set = cached.get('exports', set())
             else:
                 import os
 
@@ -2184,10 +2186,16 @@ class VM:
                 child = VM()
                 child._current_source_file = found_path
                 child.globals.update(self.globals)
-                child.run(compile_ast(parse(tokenize(src))))
+                chunk = compile_ast(parse(tokenize(src)))
+                exports_set = getattr(chunk, 'exports', set()) or set()
+                child.run(chunk)
                 new_globals = {k: v for k, v in child.globals.items()
                                if k not in self.globals or child.globals[k] is not self.globals.get(k)}
-                self._module_cache[module_path] = new_globals
+                self._module_cache[module_path] = {'globals': new_globals, 'exports': exports_set}
+
+            # Apply export filtering: if the module has exports, only those names are visible
+            if exports_set:
+                new_globals = {k: v for k, v in new_globals.items() if k in exports_set}
 
             # Apply alias or selective import
             if alias and isinstance(alias, str):
@@ -2198,6 +2206,8 @@ class VM:
             elif names and isinstance(names, (list, tuple)):
                 # import "mod" as { a, b }  → import only named symbols
                 for name in names:
+                    if exports_set and name not in exports_set:
+                        raise VMError(f"Name '{name}' is not exported by module '{module_path}'")
                     if name in new_globals:
                         self.globals[name] = new_globals[name]
             else:

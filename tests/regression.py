@@ -196,6 +196,7 @@ TESTS = [
     ("v1.9.7-zip","tests/v1_9_7/test_zip.ipp"),
     ("v1.9.8-sorted","tests/v1_9_8/test_sorted.ipp"),
     ("v1.9.9-dict-full","tests/v1_9_9/test_dict_full.ipp"),
+    ("v1.9.12-export","tests/v1_9_12/test_export.ipp"),
 ]
 
 def extract_expected_from_file(filepath):

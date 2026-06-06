@@ -58,6 +58,7 @@ class TokenType(Enum):
     IS = auto()  # v1.8.8 'is' operator
     GLOBAL = auto()  # v1.9.1 global keyword
     NONLOCAL = auto()  # v1.9.1.1 nonlocal keyword
+    EXPORT = auto()  # v1.9.12 export keyword
 
     # Decorator (v1.5.17)
     AT = auto()
@@ -177,4 +178,5 @@ KEYWORDS = {
     "is": TokenType.IS,            # v1.8.8 'is' operator
     "global": TokenType.GLOBAL,    # v1.9.1 global keyword
     "nonlocal": TokenType.NONLOCAL, # v1.9.1.1 nonlocal keyword
+    "export": TokenType.EXPORT,    # v1.9.12 export keyword
 }

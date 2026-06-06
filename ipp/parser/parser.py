@@ -29,6 +29,13 @@ class Parser:
         if self.match(TokenType.AT):
             decorator = self.expression()
             self.skip_newlines()
+        # v1.9.12 - export modifier
+        if self.match(TokenType.EXPORT):
+            inner = self._declaration_without_export(decorator)
+            return ExportDecl(inner)
+        return self._declaration_without_export(decorator)
+
+    def _declaration_without_export(self, decorator=None):
         if self.match(TokenType.VAR):
             return self.var_declaration()
         if self.match(TokenType.LET):

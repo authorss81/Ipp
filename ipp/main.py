@@ -70,7 +70,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "1.9.9"
+VERSION = "1.9.12"
 
 # ─── Windows ANSI enablement — v1.7.9.1.2 ────────────────────────────────────
 def _enable_windows_ansi() -> bool:
@@ -314,7 +314,7 @@ _KEYWORDS = frozenset([
     "var","let","func","class","if","else","elif","for","while",
     "match","case","default","try","catch","finally","throw","return",
     "break","continue","import","as","in","nil","true","false",
-    "self","this","enum","static","repeat","until","and","or","not","with",
+    "self","this","enum","static","repeat","until","and","or","not","with","export",
 ])
 _BUILTINS = frozenset([
     "print","len","type","range","abs","min","max","sum","round",
