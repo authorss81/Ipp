@@ -308,6 +308,16 @@ class Compiler:
             sub.chunk.write(OpCode.POP, sub.current_line)
             sub.chunk.patch_jump(skip_jump)
 
+        # Pre-define function name in parent scope for recursion (v2.4.1)
+        # Ensures recursive calls inside the function body can resolve the name
+        if node.name != "__lambda__" and not is_method:
+            if self.depth > 0:
+                # Add to parent's locals so sub-compiler can resolve recursive calls
+                self.define_local(node.name)
+            else:
+                # Add a placeholder global constant index
+                self._predefine_func_name = node.name
+
         for stmt in node.body:
             sub.compile_stmt(stmt)
 
@@ -356,7 +366,9 @@ class Compiler:
             self.chunk.write(OpCode.CLOSURE, self.current_line)
             self.chunk.write(idx, self.current_line)
             if self.depth > 0:
-                self.define_local(node.name)
+                # Skip if already added by pre-define (v2.4.1 fix for recursion)
+                if node.name == "__lambda__" or is_method or not any(l.name == node.name for l in self.locals):
+                    self.define_local(node.name)
             else:
                 self.chunk.write(OpCode.DEFINE_GLOBAL, self.current_line)
                 cidx = len(self.chunk.constants)
@@ -706,7 +718,7 @@ class Compiler:
         for brk in loop_info['break_jumps']:
             self.chunk.patch_jump(brk)
 
-        # pop_scope without re-emitting pops (already done above)
+        self._pop_scope_no_emit()
 
     def compile_game_loop(self, node: GameLoopStmt):
         self.push_scope()
@@ -746,7 +758,6 @@ class Compiler:
         loop_info = self.loop_stack.pop()
         for brk in loop_info['break_jumps']:
             self.chunk.patch_jump(brk)
-        self.pop_scope()
         self._pop_scope_no_emit()
 
     def _emit_scope_pops(self):
