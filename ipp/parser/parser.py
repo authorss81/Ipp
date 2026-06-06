@@ -357,6 +357,8 @@ class Parser:
             return self.nonlocal_declaration()
         if self.match(TokenType.WITH):
             return self.with_statement()
+        if self.match(TokenType.GAME_LOOP):
+            return self.game_loop_statement()
         # Check for assert statement (identifier "assert" followed by expression)
         if self.check(TokenType.IDENTIFIER) and self.peek().lexeme == "assert":
             self.advance()  # consume "assert"
@@ -500,6 +502,26 @@ class Parser:
         self.consume(TokenType.LEFT_BRACE, "Expect '{' after with initializer")
         body = self.block()
         return WithStmt(var_name.lexeme, initializer, body)
+
+    def game_loop_statement(self):
+        self.consume(TokenType.LEFT_PAREN, "Expect '(' after 'game_loop'")
+        named_args = []
+        while not self.check(TokenType.RIGHT_PAREN):
+            name = self.consume(TokenType.IDENTIFIER, "Expect parameter name").lexeme
+            self.consume(TokenType.EQUAL, "Expect '=' after parameter name")
+            value = self.expression()
+            named_args.append(NamedArg(name, value))
+            if not self.check(TokenType.RIGHT_PAREN):
+                self.consume(TokenType.COMMA, "Expect ',' or ')'")
+        self.consume(TokenType.RIGHT_PAREN, "Expect ')' after game_loop parameters")
+        # Find fps parameter (default 60)
+        fps = NumberLiteral(60)
+        for na in named_args:
+            if na.name == "fps":
+                fps = na.value
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' after game_loop(...)")
+        body = self.block()
+        return GameLoopStmt(fps, body)
 
     def return_statement(self):
         value = None

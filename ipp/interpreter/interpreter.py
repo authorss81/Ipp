@@ -1925,6 +1925,36 @@ class Interpreter:
         
         self.environment = saved_env
 
+    def visit_game_loop_stmt(self, node: GameLoopStmt):
+        import time as _time
+        fps = node.fps.accept(self)
+        _frame_start = _time.time()
+        _last_delta = 0.0
+        saved_env = self.environment
+        while True:
+            for stmt in node.body:
+                if self.break_flag:
+                    self.break_flag = False
+                    self.environment = saved_env
+                    return
+                if self.continue_flag:
+                    self.continue_flag = False
+                    break
+                stmt.accept(self)
+                if self.return_value is not None:
+                    self.environment = saved_env
+                    return
+            now = _time.time()
+            elapsed = now - _frame_start
+            target = 1.0 / max(float(fps), 1)
+            sleep_time = target - elapsed
+            if sleep_time > 0:
+                _time.sleep(sleep_time)
+            _last_delta = _time.time() - _frame_start
+            _frame_start = _time.time()
+            if hasattr(self, '_last_delta'):
+                self._last_delta = _last_delta
+
     def visit_do_while_stmt(self, node: DoWhileStmt):
         saved_env = self.environment
 

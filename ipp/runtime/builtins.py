@@ -4053,6 +4053,29 @@ def _safe_try_highlight_session() -> bool:
     except Exception:
         return False
 
+
+def _ipp_game_sync(fps):
+    import time as _time
+    if not hasattr(_ipp_game_sync, '_frame_start'):
+        _ipp_game_sync._frame_start = _time.time()
+        _ipp_game_sync._last_delta = 0.0
+        return
+    now = _time.time()
+    elapsed = now - _ipp_game_sync._frame_start
+    target = 1.0 / max(float(fps), 1)
+    sleep_time = target - elapsed
+    if sleep_time > 0:
+        _time.sleep(sleep_time)
+    _ipp_game_sync._last_delta = _time.time() - _ipp_game_sync._frame_start
+    _ipp_game_sync._frame_start = _time.time()
+
+def _ipp_delta_time():
+    return getattr(_ipp_game_sync, '_last_delta', 0.0)
+
+def _ipp_delta_time_ms():
+    return getattr(_ipp_game_sync, '_last_delta', 0.0) * 1000.0
+
+
 BUILTINS = {
     "format": ipp_format,
     "print": ipp_print,
@@ -4097,6 +4120,9 @@ BUILTINS = {
     "enumerate": ipp_enumerate,
     "zip": ipp_zip,
     "sorted": ipp_sorted,
+    "_game_sync": _ipp_game_sync,
+    "delta_time": _ipp_delta_time,
+    "delta_time_ms": _ipp_delta_time_ms,
     "random": ipp_random,
     "randint": ipp_randint,
     "randfloat": ipp_randfloat,

@@ -271,6 +271,13 @@ class AsyncFuncDecl(ASTNode):
 # ─── Statement nodes ──────────────────────────────────────────────────────────
 
 @dataclass
+class GameLoopStmt(ASTNode):
+    """game_loop(fps=N) { body } — v2.0.0"""
+    fps: ASTNode
+    body: List[ASTNode]
+    def accept(self, visitor): return visitor.visit_game_loop_stmt(self)
+
+@dataclass
 class VarDecl(ASTNode):
     name: str
     initializer: Optional[ASTNode]

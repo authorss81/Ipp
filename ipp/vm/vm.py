@@ -647,6 +647,9 @@ class VM:
             'enumerate': self._builtin_enumerate,
             'zip': self._builtin_zip,
             'sorted': self._builtin_sorted,
+            '_game_sync': self._builtin_game_sync,
+            'delta_time': self._builtin_delta_time,
+            'delta_time_ms': self._builtin_delta_time_ms,
             'random': random.random,
             'randint': random.randint,
             'randfloat': lambda a, b: random.uniform(a, b),
@@ -1074,6 +1077,27 @@ class VM:
             return lst
         lst.sort(reverse=reverse)
         return lst
+
+    def _builtin_game_sync(self, fps):
+        import time as _time
+        now = _time.time()
+        if not hasattr(self, '_frame_start'):
+            self._frame_start = now
+            self._last_delta = 0.0
+            return
+        elapsed = now - self._frame_start
+        target = 1.0 / max(float(fps), 1)
+        sleep_time = target - elapsed
+        if sleep_time > 0:
+            _time.sleep(sleep_time)
+        self._last_delta = _time.time() - self._frame_start
+        self._frame_start = _time.time()
+
+    def _builtin_delta_time(self):
+        return getattr(self, '_last_delta', 0.0)
+
+    def _builtin_delta_time_ms(self):
+        return getattr(self, '_last_delta', 0.0) * 1000.0
 
     def _builtin_read_file(self, path):
         with open(str(path), 'r', encoding='utf-8') as f:

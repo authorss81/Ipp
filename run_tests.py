@@ -147,6 +147,7 @@ TESTS = [
     ("v1.9.9-dict-full","tests/v1_9_9/test_dict_full.ipp"),
     ("v1.9.12-export","tests/v1_9_12/test_export.ipp"),
     ("v1.9.13-project-mode","tests/v1_9_13/test_project_mode/test_project.ipp"),
+    ("v2.0.0-game-loop","tests/v2_0_0/test_game_loop.ipp"),
 ]
 
 passed=failed=0

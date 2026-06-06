@@ -59,6 +59,7 @@ class TokenType(Enum):
     GLOBAL = auto()  # v1.9.1 global keyword
     NONLOCAL = auto()  # v1.9.1.1 nonlocal keyword
     EXPORT = auto()  # v1.9.12 export keyword
+    GAME_LOOP = auto()  # v2.0.0 game_loop keyword
 
     # Decorator (v1.5.17)
     AT = auto()
@@ -179,4 +180,5 @@ KEYWORDS = {
     "global": TokenType.GLOBAL,    # v1.9.1 global keyword
     "nonlocal": TokenType.NONLOCAL, # v1.9.1.1 nonlocal keyword
     "export": TokenType.EXPORT,    # v1.9.12 export keyword
+    "game_loop": TokenType.GAME_LOOP,  # v2.0.0 game loop keyword
 }

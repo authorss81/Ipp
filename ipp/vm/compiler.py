@@ -153,6 +153,8 @@ class Compiler:
             self.compile_export(node)
         elif isinstance(node, ImportDecl):
             self.compile_import(node)
+        elif isinstance(node, GameLoopStmt):
+            self.compile_game_loop(node)
         elif isinstance(node, ExprStmt):
             self.compile_expr(node.expression)
             self.chunk.write(OpCode.POP, self.current_line)
@@ -705,6 +707,46 @@ class Compiler:
             self.chunk.patch_jump(brk)
 
         # pop_scope without re-emitting pops (already done above)
+
+    def compile_game_loop(self, node: GameLoopStmt):
+        self.push_scope()
+        # Store fps in local
+        self.compile_expr(node.fps)
+        fps_slot = self.define_local("__game_fps__")
+
+        loop_start = len(self.chunk.code)
+        self.loop_stack.append({
+            'start': loop_start,
+            'break_jumps': [],
+            'continue_target': loop_start,
+            'continue_jumps': [],
+            'base_local_count': len(self.locals),
+        })
+
+        # while true
+        self.chunk.add_constant(True, self.current_line)
+        exit_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+
+        # body
+        for stmt in node.body:
+            self.compile_stmt(stmt)
+
+        # Inject _game_sync(fps) call at end of each frame
+        self.compile_identifier("_game_sync")
+        self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+        self.chunk.write(fps_slot, self.current_line)
+        self.chunk.write(OpCode.CALL, self.current_line)
+        self.chunk.write(1, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
+
+        self._emit_scope_pops()
+        self.chunk.emit_loop(loop_start, self.current_line)
+        self.chunk.patch_jump(exit_jump)
+
+        loop_info = self.loop_stack.pop()
+        for brk in loop_info['break_jumps']:
+            self.chunk.patch_jump(brk)
+        self.pop_scope()
         self._pop_scope_no_emit()
 
     def _emit_scope_pops(self):
