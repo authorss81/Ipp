@@ -349,6 +349,15 @@ def ipp_zip(*args):
     return [list(pair) for pair in zip(*args)]
 
 
+def ipp_sorted(iterable, key=None, reverse=False):
+    lst = list(iterable)
+    if key is not None:
+        lst.sort(key=key, reverse=reverse)
+    else:
+        lst.sort(reverse=reverse)
+    return lst
+
+
 def ipp_random():
     return random.random()
 
@@ -4087,6 +4096,7 @@ BUILTINS = {
     "range": ipp_range,
     "enumerate": ipp_enumerate,
     "zip": ipp_zip,
+    "sorted": ipp_sorted,
     "random": ipp_random,
     "randint": ipp_randint,
     "randfloat": ipp_randfloat,

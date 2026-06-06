@@ -646,6 +646,7 @@ class VM:
             'range': self._builtin_range,
             'enumerate': self._builtin_enumerate,
             'zip': self._builtin_zip,
+            'sorted': self._builtin_sorted,
             'random': random.random,
             'randint': random.randint,
             'randfloat': lambda a, b: random.uniform(a, b),
@@ -1060,6 +1061,19 @@ class VM:
         if not args:
             return []
         return [list(pair) for pair in zip(*args)]
+
+    def _builtin_sorted(self, iterable, key=None, reverse=False):
+        lst = list(iterable)
+        if key is not None:
+            if isinstance(key, Closure):
+                keys = [self._call_sync(key, [x]) for x in lst]
+                paired = list(zip(keys, lst))
+                paired.sort(key=lambda p: p[0], reverse=reverse)
+                return [p[1] for p in paired]
+            lst.sort(key=key, reverse=reverse)
+            return lst
+        lst.sort(reverse=reverse)
+        return lst
 
     def _builtin_read_file(self, path):
         with open(str(path), 'r', encoding='utf-8') as f:
@@ -1583,10 +1597,22 @@ class VM:
                     self.stack[-1] = _ListMapFilterReduceWrapper(self, name, obj)
                 elif name in ('flat_map', 'group_by', 'sort_by'):
                     self.stack[-1] = _ListAdvancedWrapper(self, name, obj)
+                elif name == 'sorted':
+                    _vm = self
+                    _lst = obj
+                    def _sorted_method(key=None, reverse=False):
+                        if key is not None:
+                            keys = [_vm._call_sync(key, [x]) for x in _lst]
+                            paired = list(zip(keys, _lst))
+                            paired.sort(key=lambda p: p[0], reverse=reverse)
+                            return [p[1] for p in paired]
+                        else:
+                            return sorted(_lst, reverse=reverse)
+                    self.stack[-1] = _sorted_method
                 elif name in _LIST_METHODS:
                     _fn = _LIST_METHODS[name]
                     _bound_obj = obj
-                    self.stack[-1] = lambda *args, _f=_fn, _o=_bound_obj: _f(_o, *args)
+                    self.stack[-1] = lambda *args, _f=_fn, _o=_bound_obj, **kw: _f(_o, *args, **kw)
                 elif hasattr(obj, name):
                     attr = getattr(obj, name)
                     if callable(attr) and not isinstance(attr, (str, int, float, bool)):

@@ -437,6 +437,10 @@ class IppList:
     def sort(self):
         self.elements.sort()
     
+    def sorted(self, key=None, reverse=False):
+        lst = sorted(self.elements, key=key, reverse=reverse)
+        return IppList(lst)
+    
     def reverse(self):
         self.elements.reverse()
     
