@@ -4419,6 +4419,16 @@ BUILTINS = {
     "play_sound": __import__('ipp.runtime.audio', fromlist=['ipp_play_sound']).ipp_play_sound,
     "stop_sound": __import__('ipp.runtime.audio', fromlist=['ipp_stop_sound']).ipp_stop_sound,
     "set_volume": __import__('ipp.runtime.audio', fromlist=['ipp_set_volume']).ipp_set_volume,
+    # Network Multiplayer (v2.4.0)
+    "network_connect": __import__('ipp.runtime.network_multi', fromlist=['ipp_network_connect']).ipp_network_connect,
+    "network_send": __import__('ipp.runtime.network_multi', fromlist=['ipp_network_send']).ipp_network_send,
+    "network_receive": __import__('ipp.runtime.network_multi', fromlist=['ipp_network_receive']).ipp_network_receive,
+    "network_disconnect": __import__('ipp.runtime.network_multi', fromlist=['ipp_network_disconnect']).ipp_network_disconnect,
+    "network_host": __import__('ipp.runtime.network_multi', fromlist=['ipp_network_host']).ipp_network_host,
+    "network_accept": __import__('ipp.runtime.network_multi', fromlist=['ipp_network_accept']).ipp_network_accept,
+    "network_broadcast": __import__('ipp.runtime.network_multi', fromlist=['ipp_network_broadcast']).ipp_network_broadcast,
+    "network_stop_host": __import__('ipp.runtime.network_multi', fromlist=['ipp_network_stop_host']).ipp_network_stop_host,
+    "network_client_count": __import__('ipp.runtime.network_multi', fromlist=['ipp_network_client_count']).ipp_network_client_count,
     # WASM Runtime (v1.5.16)
     "wasm_run": ipp_wasm_run,
     # Signal/Event System (v1.6.6)

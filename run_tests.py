@@ -167,6 +167,7 @@ TESTS = [
     ("v2.1.0-keyboard","tests/v2_1_0/test_keyboard.ipp"),
     ("v2.2.0-canvas","tests/v2_2_0/test_canvas.ipp"),
     ("v2.3.0-audio","tests/v2_3_0/test_audio.ipp"),
+    ("v2.4.0-network","tests/v2_4_0/test_network.ipp"),
 ]
 
 passed=failed=0
