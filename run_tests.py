@@ -13,6 +13,22 @@ print = _safe_print
 tk = types.ModuleType('tkinter')
 class W:
     def __init__(self,*a,**k): pass
+    def title(self,*a,**k): pass
+    def geometry(self,*a,**k): pass
+    def protocol(self,*a,**k): pass
+    def resizable(self,*a,**k): pass
+    def config(self,*a,**k): pass
+    def cget(self, *a): return "580" if a and a[0] == "width" else ("380" if a and a[0] == "height" else "0")
+    def pack(self,*a,**k): pass
+    def update_idletasks(self,*a,**k): pass
+    def update(self,*a,**k): pass
+    def destroy(self): pass
+    def after_cancel(self,*a,**k): pass
+    def create_rectangle(self,*a,**k): pass
+    def create_oval(self,*a,**k): pass
+    def create_line(self,*a,**k): pass
+    def create_text(self,*a,**k): pass
+    def delete(self,*a,**k): pass
 tk.Tk=W; tk.Canvas=W; tk.Frame=W; tk.Label=W; tk.Button=W; tk.ALL='all'; tk.NW='nw'
 sys.modules['tkinter'] = tk
 sys.modules['tkinter.ttk'] = types.ModuleType('tkinter.ttk')
@@ -149,6 +165,7 @@ TESTS = [
     ("v1.9.13-project-mode","tests/v1_9_13/test_project_mode/test_project.ipp"),
     ("v2.0.0-game-loop","tests/v2_0_0/test_game_loop.ipp"),
     ("v2.1.0-keyboard","tests/v2_1_0/test_keyboard.ipp"),
+    ("v2.2.0-canvas","tests/v2_2_0/test_canvas.ipp"),
 ]
 
 passed=failed=0

@@ -3,7 +3,8 @@ import random
 import json
 from ipp.runtime.canvas import (
     ipp_canvas_open, ipp_canvas_rect, ipp_canvas_circle,
-    ipp_canvas_line, ipp_canvas_text, ipp_canvas_clear, ipp_canvas_show
+    ipp_canvas_line, ipp_canvas_text, ipp_canvas_clear, ipp_canvas_show,
+    ipp_canvas_pixel, ipp_canvas_fill, ipp_canvas_size, ipp_canvas_bg, ipp_canvas_color,
 )
 
 
@@ -4408,6 +4409,12 @@ BUILTINS = {
     "canvas_text": ipp_canvas_text,
     "canvas_clear": ipp_canvas_clear,
     "canvas_show": ipp_canvas_show,
+    # Canvas Drawing Enhancements (v2.2.0)
+    "canvas_pixel": ipp_canvas_pixel,
+    "canvas_fill": ipp_canvas_fill,
+    "canvas_size": ipp_canvas_size,
+    "canvas_bg": ipp_canvas_bg,
+    "canvas_color": ipp_canvas_color,
     # WASM Runtime (v1.5.16)
     "wasm_run": ipp_wasm_run,
     # Signal/Event System (v1.6.6)

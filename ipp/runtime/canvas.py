@@ -118,3 +118,48 @@ def ipp_canvas_show():
         except:
             pass
     return "[canvas updated]"
+
+
+def ipp_canvas_pixel(x, y, color="black"):
+    """Draw a single pixel on the canvas (v2.2.0)."""
+    global _canvas, _canvas_window
+    if _canvas and _canvas_window:
+        _canvas.create_line(x, y, x+1, y, fill=color, width=1)
+        _canvas_window.update_idletasks()
+        _canvas_window.update()
+    return "[pixel drawn]"
+
+
+def ipp_canvas_fill(color="white"):
+    """Fill the entire canvas with a solid color (v2.2.0)."""
+    global _canvas, _canvas_window
+    if _canvas and _canvas_window:
+        w = int(_canvas.cget("width"))
+        h = int(_canvas.cget("height"))
+        _canvas.create_rectangle(0, 0, w, h, fill=color, outline=color)
+        _canvas_window.update_idletasks()
+        _canvas_window.update()
+    return "[canvas filled]"
+
+
+def ipp_canvas_size():
+    """Return canvas dimensions as [width, height] (v2.2.0)."""
+    global _canvas
+    if _canvas:
+        return [int(_canvas.cget("width")), int(_canvas.cget("height"))]
+    return [0, 0]
+
+
+def ipp_canvas_bg(color="white"):
+    """Set canvas background color (v2.2.0)."""
+    global _canvas, _canvas_window
+    if _canvas and _canvas_window:
+        _canvas.config(bg=color)
+        _canvas_window.update_idletasks()
+        _canvas_window.update()
+    return "[background set]"
+
+
+def ipp_canvas_color(r, g, b):
+    """Convert r,g,b (0-255) to a hex color string (v2.2.0)."""
+    return f"#{int(r):02x}{int(g):02x}{int(b):02x}"
