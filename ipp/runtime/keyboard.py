@@ -146,6 +146,23 @@ def key_pressed(key: str) -> bool:
     return _state.get(_normalise_key(key), False)
 
 
+def key_down(key: str) -> bool:
+    """Return True if `key` was pressed this frame (v2.1.0)."""
+    return _normalise_key(key) in _just_pressed
+
+
+def key_up(key: str) -> bool:
+    """Return True if `key` was released this frame (v2.1.0)."""
+    return _normalise_key(key) in _just_released
+
+
+def key_name(scancode) -> str:
+    """Convert an integer scancode or raw string to canonical key name (v2.1.0)."""
+    if isinstance(scancode, int):
+        scancode = chr(scancode)
+    return _normalise_key(str(scancode))
+
+
 def key_just_pressed(key: str) -> bool:
     return _normalise_key(key) in _just_pressed
 
@@ -258,6 +275,9 @@ def build_keyboard_builtins(vm=None) -> dict:
 
     return {
         'key_pressed':       key_pressed,
+        'key_down':          key_down,
+        'key_up':            key_up,
+        'key_name':          key_name,
         'key_just_pressed':  key_just_pressed,
         'key_just_released': key_just_released,
         'get_key':           get_key,
