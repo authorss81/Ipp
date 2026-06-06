@@ -4415,6 +4415,10 @@ BUILTINS = {
     "canvas_size": ipp_canvas_size,
     "canvas_bg": ipp_canvas_bg,
     "canvas_color": ipp_canvas_color,
+    # Audio Playback (v2.3.0)
+    "play_sound": __import__('ipp.runtime.audio', fromlist=['ipp_play_sound']).ipp_play_sound,
+    "stop_sound": __import__('ipp.runtime.audio', fromlist=['ipp_stop_sound']).ipp_stop_sound,
+    "set_volume": __import__('ipp.runtime.audio', fromlist=['ipp_set_volume']).ipp_set_volume,
     # WASM Runtime (v1.5.16)
     "wasm_run": ipp_wasm_run,
     # Signal/Event System (v1.6.6)
