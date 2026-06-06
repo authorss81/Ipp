@@ -70,7 +70,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "1.9.12"
+VERSION = "1.9.13"
 
 # ─── Windows ANSI enablement — v1.7.9.1.2 ────────────────────────────────────
 def _enable_windows_ansi() -> bool:
@@ -2950,7 +2950,9 @@ def print_usage():
     print(f"{BOLD('Usage:')}  python main.py [command] [file]\n")
     cmds = [
         ("<file>",      "Run a script"),
+        ("run",         "Run project (looks for ipp.toml)"),
         ("run <f>",     "Run a script"),
+        ("new <name>",  "Scaffold a new project"),
         ("check <f>",   "Syntax check only"),
         ("lint <f>",    "Lint code (static analysis)"),
         ("fmt <f>",     "Format code"),
@@ -3199,8 +3201,27 @@ def main():
         except Exception as e:
             print(f"Error: {e}")
             return 1
-    if cmd == 'run' and len(args) >= 2:
-        return run_file(args[1])
+    if cmd == 'run':
+        if len(args) >= 2:
+            return run_file(args[1])
+        # ipp run with no file — try project mode
+        from ipp.project import find_project_root, load_project
+        project_dir = find_project_root()
+        if project_dir:
+            cfg, entry_path = load_project(project_dir)
+            if entry_path and os.path.isfile(entry_path):
+                return run_file(entry_path)
+        print(f"{colour(C_WARN, 'No ipp.toml found in current or parent directories')}")
+        return 1
+    if cmd == 'new' and len(args) >= 2:
+        from ipp.scaffold import new_project
+        try:
+            path = new_project(args[1])
+            print(f"{colour(C_OK, '✓')} Created project '{args[1]}' at {path}")
+            return 0
+        except FileExistsError as e:
+            print(f"{colour(C_ERR, str(e))}")
+            return 1
     if cmd == 'check' and len(args) >= 2:
         return check_file(args[1])
     if cmd == 'lint' and len(args) >= 2:

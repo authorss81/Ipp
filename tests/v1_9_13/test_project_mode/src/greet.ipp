@@ -1,0 +1,3 @@
+export func greet(name) {
+    return "Hello, " + name + "!"
+}

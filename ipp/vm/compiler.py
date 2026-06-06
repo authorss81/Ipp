@@ -511,7 +511,7 @@ class Compiler:
         self.chunk.write((cidx >> 16) & 0xFF, self.current_line)
         # Store alias info in constants so VM can create the alias dict
         alias = getattr(node, 'alias', None)
-        names = getattr(node, 'names', None)  # selective import: import "m" as {a, b}
+        names = getattr(node, 'imports', None)  # selective import: import "m" as {a, b}
         alias_cidx = len(self.chunk.constants)
         self.chunk.constants.append(alias)
         self.chunk.write(alias_cidx & 0xFF, self.current_line)
