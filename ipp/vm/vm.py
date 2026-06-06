@@ -1623,11 +1623,46 @@ class VM:
                     raise VMError(f"Property '{name}' not found on list")
             elif isinstance(obj, dict) and name in obj:
                 self.stack[-1] = obj[name]
+            elif isinstance(obj, dict):
+                # Dict methods (map, filter, items, keys, values)
+                if name == 'items':
+                    self.stack[-1] = lambda: [list(pair) for pair in obj.items()]
+                elif name == 'keys':
+                    self.stack[-1] = lambda: list(obj.keys())
+                elif name == 'values':
+                    self.stack[-1] = lambda: list(obj.values())
+                elif name == 'map':
+                    _vm, _d = self, obj
+                    self.stack[-1] = lambda fn: {k: _vm._call_sync(fn, [k, v]) for k, v in _d.items()}
+                elif name == 'filter':
+                    _vm, _d = self, obj
+                    self.stack[-1] = lambda fn: {k: v for k, v in _d.items() if _vm._call_sync(fn, [k, v])}
+                elif hasattr(obj, name):
+                    attr = getattr(obj, name)
+                    if hasattr(attr, '__objclass__') or type(attr).__name__ in ('method_descriptor', 'builtin_function_or_method', 'method-wrapper'):
+                        _bound_obj = obj
+                        self.stack[-1] = lambda *args, _a=attr, _o=_bound_obj: _a(_o, *args) if not callable(_a) else _a(*args)
+                    else:
+                        self.stack[-1] = attr
+                else:
+                    raise VMError(f"Property '{name}' not found on dict")
             elif hasattr(obj, 'data') and isinstance(getattr(obj, 'data', None), dict):
                 # IppDict — look up key, then fall back to methods
                 val = obj.data.get(name)
                 if val is not None:
                     self.stack[-1] = val
+                elif name == 'items':
+                    self.stack[-1] = lambda: [list(pair) for pair in obj.data.items()]
+                elif name == 'keys':
+                    self.stack[-1] = lambda: list(obj.data.keys())
+                elif name == 'values':
+                    self.stack[-1] = lambda: list(obj.data.values())
+                elif name == 'map':
+                    _vm, _d = self, obj.data
+                    self.stack[-1] = lambda fn: {k: _vm._call_sync(fn, [k, v]) for k, v in _d.items()}
+                elif name == 'filter':
+                    _vm, _d = self, obj.data
+                    self.stack[-1] = lambda fn: {k: v for k, v in _d.items() if _vm._call_sync(fn, [k, v])}
                 elif hasattr(obj, name):
                     self.stack[-1] = getattr(obj, name)
                 else:

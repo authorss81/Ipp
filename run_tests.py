@@ -144,6 +144,7 @@ TESTS = [
     ("v1.9.6-lazy-range-enumerate","tests/v1_9_6/test_lazy_range_enumerate.ipp"),
     ("v1.9.7-zip","tests/v1_9_7/test_zip.ipp"),
     ("v1.9.8-sorted","tests/v1_9_8/test_sorted.ipp"),
+    ("v1.9.9-dict-full","tests/v1_9_9/test_dict_full.ipp"),
 ]
 
 passed=failed=0

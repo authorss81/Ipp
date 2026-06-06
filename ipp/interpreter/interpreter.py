@@ -481,7 +481,20 @@ class IppDict:
         return key in self.data
 
     def items(self):
-        return self.data.items()
+        return [[k, v] for k, v in self.data.items()]
+
+    def map(self, fn):
+        result = {}
+        for k, v in self.data.items():
+            result[k] = fn(k, v)
+        return IppDict(result)
+
+    def filter(self, fn):
+        result = {}
+        for k, v in self.data.items():
+            if fn(k, v):
+                result[k] = v
+        return IppDict(result)
 
 
 _ipp_current_interpreter = None
