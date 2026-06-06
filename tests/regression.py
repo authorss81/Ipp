@@ -192,6 +192,7 @@ TESTS = [
     ("v1.9.4-async-return","tests/v1_9_4/test_async_return.ipp"),
     ("v1.9.5-set-ops","tests/v1_9_5/test_set_ops.ipp"),
     ("v1.9.5.1-set-comprehension","tests/v1_9_5_1/test_set_comprehension.ipp"),
+    ("v1.9.6-lazy-range-enumerate","tests/v1_9_6/test_lazy_range_enumerate.ipp"),
 ]
 
 def extract_expected_from_file(filepath):

@@ -644,6 +644,7 @@ class VM:
             'max': max,
             'sum': self._builtin_sum,
             'range': self._builtin_range,
+            'enumerate': self._builtin_enumerate,
             'random': random.random,
             'randint': random.randint,
             'randfloat': lambda a, b: random.uniform(a, b),
@@ -1042,10 +1043,17 @@ class VM:
         return sum(args)
 
     def _builtin_range(self, *args):
-        if len(args) == 1:   return list(range(int(args[0])))
-        if len(args) == 2:   return list(range(int(args[0]), int(args[1])))
-        if len(args) == 3:   return list(range(int(args[0]), int(args[1]), int(args[2])))
-        return []
+        from ipp.interpreter.interpreter import IppRange
+        if len(args) == 1:   return IppRange(int(args[0]))
+        if len(args) == 2:   return IppRange(int(args[0]), int(args[1]))
+        if len(args) == 3:   return IppRange(int(args[0]), int(args[1]), int(args[2]))
+        return IppRange(0)
+
+    def _builtin_enumerate(self, iterable, start=0):
+        start = int(start)
+        if hasattr(iterable, '__len__'):
+            return [[i + start, iterable[i]] for i in range(len(iterable))]
+        return [[i + start, v] for i, v in enumerate(iterable, start)]
 
     def _builtin_read_file(self, path):
         with open(str(path), 'r', encoding='utf-8') as f:
@@ -1642,7 +1650,7 @@ class VM:
             idx = self.stack.pop()
             obj = self.stack.pop()
             # FIX: v1.9.0 — list[a..b] slice syntax
-            if isinstance(idx, (list, slice)):
+            if isinstance(idx, (list, slice)) or (hasattr(idx, 'start') and hasattr(idx, 'step') and hasattr(idx, 'stop')):
                 if isinstance(idx, list):
                     start = idx[0] if idx else 0
                     end = (idx[-1] + 1) if idx else 0
@@ -1655,6 +1663,8 @@ class VM:
                     self.stack.append(obj[start:end:step])
                 elif hasattr(obj, 'elements'):
                     self.stack.append(type(obj)(obj.elements[start:end:step]))
+                elif hasattr(obj, 'start') and hasattr(obj, 'stop') and hasattr(obj, 'step'):
+                    self.stack.append([obj[i] for i in range(start, end, step)])
                 else:
                     raise VMError(f"Cannot slice {type(obj).__name__}{line_info}")
             elif isinstance(obj, IppVMGenerator):
@@ -1696,6 +1706,10 @@ class VM:
                     self.stack.append(components[i])
                 else:
                     raise VMError(f"Vector index {i} out of range")
+            elif hasattr(obj, '_items') and isinstance(getattr(obj, '_items', None), set):
+                self.stack.append(list(obj._items)[int(idx)])
+            elif hasattr(obj, 'start') and hasattr(obj, 'stop') and hasattr(obj, 'step'):
+                self.stack.append(obj[int(idx)])
             else:
                 raise VMError(f"Cannot index {type(obj).__name__} with {idx!r}{line_info}")
 
@@ -2197,8 +2211,8 @@ class VM:
         elif opcode == OpCode.RANGE:
             b = self.stack.pop()
             a = self.stack.pop()
-            # `..` is exclusive of the end in Ipp — 0..5 = [0,1,2,3,4]
-            self.stack.append(list(range(int(a), int(b))))
+            from ipp.interpreter.interpreter import IppRange
+            self.stack.append(IppRange(int(a), int(b)))
 
         # ── Arithmetic ───────────────────────────────────────────────────
         elif opcode == OpCode.ADD:

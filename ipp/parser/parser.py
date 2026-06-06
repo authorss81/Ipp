@@ -372,14 +372,19 @@ class Parser:
         return IfStmt(condition, then_branch, elif_branches, else_branch)
 
     def for_statement(self):
-        var_name = None
+        var_names = []
         if not self.check(TokenType.IN):
             var_token = self.consume(TokenType.IDENTIFIER, "Expect loop variable")
-            var_name = var_token.lexeme
+            var_names.append(var_token.lexeme)
+            while self.match(TokenType.COMMA):
+                if self.check(TokenType.IN):
+                    break
+                next_var = self.consume(TokenType.IDENTIFIER, "Expect variable after ','")
+                var_names.append(next_var.lexeme)
             self.consume(TokenType.IN, "Expect 'in' after variable")
         iterator = self.expression()
         body = self.block_or_statement()
-        return ForStmt(var_name, iterator, body)
+        return ForStmt(var_names, iterator, body)
 
     def while_statement(self):
         condition = self.expression()

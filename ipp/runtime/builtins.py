@@ -327,9 +327,20 @@ def ipp_sum(*args):
 
 
 def ipp_range(start, end=None, step=1):
+    from ipp.interpreter.interpreter import IppRange
     if end is None:
-        return list(range(start))
-    return list(range(start, end, step))
+        return IppRange(start)
+    return IppRange(start, end, step)
+
+
+def ipp_enumerate(*args):
+    start = 0
+    if len(args) >= 2:
+        start = int(args[1])
+    iterable = args[0]
+    if hasattr(iterable, '__len__'):
+        return [[i + start, iterable[i]] for i in range(len(iterable))]
+    return [[i + start, v] for i, v in enumerate(iterable, start)]
 
 
 def ipp_random():
@@ -4068,6 +4079,7 @@ BUILTINS = {
     "max": ipp_max,
     "sum": ipp_sum,
     "range": ipp_range,
+    "enumerate": ipp_enumerate,
     "random": ipp_random,
     "randint": ipp_randint,
     "randfloat": ipp_randfloat,

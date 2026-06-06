@@ -344,7 +344,7 @@ class IfStmt(ASTNode):
 
 @dataclass
 class ForStmt(ASTNode):
-    variable: Optional[str]
+    variables: List[str]
     iterator: ASTNode
     body: List[ASTNode]
     def accept(self, visitor): return visitor.visit_for_stmt(self)

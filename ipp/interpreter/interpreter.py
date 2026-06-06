@@ -279,6 +279,53 @@ class IppModule:
         raise AttributeError(f"module '{self.name}' has no attribute '{name}'")
 
 
+class IppRange:
+    def __init__(self, start, stop=None, step=1):
+        if stop is None:
+            start, stop = 0, start
+        self.start = int(start)
+        self.stop = int(stop)
+        self.step = int(step)
+
+    def __len__(self):
+        if self.step > 0 and self.start < self.stop:
+            return max(0, (self.stop - self.start - 1) // self.step + 1)
+        elif self.step < 0 and self.start > self.stop:
+            return max(0, (self.start - self.stop - 1) // (-self.step) + 1)
+        return 0
+
+    def __getitem__(self, idx):
+        if isinstance(idx, slice):
+            start = idx.start if idx.start is not None else 0
+            stop = idx.stop if idx.stop is not None else len(self)
+            step = idx.step if idx.step is not None else 1
+            return [self[i] for i in range(start, stop, step)]
+        if idx < 0:
+            idx += len(self)
+        if idx < 0 or idx >= len(self):
+            raise IndexError(f"range index {idx} out of range [0, {len(self)})")
+        return self.start + idx * self.step
+
+    def __iter__(self):
+        return self._iter()
+
+    def _iter(self):
+        i = self.start
+        if self.step > 0:
+            while i < self.stop:
+                yield i
+                i += self.step
+        elif self.step < 0:
+            while i > self.stop:
+                yield i
+                i += self.step
+
+    def __repr__(self):
+        if self.step == 1:
+            return f"range({self.start}, {self.stop})"
+        return f"range({self.start}, {self.stop}, {self.step})"
+
+
 class IppSet:
     def __init__(self, items=None):
         self._items = set(items) if items else set()
@@ -664,7 +711,7 @@ class Interpreter:
         elif node.operator == "or":
             return left if bool(left) else right
         elif node.operator == "..":
-            return list(range(int(left), int(right)))
+            return IppRange(int(left), int(right))
         elif node.operator == "in":
             # BUG-15: support 'in' for all container types
             if isinstance(right, IppList):
@@ -1788,6 +1835,8 @@ class Interpreter:
         
         if isinstance(iterable, IppList):
             items = iterable.elements
+        elif isinstance(iterable, IppRange):
+            items = iterable
         elif isinstance(iterable, range):
             items = list(iterable)
         elif isinstance(iterable, list):
@@ -1811,9 +1860,13 @@ class Interpreter:
         saved_env = self.environment
         
         for item in items:
-            if node.variable:
+            if node.variables:
                 new_env = Environment(saved_env)
-                new_env.define(node.variable, item)
+                if len(node.variables) == 1:
+                    new_env.define(node.variables[0], item)
+                else:
+                    for j, var in enumerate(node.variables):
+                        new_env.define(var, item[j])
                 self.environment = new_env
             else:
                 self.environment = saved_env

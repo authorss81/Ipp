@@ -603,9 +603,18 @@ class Compiler:
         self.chunk.write(OpCode.GET_INDEX, self.current_line)
 
         # ── Per-iteration scope for loop variable (BUG-023) ──
-        if node.variable:
+        if node.variables:
             self.push_scope()
-            self.define_local(node.variable)
+            if len(node.variables) == 1:
+                self.define_local(node.variables[0])
+            else:
+                tmp_slot = self.define_local("__for_tmp__")
+                for j, var in enumerate(node.variables):
+                    self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+                    self.chunk.write(tmp_slot, self.current_line)
+                    self.chunk.add_constant(j, self.current_line)
+                    self.chunk.write(OpCode.GET_INDEX, self.current_line)
+                    self.define_local(var)
         else:
             self.chunk.write(OpCode.POP, self.current_line)
 
@@ -616,7 +625,7 @@ class Compiler:
         self._emit_scope_pops()      # clean up body-local vars before idx++
         self._pop_scope_no_emit()    # remove from tracking without double-emit
 
-        if node.variable:
+        if node.variables:
             self.pop_scope()  # pop iteration scope - CLOSE_UPVALUE if captured
 
         # BUG-21/27: Set continue_target AFTER iteration-scope cleanup so
