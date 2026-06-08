@@ -783,6 +783,16 @@ class VM:
         # v2.0.0.1 — time namespace module
         self.globals['time'] = _INTERP_BUILTINS.get('time')
 
+        # v2.0.0.4 — Scheduler (time-based event queue)
+        try:
+            from ipp.runtime.scheduler import _scheduler
+            _scheduler.set_call_fn(lambda fn, *a: self._call_sync(fn, list(a)))
+            self.globals['schedule'] = lambda fn, after=0.0, every=None: _scheduler.schedule(fn, after, every)
+            self.globals['schedule_cancel'] = lambda event_id: _scheduler.cancel(event_id)
+            self.globals['schedule_tick'] = lambda dt: _scheduler.tick(dt)
+        except Exception:
+            pass
+
         # v1.7.9.1.1 — Keyboard input builtins
         try:
             from ipp.runtime.keyboard import build_keyboard_builtins
