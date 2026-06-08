@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 
 
 class ASTNode(ABC):
@@ -425,7 +425,7 @@ class TryStmt(ASTNode):
 @dataclass
 class EnumDecl(ASTNode):
     name: str
-    values: List[str]
+    values: Dict[str, int]
     def accept(self, visitor): return visitor.visit_enum_decl(self)
 
 @dataclass

@@ -2032,6 +2032,15 @@ class VM:
             else:
                 self.stack.append(val)
 
+        elif opcode == OpCode.ENUM_DECL:
+            enum_name = self.stack.pop() if self.stack else None
+            enum_values = self.stack.pop() if self.stack else None
+            if isinstance(enum_values, dict):
+                from ipp.runtime.builtins import IppEnumType
+                self.stack.append(IppEnumType(enum_name, enum_values))
+            else:
+                self.stack.append(None)
+
         elif opcode == OpCode.YIELD:
             val = self.stack.pop() if self.stack else None
             if getattr(self, '_gen_active', False):
@@ -2105,51 +2114,60 @@ class VM:
             cls.properties[name] = (getter, setter)
 
         elif opcode == OpCode.IS_CHECK:
-            type_name = self.stack.pop() if self.stack else None
+            raw_type = self.stack.pop() if self.stack else None
             value = self.stack.pop() if self.stack else None
             result = False
-            if type_name == "int":
-                result = isinstance(value, (int, float)) and not isinstance(value, bool)
-            elif type_name == "float":
-                result = isinstance(value, float)
-            elif type_name == "number":
-                result = isinstance(value, (int, float)) and not isinstance(value, bool)
-            elif type_name == "string":
-                result = isinstance(value, str)
-            elif type_name == "bool":
-                result = isinstance(value, bool)
-            elif type_name == "list":
-                result = isinstance(value, list)
-                if not result:
-                    try:
-                        from ipp.interpreter.interpreter import IppList as _IppList
-                        result = isinstance(value, _IppList)
-                    except ImportError:
-                        pass
-            elif type_name == "dict":
-                result = isinstance(value, dict)
-                if not result:
-                    try:
-                        from ipp.interpreter.interpreter import IppDict as _IppDict
-                        result = isinstance(value, _IppDict)
-                    except ImportError:
-                        pass
-            elif type_name == "tuple":
-                result = isinstance(value, tuple)
-            elif type_name == "set":
-                result = isinstance(value, (set, frozenset))
-                if not result:
-                    try:
-                        from ipp.interpreter.interpreter import IppSet as _IppSet
-                        result = isinstance(value, _IppSet)
-                    except ImportError:
-                        pass
-            elif type_name == "nil":
-                result = value is None
-            elif type_name == "function":
-                result = isinstance(value, (Closure, IppFunction)) or callable(value)
-            elif type_name == "class":
-                result = isinstance(value, IppClass)
+            from ipp.runtime.builtins import IppEnumType
+            if isinstance(raw_type, IppEnumType):
+                result = raw_type.contains(value)
+            elif isinstance(raw_type, str):
+                type_name = raw_type
+                if type_name == "int":
+                    result = isinstance(value, (int, float)) and not isinstance(value, bool)
+                elif type_name == "float":
+                    result = isinstance(value, float)
+                elif type_name == "number":
+                    result = isinstance(value, (int, float)) and not isinstance(value, bool)
+                elif type_name == "string":
+                    result = isinstance(value, str)
+                elif type_name == "bool":
+                    result = isinstance(value, bool)
+                elif type_name == "list":
+                    result = isinstance(value, list)
+                    if not result:
+                        try:
+                            from ipp.interpreter.interpreter import IppList as _IppList
+                            result = isinstance(value, _IppList)
+                        except ImportError:
+                            pass
+                elif type_name == "dict":
+                    result = isinstance(value, dict)
+                    if not result:
+                        try:
+                            from ipp.interpreter.interpreter import IppDict as _IppDict
+                            result = isinstance(value, _IppDict)
+                        except ImportError:
+                            pass
+                elif type_name == "tuple":
+                    result = isinstance(value, tuple)
+                elif type_name == "set":
+                    result = isinstance(value, (set, frozenset))
+                    if not result:
+                        try:
+                            from ipp.interpreter.interpreter import IppSet as _IppSet
+                            result = isinstance(value, _IppSet)
+                        except ImportError:
+                            pass
+                elif type_name == "nil":
+                    result = value is None
+                elif type_name == "function":
+                    result = isinstance(value, (Closure, IppFunction)) or callable(value)
+                elif type_name == "class":
+                    result = isinstance(value, IppClass)
+                elif type_name in self.globals:
+                    enum_type = self.globals[type_name]
+                    if isinstance(enum_type, IppEnumType):
+                        result = enum_type.contains(value)
             self.stack.append(result)
 
         # ── Slice (v1.9.0.1) ───────────────────────────────────────────

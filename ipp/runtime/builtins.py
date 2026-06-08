@@ -4097,6 +4097,57 @@ _TIME_MODULE = _TimeModule()
 
 
 # v2.0.0.2 — draw_* stub API (headless mode)
+class IppEnumValue:
+    def __init__(self, enum_type, name, value):
+        object.__setattr__(self, 'enum_type', enum_type)
+        object.__setattr__(self, 'name', name)
+        object.__setattr__(self, 'value', value)
+    def __setattr__(self, name, val):
+        raise RuntimeError("cannot assign to enum member")
+    def __delattr__(self, name):
+        raise RuntimeError("cannot delete enum member")
+    def __eq__(self, other):
+        if isinstance(other, IppEnumValue):
+            return self.value == other.value and self.enum_type is other.enum_type
+        if isinstance(other, (int, float)):
+            return self.value == other
+        return NotImplemented
+    def __hash__(self):
+        return hash(self.value)
+    def __str__(self):
+        return f"{self.enum_type.name}.{self.name}"
+    def __repr__(self):
+        return f"{self.enum_type.name}.{self.name}"
+
+class IppEnumType:
+    def __init__(self, name, values):
+        object.__setattr__(self, 'name', name)
+        object.__setattr__(self, '_values', {})
+        for i, (member_name, member_value) in enumerate(values.items()):
+            if member_value is None:
+                member_value = i
+            ev = IppEnumValue(self, member_name, member_value)
+            self._values[member_name] = ev
+    def __setattr__(self, name, val):
+        raise RuntimeError("cannot assign to enum member")
+    def __delattr__(self, name):
+        raise RuntimeError("cannot delete enum member")
+    def __getattr__(self, name):
+        if name in self._values:
+            return self._values[name]
+        raise AttributeError(f"enum {self.name} has no member '{name}'")
+    def get(self, name):
+        if name in self._values:
+            return self._values[name]
+        raise RuntimeError(f"Enum {self.name} has no value '{name}'")
+    def __str__(self):
+        return f"<enum {self.name}>"
+    def __repr__(self):
+        return f"<enum {self.name}>"
+    def contains(self, value):
+        return isinstance(value, IppEnumValue) and value.enum_type is self
+
+
 _headless = True
 _draw_buffer = []
 

@@ -184,6 +184,9 @@ class OpCode(IntEnum):
     # Await inside async functions (v1.9.4)
     AWAIT = 114  # pops coroutine, runs it inline, pushes result
 
+    # Enum declaration (v2.0.0.3)
+    ENUM_DECL = 115  # pops name (str), values (dict); pushes IppEnumType
+
 
 # ─── Operand size table (authoritative) ──────────────────────────────────────
 # Every opcode is exactly one of: 0-operand (size=1), 1-byte operand (size=2),
@@ -232,6 +235,8 @@ _SIZE1 = frozenset([
     OpCode.BUILD_SLICE,
     # v1.9.4: AWAIT has no operands
     OpCode.AWAIT,
+    # v2.0.0.3: ENUM_DECL has no operands
+    OpCode.ENUM_DECL,
 ])
 
 _SIZE2 = frozenset([

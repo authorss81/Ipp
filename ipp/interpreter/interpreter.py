@@ -250,10 +250,16 @@ class IppSignal:  # v1.6.6 signal/event
 class IppEnum:
     def __init__(self, name, values):
         self.name = name
-        # Convert list to dict if needed
-        if isinstance(values, list):
-            self.values = {v: v for v in values}
+        if isinstance(values, dict):
+            from ipp.runtime.builtins import IppEnumType
+            self._type = IppEnumType(name, values)
+            self.values = {k: self._type.get(k) for k in values}
+        elif isinstance(values, list):
+            from ipp.runtime.builtins import IppEnumType
+            self._type = IppEnumType(name, {v: i for i, v in enumerate(values)})
+            self.values = {v: self._type.get(v) for v in values}
         else:
+            self._type = None
             self.values = values
     
     def __repr__(self):

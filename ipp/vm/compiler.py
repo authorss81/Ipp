@@ -489,12 +489,13 @@ class Compiler:
             self.chunk.lines.append(self.current_line)
 
     def compile_enum(self, node: EnumDecl):
-        """BUG-10 fix: enum values are the member name string, not integer index."""
-        for val in node.values:
-            self.chunk.add_constant(val, self.current_line)
-            self.chunk.add_constant(val, self.current_line)  # name→name, not name→index
+        for member_name, member_value in node.values.items():
+            self.chunk.add_constant(member_name, self.current_line)
+            self.chunk.add_constant(member_value, self.current_line)
         self.chunk.write(OpCode.DICT, self.current_line)
         self.chunk.write(len(node.values), self.current_line)
+        self.chunk.add_constant(node.name, self.current_line)
+        self.chunk.write(OpCode.ENUM_DECL, self.current_line)
         self.chunk.write(OpCode.DEFINE_GLOBAL, self.current_line)
         cidx = len(self.chunk.constants)
         self.chunk.constants.append(node.name)

@@ -145,13 +145,23 @@ class Parser:
 
     def enum_declaration(self):
         name_token = self.consume(TokenType.IDENTIFIER, "Expect enum name")
-        values = []
+        values = {}
+        auto_idx = 0
         self.consume(TokenType.LEFT_BRACE, "Expect '{' before enum body")
         self.skip_newlines()
 
         while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
             value_name = self.consume(TokenType.IDENTIFIER, "Expect enum value name")
-            values.append(value_name.lexeme)
+            if self.match(TokenType.EQUAL):
+                value_expr = self.expression()
+                if isinstance(value_expr, NumberLiteral) and isinstance(value_expr.value, (int, float)):
+                    auto_idx = int(value_expr.value) + 1
+                    values[value_name.lexeme] = int(value_expr.value)
+                else:
+                    raise self.error(value_name, "Enum values must be integer literals")
+            else:
+                values[value_name.lexeme] = auto_idx
+                auto_idx += 1
             self.skip_newlines()
             if self.match(TokenType.COMMA):
                 self.skip_newlines()
@@ -640,34 +650,34 @@ class Parser:
 
     def comparison(self):
         left = self.range_expr()
-        while self.match_in(TokenType.GREATER, TokenType.GREATER_EQUAL,
-                            TokenType.LESS, TokenType.LESS_EQUAL,
-                            TokenType.EQUAL_EQUAL, TokenType.BANG_EQUAL):
-            operator = self.previous().lexeme
-            right = self.range_expr()
-            left = BinaryExpr(left, operator, right)
-        # FIX: handle 'in' membership operator
-        if self.match(TokenType.IN):
-            right = self.range_expr()
-            return BinaryExpr(left, "in", right)
-        # FIX: handle 'not in' — 'not' is tokenized as BANG
-        if (self.check(TokenType.BANG) and
-                self.peek().lexeme == 'not' and
-                self.current + 1 < len(self.tokens) and
-                self.tokens[self.current + 1].type == TokenType.IN):
-            self.advance()  # consume 'not'
-            self.advance()  # consume 'in'
-            right = self.range_expr()
-            return BinaryExpr(left, "not in", right)
-        # v1.8.8: 'is' / 'is not' type-check operator
-        if self.match(TokenType.IS):
-            negated = False
-            if (self.check(TokenType.BANG) and
-                    self.peek().lexeme == 'not'):
+        while True:
+            if self.match_in(TokenType.GREATER, TokenType.GREATER_EQUAL,
+                             TokenType.LESS, TokenType.LESS_EQUAL,
+                             TokenType.EQUAL_EQUAL, TokenType.BANG_EQUAL):
+                operator = self.previous().lexeme
+                right = self.range_expr()
+                left = BinaryExpr(left, operator, right)
+            elif self.match(TokenType.IN):
+                right = self.range_expr()
+                left = BinaryExpr(left, "in", right)
+            elif (self.check(TokenType.BANG) and
+                    self.peek().lexeme == 'not' and
+                    self.current + 1 < len(self.tokens) and
+                    self.tokens[self.current + 1].type == TokenType.IN):
                 self.advance()  # consume 'not'
-                negated = True
-            type_name = self.consume_type_name()
-            return IsExpr(left, type_name, negated=negated)
+                self.advance()  # consume 'in'
+                right = self.range_expr()
+                left = BinaryExpr(left, "not in", right)
+            elif self.match(TokenType.IS):
+                negated = False
+                if (self.check(TokenType.BANG) and
+                        self.peek().lexeme == 'not'):
+                    self.advance()  # consume 'not'
+                    negated = True
+                type_name = self.consume_type_name()
+                left = IsExpr(left, type_name, negated=negated)
+            else:
+                break
         return left
 
     def range_expr(self):
