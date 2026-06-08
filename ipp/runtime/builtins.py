@@ -1,6 +1,7 @@
 import math
 import random
 import json
+import time as _time
 from ipp.runtime.canvas import (
     ipp_canvas_open, ipp_canvas_rect, ipp_canvas_circle,
     ipp_canvas_line, ipp_canvas_text, ipp_canvas_clear, ipp_canvas_show,
@@ -4077,7 +4078,26 @@ def _ipp_delta_time_ms():
     return getattr(_ipp_game_sync, '_last_delta', 0.0) * 1000.0
 
 
+class _TimeModule:
+    def __call__(self):
+        return _time.time()
+    def now(self):
+        return _time.time()
+    def sleep(self, secs):
+        _time.sleep(secs)
+    def since(self, t):
+        return _time.time() - t
+    def ms(self):
+        return _time.time() * 1000.0
+    def __str__(self):
+        return "<time module>"
+
+
+_TIME_MODULE = _TimeModule()
+
+
 BUILTINS = {
+    "time": _TIME_MODULE,
     "format": ipp_format,
     "print": ipp_print,
     "printf": ipp_printf,
@@ -4167,7 +4187,6 @@ BUILTINS = {
     "delete_file": ipp_delete_file,
     "list_dir": ipp_list_dir,
     "mkdir": ipp_mkdir,
-    "time": ipp_time,
     "sleep": ipp_sleep,
     "clock": ipp_clock,
     "memory_info": ipp_memory_info,

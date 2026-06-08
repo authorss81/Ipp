@@ -780,6 +780,9 @@ class VM:
             'logger': self._builtin_logger,
         })
 
+        # v2.0.0.1 — time namespace module
+        self.globals['time'] = _INTERP_BUILTINS.get('time')
+
         # v1.7.9.1.1 — Keyboard input builtins
         try:
             from ipp.runtime.keyboard import build_keyboard_builtins
