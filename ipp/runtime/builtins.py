@@ -4096,8 +4096,42 @@ class _TimeModule:
 _TIME_MODULE = _TimeModule()
 
 
+# v2.0.0.2 — draw_* stub API (headless mode)
+_headless = True
+_draw_buffer = []
+
+def draw_clear():
+    _draw_buffer.append(("clear",))
+
+def draw_rect(x, y, w, h, color):
+    _draw_buffer.append(("rect", x, y, w, h, color))
+
+def draw_circle(x, y, r, color):
+    _draw_buffer.append(("circle", x, y, r, color))
+
+def draw_text(text, x, y):
+    _draw_buffer.append(("text", text, x, y))
+
+def draw_sprite(sprite_id, x, y):
+    _draw_buffer.append(("sprite", sprite_id, x, y))
+
+def draw_line(x1, y1, x2, y2, color):
+    _draw_buffer.append(("line", x1, y1, x2, y2, color))
+
+def set_draw_target(canvas):
+    _draw_buffer.append(("set_target", canvas))
+
+
 BUILTINS = {
     "time": _TIME_MODULE,
+    # v2.0.0.2 — draw_* stubs
+    "draw_clear": draw_clear,
+    "draw_rect": draw_rect,
+    "draw_circle": draw_circle,
+    "draw_text": draw_text,
+    "draw_sprite": draw_sprite,
+    "draw_line": draw_line,
+    "set_draw_target": set_draw_target,
     "format": ipp_format,
     "print": ipp_print,
     "printf": ipp_printf,

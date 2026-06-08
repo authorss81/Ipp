@@ -1,0 +1,6 @@
+draw_clear()
+draw_rect(0, 0, 100, 100, "red")
+draw_circle(50, 50, 25, "blue")
+draw_text("hello", 10, 10)
+draw_line(0, 0, 100, 100, "white")
+print("draw stubs ok")

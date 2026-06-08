@@ -169,6 +169,7 @@ TESTS = [
     ("v2.3.0-audio","tests/v2_3_0/test_audio.ipp"),
     ("v2.4.0-network","tests/v2_4_0/test_network.ipp"),
     ("v2.0.0.1-time","tests/v2_0_0_1/test_time.ipp"),
+    ("v2.0.0.2-draw-stubs","tests/v2_0_0_2/test_draw_stubs.ipp"),
 ]
 
 passed=failed=0
