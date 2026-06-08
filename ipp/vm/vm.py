@@ -242,6 +242,7 @@ class IppClass:
         self.superclass = superclass
         self.methods: Dict[str, Any] = {}
         self.properties: Dict[str, tuple] = {}
+        self.invariants: List[Any] = []
 
     def get_method(self, name: str):
         if name in self.methods:
@@ -249,6 +250,12 @@ class IppClass:
         if self.superclass:
             return self.superclass.get_method(name)
         return None
+
+    def collect_invariants(self):
+        result = list(self.invariants)
+        if self.superclass:
+            result.extend(self.superclass.collect_invariants())
+        return result
 
 
 class IppAsyncCoroutine:
@@ -585,7 +592,7 @@ class VM:
     on the value stack.  GET_LOCAL/SET_LOCAL are relative to stack_base.
     """
 
-    def __init__(self, chunk: Chunk = None):
+    def __init__(self, chunk: Chunk = None, debug: bool = True):
         self.chunk = chunk
         self.stack: List[Any] = []
         self.frames: List[VMFrame] = []
@@ -599,6 +606,7 @@ class VM:
         # FIX BUG-N2: recursion depth tracking
         self.call_depth = 0
         self.max_depth = 2000
+        self._debug = debug
 
         # FIX: BUG-M5 — inline caches use _MISS sentinel
         self._global_cache = InlineCache(max_size=2048)
@@ -1730,6 +1738,16 @@ class VM:
                     self._call_method(obj, setter, [value], frame)
                     return _SUSPEND
                 obj.set(name, value)
+                # v2.0.0.5 — check invariants after field mutation (skip during init)
+                if self._debug:
+                    frame = self.frames[-1] if self.frames else None
+                    if not (frame and frame._is_init_call):
+                        invs = obj.cls.collect_invariants()
+                        if invs:
+                            for inv in invs:
+                                result = self._run_invariant(obj, inv)
+                                if not result:
+                                    raise VMError(f"Invariant violated on {obj.cls.name} instance")
             elif isinstance(obj, dict):
                 obj[name] = value
             else:
@@ -2122,6 +2140,12 @@ class VM:
             if not isinstance(cls, IppClass):
                 raise VMError(f"PROP_DEFINE expected IppClass on stack, got {type(cls).__name__}")
             cls.properties[name] = (getter, setter)
+
+        elif opcode == OpCode.INVARIANT_DEFINE:
+            closure = self.stack.pop() if self.stack else None
+            cls = self.stack[-1] if self.stack else None
+            if isinstance(cls, IppClass) and closure is not None:
+                cls.invariants.append(closure)
 
         elif opcode == OpCode.IS_CHECK:
             raw_type = self.stack.pop() if self.stack else None
@@ -2737,6 +2761,20 @@ class VM:
         elif callable(fn):
             return fn(*args)
         return None
+
+    def _run_invariant(self, instance, inv):
+        """Evaluate an invariant closure synchronously (sub-VM pattern)."""
+        if isinstance(inv, Closure):
+            sub_vm = VM(debug=False)
+            sub_vm.globals = self.globals
+            src = getattr(self, '_current_source_file', None)
+            if src:
+                sub_vm._current_source_file = src
+            sub_vm._call(inv, [instance], None)
+            sub_vm.running = True
+            result = sub_vm.run()
+            return result
+        return True
 
     def _call(self, callee, args, return_frame: VMFrame):
         """Push a new call frame for callee with given args."""

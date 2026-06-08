@@ -187,6 +187,9 @@ class OpCode(IntEnum):
     # Enum declaration (v2.0.0.3)
     ENUM_DECL = 115  # pops name (str), values (dict); pushes IppEnumType
 
+    # Invariant definition (v2.0.0.5)
+    INVARIANT_DEFINE = 116  # pops closure; registers on class at stack[-1]
+
 
 # ─── Operand size table (authoritative) ──────────────────────────────────────
 # Every opcode is exactly one of: 0-operand (size=1), 1-byte operand (size=2),

@@ -477,6 +477,11 @@ class Compiler:
             # Emit PROP_DEFINE — pops 3: name, setter (or nil), getter (or nil)
             self.chunk.write(OpCode.PROP_DEFINE, self.current_line)
 
+        # v2.0.0.5 — compile invariants
+        for inv in node.invariants:
+            self.compile_expr(inv)
+            self.chunk.write(OpCode.INVARIANT_DEFINE, self.current_line)
+
         self.chunk.write(OpCode.END_METHOD, self.current_line)
 
         if self.depth > 0:

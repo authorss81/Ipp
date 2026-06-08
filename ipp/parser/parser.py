@@ -69,11 +69,21 @@ class Parser:
         methods = []
         properties = []
         fields = []
+        invariants = []
         self.consume(TokenType.LEFT_BRACE, "Expect '{' before class body")
         self.skip_newlines()
 
         while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
             self.skip_newlines()
+            # v2.0.0.5 — @invariant decorator support
+            if self.match(TokenType.AT):
+                decorator = self.expression()
+                if (isinstance(decorator, CallExpr) and
+                    isinstance(decorator.callee, Identifier) and
+                    decorator.callee.name == 'invariant' and
+                    decorator.arguments):
+                    invariants.append(decorator.arguments[0])
+                continue
             is_static = self.match(TokenType.STATIC)
             if self.match(TokenType.PROP):
                 prop = self.property_declaration()
@@ -111,7 +121,7 @@ class Parser:
                 assign = ExprStmt(SetExpr(SelfExpr(), field_name, value))
                 init_method.body.insert(0, assign)
 
-        return ClassDecl(name.lexeme, methods, superclass, properties)
+        return ClassDecl(name.lexeme, methods, superclass, properties, invariants)
 
     def property_declaration(self):
         name = self.consume(TokenType.IDENTIFIER, "Expect property name")
@@ -955,7 +965,11 @@ class Parser:
         defaults = []
         if not self.check(TokenType.RIGHT_PAREN):
             while True:
-                parameters.append(self.consume(TokenType.IDENTIFIER, "Expect parameter").lexeme)
+                # Accept 'self' as a parameter name in lambdas
+                if self.check(TokenType.SELF):
+                    parameters.append(self.advance().lexeme.lower())
+                else:
+                    parameters.append(self.consume(TokenType.IDENTIFIER, "Expect parameter").lexeme)
                 default_val = None
                 if self.match(TokenType.EQUAL):
                     default_val = self.expression()

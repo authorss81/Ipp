@@ -70,7 +70,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "2.0.0.4"
+VERSION = "2.0.0.5"
 
 # ─── Windows ANSI enablement — v1.7.9.1.2 ────────────────────────────────────
 def _enable_windows_ansi() -> bool:
@@ -1062,9 +1062,9 @@ class _VMGlobalEnvShim:
 
 class VMInterpreter:
     """Wrapper around VM to provide Interpreter-like interface for REPL."""
-    def __init__(self):
+    def __init__(self, debug: bool = True):
         from ipp.vm import VM
-        self.vm = VM()
+        self.vm = VM(debug=debug)
         self.return_value = None
         self.last_value = None
         self.current_file = None
@@ -1096,9 +1096,9 @@ class VMInterpreter:
 # ─── Interpreter Manager ────────────────────────────────────────────────────────
 class InterpreterManager:
     """Manages switching between interpreter and VM."""
-    def __init__(self):
+    def __init__(self, debug: bool = True):
         self.interpreter = Interpreter()
-        self.vm_interpreter = VMInterpreter()
+        self.vm_interpreter = VMInterpreter(debug=debug)
         self.use_vm = False
     
     def get_interpreter(self):
@@ -1116,7 +1116,7 @@ class InterpreterManager:
     
     def reset(self):
         self.interpreter = Interpreter()
-        self.vm_interpreter = VMInterpreter()
+        self.vm_interpreter = VMInterpreter(debug=self.vm_interpreter.vm._debug)
     
     @property
     def global_env(self):
@@ -1369,9 +1369,9 @@ def _serve_accept_loop(server_socket):
             break
 
 # ─── Main REPL ────────────────────────────────────────────────────────────────
-def run_repl():
+def run_repl(debug: bool = True):
     global _hl_session
-    interp_manager = InterpreterManager()
+    interp_manager = InterpreterManager(debug=debug)
     interp = interp_manager.get_interpreter()
     setup_readline(interp)
     print_banner()
@@ -2785,7 +2785,7 @@ func __async_task__() {{
         line_num += 1
 
 # ─── File runner ──────────────────────────────────────────────────────────────
-def run_file(path: str) -> int:
+def run_file(path: str, debug: bool = True) -> int:
     try:
         with open(path, 'r', encoding='utf-8') as f:
             source = f.read()
@@ -2796,9 +2796,13 @@ def run_file(path: str) -> int:
     try:
         tokens = tokenize(source)
         ast    = parse(tokens)
-        interp = Interpreter()
-        interp.current_file = os.path.abspath(path)
-        interp.run(ast)
+        # Use VM pipeline for script execution (supports invariants, etc.)
+        from ipp.vm.vm import VM
+        from ipp.vm.compiler import compile_ast
+        vm = VM(debug=debug)
+        vm._current_source_file = os.path.abspath(path)
+        chunk = compile_ast(ast)
+        vm.run(chunk)
         return 0
     except Exception as e:
         print(f"{colour(C_ERROR, '[Error]')} {e}")
@@ -3165,24 +3169,27 @@ def pkg_search(query: str) -> int:
 
 def main():
     args = sys.argv[1:]
-    if not args:
-        run_repl(); return 0
-
-    cmd = args[0]
 
     # Handle global flags
+    release_mode = '--release' in args
     warn_as_error = '--warn-as-error' in args
     no_warn = '--no-warn' in args
 
     # Remove global flags from args for command processing
-    args = [a for a in args if not a.startswith('--')]
+    flags_to_remove = ['--warn-as-error', '--no-warn', '--release']
+    args = [a for a in args if a not in flags_to_remove]
+
+    if not args:
+        run_repl(debug=not release_mode); return 0
+
+    cmd = args[0]
 
     if cmd in ('--help', '-h'):
         print_usage(); return 0
     if cmd in ('--version', '-v'):
         print(f"Ipp v{VERSION}"); return 0
     if cmd == 'repl':
-        run_repl(); return 0
+        run_repl(debug=not release_mode); return 0
     if cmd == 'lsp':
         from ipp.lsp.server import main as lsp_main
         lsp_main()
@@ -3203,14 +3210,14 @@ def main():
             return 1
     if cmd == 'run':
         if len(args) >= 2:
-            return run_file(args[1])
+            return run_file(args[1], debug=not release_mode)
         # ipp run with no file — try project mode
         from ipp.project import find_project_root, load_project
         project_dir = find_project_root()
         if project_dir:
             cfg, entry_path = load_project(project_dir)
             if entry_path and os.path.isfile(entry_path):
-                return run_file(entry_path)
+                return run_file(entry_path, debug=not release_mode)
         print(f"{colour(C_WARN, 'No ipp.toml found in current or parent directories')}")
         return 1
     if cmd == 'new' and len(args) >= 2:
@@ -3274,7 +3281,7 @@ def main():
             return 1
 
     if not cmd.startswith('-'):
-        return run_file(cmd)
+        return run_file(cmd, debug=not release_mode)
 
     print_usage(); return 1
 
