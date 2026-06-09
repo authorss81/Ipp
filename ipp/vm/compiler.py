@@ -143,6 +143,8 @@ class Compiler:
             self.compile_var_decl(node, is_const=True)
         elif isinstance(node, MultiVarDecl):
             self.compile_multi_var_decl(node)
+        elif isinstance(node, ListDestructDecl):
+            self.compile_list_destruct_decl(node)
         elif isinstance(node, FunctionDecl):
             self.compile_function(node)
         elif isinstance(node, AsyncFuncDecl):
@@ -263,6 +265,59 @@ class Compiler:
                 self.chunk.constants.append(name)
                 self.chunk.write(idx, self.current_line)
                 self.chunk.lines.append(self.current_line)
+
+    def compile_list_destruct_decl(self, node: ListDestructDecl):
+        """var [a, b, ...rest] = expr — v2.0.3"""
+        self.compile_expr(node.initializer)
+
+        # Save list to temp
+        if self.depth > 0:
+            temp_slot = self.define_local("__listdestruct_temp__")
+        else:
+            self.chunk.write(OpCode.DEFINE_GLOBAL, self.current_line)
+            idx = len(self.chunk.constants)
+            self.chunk.constants.append("__listdestruct_temp__")
+            self.chunk.write(idx, self.current_line)
+            self.chunk.lines.append(self.current_line)
+            temp_slot = None
+
+        def load_temp():
+            if temp_slot is not None:
+                self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+                self.chunk.write(temp_slot, self.current_line)
+            else:
+                self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
+                idx = len(self.chunk.constants)
+                self.chunk.constants.append("__listdestruct_temp__")
+                self.chunk.write(idx, self.current_line)
+                self.chunk.lines.append(self.current_line)
+
+        def define_var(name):
+            if self.depth > 0:
+                self.define_local(name)
+            else:
+                self.chunk.write(OpCode.DEFINE_GLOBAL, self.current_line)
+                idx = len(self.chunk.constants)
+                self.chunk.constants.append(name)
+                self.chunk.write(idx, self.current_line)
+                self.chunk.lines.append(self.current_line)
+
+        # Positional names
+        for i, name in enumerate(node.names):
+            load_temp()
+            self.chunk.add_constant(i, self.current_line)
+            self.chunk.write(OpCode.GET_INDEX, self.current_line)
+            define_var(name)
+
+        # Rest name (slice temp[i:] where i = len(names))
+        if node.rest_name:
+            load_temp()
+            self.chunk.add_constant(len(node.names), self.current_line)
+            self.chunk.write(OpCode.NIL, self.current_line)
+            self.chunk.write(OpCode.NIL, self.current_line)
+            self.chunk.write(OpCode.BUILD_SLICE, self.current_line)
+            self.chunk.write(OpCode.GET_INDEX, self.current_line)
+            define_var(node.rest_name)
 
     # ─── Function compilation ─────────────────────────────────────────────────
 

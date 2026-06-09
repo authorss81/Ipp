@@ -275,6 +275,10 @@ class Parser:
         return stmt
 
     def var_declaration(self):
+        # Check for list destructuring: var [a, b, ...rest] = expr
+        if self.match(TokenType.LEFT_BRACKET):
+            return self._parse_list_destructure()
+
         name = self.consume(TokenType.IDENTIFIER, "Expect variable name")
         line = name.line
         
@@ -309,6 +313,31 @@ class Parser:
         if self.match(TokenType.EQUAL):
             initializer = self.expression()
         decl = VarDecl(name.lexeme, initializer, type_hint)
+        decl.line = line
+        return decl
+
+    def _parse_list_destructure(self):
+        """var [a, b, ...rest] = expr"""
+        line = self.previous().line
+        names = []
+        rest_name = None
+        # Parse patterns until ]
+        while not self.check(TokenType.RIGHT_BRACKET) and not self.is_at_end():
+            if self.match(TokenType.TRIPLE_DOT):
+                rest_tok = self.consume(TokenType.IDENTIFIER, "Expect variable name after ...")
+                rest_name = rest_tok.lexeme
+                # Rest must be the last element
+                if not self.check(TokenType.RIGHT_BRACKET):
+                    self.error("Rest pattern must be last in destructuring")
+                break
+            else:
+                tok = self.consume(TokenType.IDENTIFIER, "Expect variable name in destructuring")
+                names.append(tok.lexeme)
+            self.match(TokenType.COMMA)
+        self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after destructuring pattern")
+        self.consume(TokenType.EQUAL, "Expect '=' in destructuring declaration")
+        initializer = self.expression()
+        decl = ListDestructDecl(names, rest_name, initializer)
         decl.line = line
         return decl
 

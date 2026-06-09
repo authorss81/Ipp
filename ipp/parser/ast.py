@@ -293,6 +293,15 @@ class MultiVarDecl(ASTNode):
     def accept(self, visitor): return visitor.visit_multi_var_decl(self)
 
 @dataclass
+class ListDestructDecl(ASTNode):
+    """var [a, b, ...rest] = expr — v2.0.3 List Destructuring"""
+    names: List[str]
+    rest_name: Optional[str]
+    initializer: ASTNode
+    line: int = 0
+    def accept(self, visitor): return visitor.visit_list_destruct_decl(self)
+
+@dataclass
 class LetDecl(ASTNode):
     name: str
     initializer: Optional[ASTNode]
