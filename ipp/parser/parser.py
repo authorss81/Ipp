@@ -278,6 +278,9 @@ class Parser:
         # Check for list destructuring: var [a, b, ...rest] = expr
         if self.match(TokenType.LEFT_BRACKET):
             return self._parse_list_destructure()
+        # Check for dict destructuring: var {name, age} = dict
+        if self.match(TokenType.LEFT_BRACE):
+            return self._parse_dict_destructure()
 
         name = self.consume(TokenType.IDENTIFIER, "Expect variable name")
         line = name.line
@@ -338,6 +341,24 @@ class Parser:
         self.consume(TokenType.EQUAL, "Expect '=' in destructuring declaration")
         initializer = self.expression()
         decl = ListDestructDecl(names, rest_name, initializer)
+        decl.line = line
+        return decl
+
+    def _parse_dict_destructure(self):
+        """var {name, age, city="Unknown"} = dict"""
+        line = self.previous().line
+        keys = []
+        while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
+            tok = self.consume(TokenType.IDENTIFIER, "Expect key name in dict destructuring")
+            default_value = None
+            if self.match(TokenType.EQUAL):
+                default_value = self.expression()
+            keys.append(DictDestructKey(tok.lexeme, default_value))
+            self.match(TokenType.COMMA)
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after dict destructuring pattern")
+        self.consume(TokenType.EQUAL, "Expect '=' in destructuring declaration")
+        initializer = self.expression()
+        decl = DictDestructDecl(keys, initializer)
         decl.line = line
         return decl
 

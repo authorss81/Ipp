@@ -302,6 +302,19 @@ class ListDestructDecl(ASTNode):
     def accept(self, visitor): return visitor.visit_list_destruct_decl(self)
 
 @dataclass
+class DictDestructKey:
+    name: str
+    default_value: Optional[ASTNode] = None
+
+@dataclass
+class DictDestructDecl(ASTNode):
+    """var {name, age, city="Unknown"} = dict — v2.0.3.1"""
+    keys: List[DictDestructKey]
+    initializer: ASTNode
+    line: int = 0
+    def accept(self, visitor): return visitor.visit_dict_destruct_decl(self)
+
+@dataclass
 class LetDecl(ASTNode):
     name: str
     initializer: Optional[ASTNode]
