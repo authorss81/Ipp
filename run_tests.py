@@ -175,6 +175,7 @@ TESTS = [
     ("v2.0.0.5-invariant","tests/v2_0_0_5/test_invariant.ipp"),
     ("v2.0.1-input","tests/v2_0_1/test_input_headless.ipp"),
     ("v2.0.1.1-mouse","tests/v2_0_1_1/test_mouse_input.ipp"),
+    ("v2.0.1.2-inspect","tests/v2_0_1_2/test_inspect.ipp"),
 ]
 
 passed=failed=0

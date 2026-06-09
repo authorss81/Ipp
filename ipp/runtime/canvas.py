@@ -110,12 +110,19 @@ def ipp_canvas_clear(color="white"):
 
 def ipp_canvas_show():
     """Update the canvas window."""
-    global _canvas_window
+    global _canvas_window, _canvas
     if _canvas_window:
         try:
             _canvas_window.update_idletasks()
             _canvas_window.update()
         except:
+            pass
+    # v2.0.1.2 — draw inspector overlay if any objects are being inspected
+    if _canvas:
+        try:
+            from ipp.runtime.inspector import draw_inspector_overlay
+            draw_inspector_overlay(_canvas)
+        except Exception:
             pass
     return "[canvas updated]"
 

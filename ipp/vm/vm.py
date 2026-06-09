@@ -932,6 +932,14 @@ class VM:
         self.globals['prompt_toolkit_available']   = _pt_available
         self.globals['try_create_highlight_session'] = _try_create_session
 
+        # v2.0.1.2 — Live In-Game Variable Inspector
+        try:
+            from ipp.runtime.inspector import inspect, inspect_hide
+            self.globals['inspect'] = inspect
+            self.globals['inspect_hide'] = inspect_hide
+        except Exception:
+            pass
+
     # ─── Built-in helpers ─────────────────────────────────────────────────────
 
     def _builtin_print(self, *args):
