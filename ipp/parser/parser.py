@@ -71,6 +71,7 @@ class Parser:
         fields = []
         invariants = []
         exports = {}
+        onchange_callbacks = {}
         self.consume(TokenType.LEFT_BRACE, "Expect '{' before class body")
         self.skip_newlines()
 
@@ -80,8 +81,23 @@ class Parser:
             # v2.0.2 — @export annotation for editor-visible variables
             if self.match(TokenType.AT):
                 if self.match(TokenType.EXPORT):
-                    # @export var name = value — next field is exported
-                    is_exported = True
+                    # @export var name = value or @export(min=0,max=10) var name = value
+                    hints = {}
+                    if self.match(TokenType.LEFT_PAREN):
+                        # parse @export(min=0, max=10, ...)
+                        while not self.check(TokenType.RIGHT_PAREN):
+                            hint_name = self.consume(TokenType.IDENTIFIER,
+                                                     "Expect hint name").lexeme
+                            self.consume(TokenType.EQUAL,
+                                         "Expect '=' after hint name")
+                            hint_value = self.expression()
+                            hints[hint_name] = hint_value
+                            if not self.check(TokenType.RIGHT_PAREN):
+                                self.consume(TokenType.COMMA,
+                                             "Expect ',' or ')' in export hints")
+                        self.consume(TokenType.RIGHT_PAREN,
+                                     "Expect ')' after export hints")
+                    # next token should be var/let declaration
                     is_static = self.match(TokenType.STATIC)
                     if self.check(TokenType.VAR) or self.check(TokenType.LET):
                         is_let = self.check(TokenType.LET)
@@ -91,19 +107,33 @@ class Parser:
                         default = None
                         if self.match(TokenType.EQUAL):
                             default = self.expression()
-                        fields.append((field_name, default, is_let, is_exported))
-                        exports[field_name] = default
+                        fields.append((field_name, default, is_let, True))
+                        exports[field_name] = (default, hints)
                     else:
                         break
                     self.skip_newlines()
                     continue
-                # @invariant(...) decorator
+                # @invariant(...) or @onchange("field") decorator
                 decorator = self.expression()
                 if (isinstance(decorator, CallExpr) and
                     isinstance(decorator.callee, Identifier) and
                     decorator.callee.name == 'invariant' and
                     decorator.arguments):
                     invariants.append(decorator.arguments[0])
+                elif (isinstance(decorator, CallExpr) and
+                      isinstance(decorator.callee, Identifier) and
+                      decorator.callee.name == 'onchange' and
+                      decorator.arguments and
+                      isinstance(decorator.arguments[0], StringLiteral)):
+                    field_name = decorator.arguments[0].value
+                    self.skip_newlines()
+                    # next token should be func declaration
+                    if self.match(TokenType.FUNC):
+                        method = self.function_declaration()
+                        onchange_callbacks[method.name] = field_name
+                        methods.append(method)
+                    else:
+                        break
                 continue
             is_static = self.match(TokenType.STATIC)
             if self.match(TokenType.PROP):
@@ -142,7 +172,8 @@ class Parser:
                 assign = ExprStmt(SetExpr(SelfExpr(), field_name, value))
                 init_method.body.insert(0, assign)
 
-        return ClassDecl(name.lexeme, methods, superclass, properties, invariants, exports)
+        return ClassDecl(name.lexeme, methods, superclass, properties, invariants,
+                         exports, onchange_callbacks)
 
     def property_declaration(self):
         name = self.consume(TokenType.IDENTIFIER, "Expect property name")

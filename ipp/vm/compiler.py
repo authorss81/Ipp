@@ -410,11 +410,23 @@ class Compiler:
                 self.chunk.constants.append(FunctionProto(sub.chunk, sub.upvalues, name=method.name))
                 self.chunk.write(OpCode.CLOSURE, self.current_line)
                 self.chunk.write(midx, self.current_line)
+                # v2.0.2.1 — @onchange callback: dup closure before METHOD
+                is_onchange = method.name in node.onchange_callbacks
+                if is_onchange:
+                    self.chunk.write(OpCode.DUP, self.current_line)
                 self.chunk.write(OpCode.METHOD, self.current_line)
                 mnidx = len(self.chunk.constants)
                 self.chunk.constants.append(method.name)
                 self.chunk.write(mnidx, self.current_line)
                 self.chunk.lines.append(self.current_line)
+                # v2.0.2.1 — register onchange callback after METHOD
+                if is_onchange:
+                    field = node.onchange_callbacks[method.name]
+                    fidx = len(self.chunk.constants)
+                    self.chunk.constants.append(field)
+                    self.chunk.write(OpCode.CONSTANT, self.current_line)
+                    self.chunk.write(fidx, self.current_line)
+                    self.chunk.write(OpCode.ONCHANGE_DEFINE, self.current_line)
 
         # v1.8.7: Compile property getters/setters — keep closure on stack via DUP + METHOD
         for prop in node.properties:
@@ -483,9 +495,21 @@ class Compiler:
             self.chunk.write(OpCode.INVARIANT_DEFINE, self.current_line)
 
         # v2.0.2 — compile @export field metadata
-        for name, default in node.exports.items():
+        for name, (default, hints) in node.exports.items():
             if default is not None:
                 self.compile_expr(default)
+            else:
+                self.chunk.write(OpCode.NIL, self.current_line)
+            # compile hints dict
+            if hints:
+                for hk, hv in hints.items():
+                    kidx = len(self.chunk.constants)
+                    self.chunk.constants.append(hk)
+                    self.chunk.write(OpCode.CONSTANT, self.current_line)
+                    self.chunk.write(kidx, self.current_line)
+                    self.compile_expr(hv)
+                self.chunk.write(OpCode.DICT, self.current_line)
+                self.chunk.write(len(hints), self.current_line)
             else:
                 self.chunk.write(OpCode.NIL, self.current_line)
             name_idx = len(self.chunk.constants)

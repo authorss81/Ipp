@@ -243,7 +243,8 @@ class IppClass:
         self.methods: Dict[str, Any] = {}
         self.properties: Dict[str, tuple] = {}
         self.invariants: List[Any] = []
-        self.exports: Dict[str, Any] = {}
+        self.exports: Dict[str, Any] = {}  # name -> (default_value, hints_dict)
+        self.onchange_callbacks: Dict[str, List[Any]] = {}  # field_name -> [closure, ...]
 
     def get_method(self, name: str):
         if name in self.methods:
@@ -1756,7 +1757,17 @@ class VM:
                     frame.ip += 2  # advance past SET_PROPERTY + operand
                     self._call_method(obj, setter, [value], frame)
                     return _SUSPEND
+                old_val = obj.fields.get(name, None)
                 obj.set(name, value)
+                # v2.0.2.1 — fire onchange callbacks for this field (skip during init)
+                frame = self.frames[-1] if self.frames else None
+                if not (frame and frame._is_init_call):
+                    callbacks = obj.cls.onchange_callbacks.get(name)
+                    if callbacks:
+                        frame.ip += 2  # advance past SET_PROPERTY + operand
+                        for cb in callbacks:
+                            self._call_method(obj, cb, [old_val, value], frame)
+                        return _SUSPEND
                 # v2.0.0.5 — check invariants after field mutation (skip during init)
                 if self._debug:
                     frame = self.frames[-1] if self.frames else None
@@ -2168,10 +2179,18 @@ class VM:
 
         elif opcode == OpCode.EXPORT_DEFINE:
             name = self.stack.pop() if self.stack else None
+            hints = self.stack.pop() if self.stack else None
             value = self.stack.pop() if self.stack else None
             cls = self.stack[-1] if self.stack else None
             if isinstance(cls, IppClass) and name is not None:
-                cls.exports[name] = value
+                cls.exports[name] = (value, hints if isinstance(hints, dict) else {})
+
+        elif opcode == OpCode.ONCHANGE_DEFINE:
+            field_name = self.stack.pop() if self.stack else None
+            closure = self.stack.pop() if self.stack else None
+            cls = self.stack[-1] if self.stack else None
+            if isinstance(cls, IppClass) and closure is not None and field_name is not None:
+                cls.onchange_callbacks.setdefault(field_name, []).append(closure)
 
         elif opcode == OpCode.IS_CHECK:
             raw_type = self.stack.pop() if self.stack else None

@@ -14,6 +14,7 @@ assert e.health == 50
 var exports = Enemy.get_exports()
 assert "speed" in exports
 assert "health" in exports
-assert exports["speed"] == 100.0
+var speed_val, speed_hints = exports["speed"]
+assert speed_val == 100.0
 
 print("test export passed")

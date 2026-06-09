@@ -193,6 +193,9 @@ class OpCode(IntEnum):
     # Export field definition (v2.0.2)
     EXPORT_DEFINE = 117  # pops name (str), default_value; registers on class at stack[-1]
 
+    # On-change callback definition (v2.0.2.1)
+    ONCHANGE_DEFINE = 118  # pops field_name (str), closure; registers callback on class at stack[-1]
+
 
 # ─── Operand size table (authoritative) ──────────────────────────────────────
 # Every opcode is exactly one of: 0-operand (size=1), 1-byte operand (size=2),

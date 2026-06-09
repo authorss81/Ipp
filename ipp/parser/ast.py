@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any, Dict, Tuple
 
 
 class ASTNode(ABC):
@@ -338,7 +338,8 @@ class ClassDecl(ASTNode):
     superclass: Optional[str] = None
     properties: List['PropDecl'] = field(default_factory=list)
     invariants: List[ASTNode] = field(default_factory=list)
-    exports: Dict[str, Optional['ASTNode']] = field(default_factory=dict)
+    exports: Dict[str, Tuple[Optional['ASTNode'], Dict[str, Any]]] = field(default_factory=dict)
+    onchange_callbacks: Dict[str, str] = field(default_factory=dict)  # func_name -> field_name (v2.0.2.1)
     def accept(self, visitor): return visitor.visit_class_decl(self)
 
 @dataclass
