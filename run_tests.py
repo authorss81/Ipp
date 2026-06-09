@@ -173,6 +173,7 @@ TESTS = [
     ("v2.0.0.3-enum","tests/v2_0_0_3/test_enum.ipp"),
     ("v2.0.0.4-schedule","tests/v2_0_0_4/test_schedule.ipp"),
     ("v2.0.0.5-invariant","tests/v2_0_0_5/test_invariant.ipp"),
+    ("v2.0.1-input","tests/v2_0_1/test_input_headless.ipp"),
 ]
 
 passed=failed=0

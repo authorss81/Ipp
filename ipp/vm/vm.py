@@ -808,6 +808,13 @@ class VM:
         except Exception:
             pass
 
+        # v2.0.1 — Input System (Keyboard): input.* namespace
+        try:
+            from ipp.runtime.input import _INPUT_MODULE
+            self.globals['input'] = _INPUT_MODULE
+        except Exception:
+            pass
+
         # v1.7.9.1.2 — ANSI helpers as builtins
         import re as _re
         def _strip_ansi(s: str) -> str:
