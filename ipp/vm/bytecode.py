@@ -190,6 +190,9 @@ class OpCode(IntEnum):
     # Invariant definition (v2.0.0.5)
     INVARIANT_DEFINE = 116  # pops closure; registers on class at stack[-1]
 
+    # Export field definition (v2.0.2)
+    EXPORT_DEFINE = 117  # pops name (str), default_value; registers on class at stack[-1]
+
 
 # ─── Operand size table (authoritative) ──────────────────────────────────────
 # Every opcode is exactly one of: 0-operand (size=1), 1-byte operand (size=2),

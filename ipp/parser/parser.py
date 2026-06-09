@@ -70,13 +70,34 @@ class Parser:
         properties = []
         fields = []
         invariants = []
+        exports = {}
         self.consume(TokenType.LEFT_BRACE, "Expect '{' before class body")
         self.skip_newlines()
 
         while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
             self.skip_newlines()
             # v2.0.0.5 — @invariant decorator support
+            # v2.0.2 — @export annotation for editor-visible variables
             if self.match(TokenType.AT):
+                if self.match(TokenType.EXPORT):
+                    # @export var name = value — next field is exported
+                    is_exported = True
+                    is_static = self.match(TokenType.STATIC)
+                    if self.check(TokenType.VAR) or self.check(TokenType.LET):
+                        is_let = self.check(TokenType.LET)
+                        self.advance()
+                        field_name = self.consume(TokenType.IDENTIFIER,
+                                                  "Expect field name").lexeme
+                        default = None
+                        if self.match(TokenType.EQUAL):
+                            default = self.expression()
+                        fields.append((field_name, default, is_let, is_exported))
+                        exports[field_name] = default
+                    else:
+                        break
+                    self.skip_newlines()
+                    continue
+                # @invariant(...) decorator
                 decorator = self.expression()
                 if (isinstance(decorator, CallExpr) and
                     isinstance(decorator.callee, Identifier) and
@@ -99,7 +120,7 @@ class Parser:
                 default = None
                 if self.match(TokenType.EQUAL):
                     default = self.expression()
-                fields.append((field_name, default, is_let))
+                fields.append((field_name, default, is_let, False))
             else:
                 break
             self.skip_newlines()
@@ -116,12 +137,12 @@ class Parser:
             if init_method is None:
                 init_method = FunctionDecl('init', [], [])
                 methods.insert(0, init_method)
-            for field_name, default, is_let in fields:
+            for field_name, default, is_let, is_exported in fields:
                 value = default if default is not None else NilLiteral()
                 assign = ExprStmt(SetExpr(SelfExpr(), field_name, value))
                 init_method.body.insert(0, assign)
 
-        return ClassDecl(name.lexeme, methods, superclass, properties, invariants)
+        return ClassDecl(name.lexeme, methods, superclass, properties, invariants, exports)
 
     def property_declaration(self):
         name = self.consume(TokenType.IDENTIFIER, "Expect property name")

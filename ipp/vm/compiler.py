@@ -482,6 +482,18 @@ class Compiler:
             self.compile_expr(inv)
             self.chunk.write(OpCode.INVARIANT_DEFINE, self.current_line)
 
+        # v2.0.2 — compile @export field metadata
+        for name, default in node.exports.items():
+            if default is not None:
+                self.compile_expr(default)
+            else:
+                self.chunk.write(OpCode.NIL, self.current_line)
+            name_idx = len(self.chunk.constants)
+            self.chunk.constants.append(name)
+            self.chunk.write(OpCode.CONSTANT, self.current_line)
+            self.chunk.write(name_idx, self.current_line)
+            self.chunk.write(OpCode.EXPORT_DEFINE, self.current_line)
+
         self.chunk.write(OpCode.END_METHOD, self.current_line)
 
         if self.depth > 0:

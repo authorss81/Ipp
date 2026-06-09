@@ -243,6 +243,7 @@ class IppClass:
         self.methods: Dict[str, Any] = {}
         self.properties: Dict[str, tuple] = {}
         self.invariants: List[Any] = []
+        self.exports: Dict[str, Any] = {}
 
     def get_method(self, name: str):
         if name in self.methods:
@@ -1529,6 +1530,9 @@ class VM:
                 if method is not None:
                     # Wrap as BoundMethod with instance=None for static dispatch
                     self.stack[-1] = BoundMethod(None, method)
+                elif name == 'get_exports':
+                    _cls = obj
+                    self.stack[-1] = lambda _c=_cls: dict(_c.exports)
                 else:
                     raise VMError(f"Class '{obj.name}' has no static member '{name}'")
             elif isinstance(obj, _IppSignal):
@@ -2161,6 +2165,13 @@ class VM:
             cls = self.stack[-1] if self.stack else None
             if isinstance(cls, IppClass) and closure is not None:
                 cls.invariants.append(closure)
+
+        elif opcode == OpCode.EXPORT_DEFINE:
+            name = self.stack.pop() if self.stack else None
+            value = self.stack.pop() if self.stack else None
+            cls = self.stack[-1] if self.stack else None
+            if isinstance(cls, IppClass) and name is not None:
+                cls.exports[name] = value
 
         elif opcode == OpCode.IS_CHECK:
             raw_type = self.stack.pop() if self.stack else None

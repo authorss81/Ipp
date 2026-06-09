@@ -338,6 +338,7 @@ class ClassDecl(ASTNode):
     superclass: Optional[str] = None
     properties: List['PropDecl'] = field(default_factory=list)
     invariants: List[ASTNode] = field(default_factory=list)
+    exports: Dict[str, Optional['ASTNode']] = field(default_factory=dict)
     def accept(self, visitor): return visitor.visit_class_decl(self)
 
 @dataclass
