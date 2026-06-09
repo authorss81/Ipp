@@ -545,17 +545,17 @@ class Parser:
         while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
             self.skip_newlines()
             if self.match(TokenType.CASE):
-                pattern = self.expression()
+                case = self._parse_match_case()
+                cases.append(case)
             elif self.match(TokenType.DEFAULT) or self.match(TokenType.ELSE):
                 pattern = None
+                self.consume(TokenType.ARROW, "Expect '=>' after case pattern")
+                body = self.block_or_statement()
+                cases.append((pattern, body))
             else:
                 break
-            self.consume(TokenType.ARROW, "Expect '=>' after case pattern")
-            body = self.block_or_statement()
-            cases.append((pattern, body))
             self.skip_newlines()
         self.consume(TokenType.RIGHT_BRACE, "Expect '}' after match cases")
-        # FIX: BUG-C4 — use 'subject' consistently
         return MatchStmt(subject, cases)
 
     def match_expression(self):
@@ -566,17 +566,50 @@ class Parser:
         while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
             self.skip_newlines()
             if self.match(TokenType.CASE):
-                pattern = self.expression()
+                case = self._parse_match_case()
+                cases.append(case)
             elif self.match(TokenType.DEFAULT) or self.match(TokenType.ELSE):
                 pattern = None
+                self.consume(TokenType.ARROW, "Expect '=>' after case pattern")
+                body = self.block_or_statement()
+                cases.append((pattern, body))
             else:
                 break
-            self.consume(TokenType.ARROW, "Expect '=>' after case pattern")
-            body = self.block_or_statement()
-            cases.append((pattern, body))
             self.skip_newlines()
         self.consume(TokenType.RIGHT_BRACE, "Expect '}' after match cases")
         return MatchExpr(subject, cases)
+
+    def _parse_match_case(self):
+        """Parse a single case pattern: value_expr => or TypeName varName =>""" 
+        type_keywords = {TokenType.INT, TokenType.FLOAT, TokenType.BOOL, TokenType.NIL, TokenType.FUNC, TokenType.CLASS}
+        # Check for type pattern: case TypeName varName =>
+        if self.check(TokenType.IDENTIFIER) or self.peek().type in type_keywords:
+            # Peek one token ahead to check if followed by another identifier
+            idx = self.current
+            # Consume the first token (type name)
+            first = self.advance()
+            first_name = first.lexeme if first.type == TokenType.IDENTIFIER else {
+                TokenType.INT: "int", TokenType.FLOAT: "float", TokenType.BOOL: "bool",
+                TokenType.NIL: "nil", TokenType.FUNC: "function", TokenType.CLASS: "class"
+            }.get(first.type, first.lexeme)
+            # Check if next token is an identifier (var name), skipping newlines
+            while self.check(TokenType.NEWLINE):
+                self.advance()
+            if self.check(TokenType.IDENTIFIER):
+                # Type pattern: case TypeName varName =>
+                var_tok = self.consume(TokenType.IDENTIFIER, "Expect variable name after type name in match pattern")
+                self.consume(TokenType.ARROW, "Expect '=>' after case pattern")
+                body = self.block_or_statement()
+                return ("__type__", first_name, var_tok.lexeme, body)
+            # Not a type pattern — backtrack: first token is part of a value expression
+            # Reset current back to before consuming first
+            self.current = idx
+        
+        # Value match pattern
+        pattern = self.expression()
+        self.consume(TokenType.ARROW, "Expect '=>' after case pattern")
+        body = self.block_or_statement()
+        return (pattern, body)
 
     def try_statement(self):
         try_body = self.block_or_statement()

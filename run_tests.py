@@ -180,6 +180,7 @@ TESTS = [
     ("v2.0.2.1-export-hints","tests/v2_0_2_1/test_export_hints.ipp"),
     ("v2.0.3-list-destruct","tests/v2_0_3/test_list_destructure.ipp"),
     ("v2.0.3.1-dict-destruct","tests/v2_0_3_1/test_dict_destructure.ipp"),
+    ("v2.0.4-type-match","tests/v2_0_4/test_type_match.ipp"),
 ]
 
 passed=failed=0

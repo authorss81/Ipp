@@ -2244,9 +2244,11 @@ class VM:
                 elif type_name == "class":
                     result = isinstance(value, IppClass)
                 elif type_name in self.globals:
-                    enum_type = self.globals[type_name]
-                    if isinstance(enum_type, IppEnumType):
-                        result = enum_type.contains(value)
+                    cls_or_enum = self.globals[type_name]
+                    if isinstance(cls_or_enum, IppEnumType):
+                        result = cls_or_enum.contains(value)
+                    elif isinstance(cls_or_enum, IppClass):
+                        result = isinstance(value, IppInstance) and value.cls == cls_or_enum
             self.stack.append(result)
 
         # ── Slice (v1.9.0.1) ───────────────────────────────────────────

@@ -979,36 +979,64 @@ class Compiler:
         self._pop_scope_no_emit()
 
     def compile_match(self, node: MatchStmt):
-        # FIX: BUG-C4 — use node.subject
-        # FIX: BUG-CP3 — cases are (Optional[ASTNode], List[ASTNode]) tuples
         self.compile_expr(node.subject)
 
         end_jumps = []
 
-        for pattern, body in node.cases:
-            if pattern is None:
+        for case in node.cases:
+            if len(case) == 4 and case[0] == "__type__":
+                # Type pattern: case TypeName varName =>
+                _, type_name, var_name, body = case
+                self.chunk.write(OpCode.DUP, self.current_line)
+                cidx = len(self.chunk.constants)
+                self.chunk.constants.append(type_name)
+                self.chunk.write(OpCode.CONSTANT, self.current_line)
+                self.chunk.write(cidx, self.current_line)
+                self.chunk.lines.append(self.current_line)
+                self.chunk.write(OpCode.IS_CHECK, self.current_line)
+                skip_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+
+                # Type match confirmed — bind subject to var_name in a new scope
+                self.push_scope()
+                if self.depth > 0:
+                    self.define_local(var_name)
+                else:
+                    self.chunk.write(OpCode.DEFINE_GLOBAL, self.current_line)
+                    gidx = len(self.chunk.constants)
+                    self.chunk.constants.append(var_name)
+                    self.chunk.write(gidx, self.current_line)
+                    self.chunk.lines.append(self.current_line)
+                for stmt in body:
+                    self.compile_stmt(stmt)
+                self.pop_scope()
+
+                end_jump = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
+                end_jumps.append(end_jump)
+                self.chunk.patch_jump(skip_jump)
+            elif case[0] is None:
                 # default case — always matches
-                self.chunk.write(OpCode.POP, self.current_line)  # pop subject
+                _, body = case
+                self.chunk.write(OpCode.POP, self.current_line)
                 for stmt in body:
                     self.compile_stmt(stmt)
                 end_jump = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
                 end_jumps.append(end_jump)
                 break
             else:
-                # DUP subject, push pattern, compare
+                # Value match: DUP subject, push pattern, compare
+                pattern, body = case
                 self.chunk.write(OpCode.DUP, self.current_line)
-                self.compile_expr(pattern)       # FIX: BUG-CP3 — compile single node, not iterate
+                self.compile_expr(pattern)
                 self.chunk.write(OpCode.EQUAL, self.current_line)
                 skip_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
 
-                self.chunk.write(OpCode.POP, self.current_line)  # pop subject copy
+                self.chunk.write(OpCode.POP, self.current_line)
                 for stmt in body:
                     self.compile_stmt(stmt)
                 end_jump = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
                 end_jumps.append(end_jump)
                 self.chunk.patch_jump(skip_jump)
 
-        # if nothing matched, pop the subject
         self.chunk.write(OpCode.POP, self.current_line)
 
         for ej in end_jumps:

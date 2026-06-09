@@ -1758,30 +1758,91 @@ class Interpreter:
                         break
                     stmt.accept(self)
 
+    def _type_matches(self, value, type_name: str) -> bool:
+        if type_name in ("int", "number"):
+            return isinstance(value, (int, float)) and not isinstance(value, bool)
+        if type_name == "float":
+            return isinstance(value, float)
+        if type_name == "string":
+            return isinstance(value, str)
+        if type_name == "bool":
+            return isinstance(value, bool)
+        if type_name == "list":
+            return isinstance(value, list)
+        if type_name == "dict":
+            return isinstance(value, dict)
+        if type_name == "tuple":
+            return isinstance(value, tuple)
+        if type_name == "nil":
+            return value is None
+        if type_name == "function":
+            return isinstance(value, (IppFunction, type(lambda: None))) or callable(value)
+        if hasattr(value, 'ipp_class') and hasattr(value.ipp_class, 'name'):
+            return value.ipp_class.name == type_name
+        if hasattr(value, 'cls') and hasattr(value.cls, 'name'):
+            return value.cls.name == type_name
+        if hasattr(self, 'global_env') and type_name in self.global_env.values:
+            cls = self.global_env.values[type_name]
+            if hasattr(value, 'ipp_class') and value.ipp_class == cls:
+                return True
+        return False
+
     def visit_match_stmt(self, node: MatchStmt):
         subject_value = node.subject.accept(self)
         
-        for pattern, body in node.cases:
-            if pattern is None:
+        for case in node.cases:
+            if len(case) == 4 and case[0] == "__type__":
+                _, type_name, var_name, body = case
+                if self._type_matches(subject_value, type_name):
+                    saved_env = self.environment
+                    self.environment = Environment(self.environment)
+                    self.environment.define(var_name, subject_value)
+                    for stmt in body:
+                        if self.return_value is not None:
+                            break
+                        stmt.accept(self)
+                    self.environment = saved_env
+                    return
+            elif case[0] is None:
+                _, body = case
                 for stmt in body:
                     if self.return_value is not None:
                         break
                     stmt.accept(self)
                 return
-            
-            pattern_value = pattern.accept(self)
-            if subject_value == pattern_value:
-                for stmt in body:
-                    if self.return_value is not None:
-                        break
-                    stmt.accept(self)
-                return
+            else:
+                pattern, body = case
+                pattern_value = pattern.accept(self)
+                if subject_value == pattern_value:
+                    for stmt in body:
+                        if self.return_value is not None:
+                            break
+                        stmt.accept(self)
+                    return
 
     def visit_match_expr(self, node: MatchExpr):
         subject_value = node.subject.accept(self)
         
-        for pattern, body in node.cases:
-            if pattern is None:
+        for case in node.cases:
+            if len(case) == 4 and case[0] == "__type__":
+                _, type_name, var_name, body = case
+                if self._type_matches(subject_value, type_name):
+                    saved_env = self.environment
+                    self.environment = Environment(self.environment)
+                    self.environment.define(var_name, subject_value)
+                    if not body:
+                        self.environment = saved_env
+                        return None
+                    result = None
+                    for stmt in body:
+                        if isinstance(stmt, ExprStmt):
+                            result = stmt.expression.accept(self)
+                        else:
+                            stmt.accept(self)
+                    self.environment = saved_env
+                    return result
+            elif case[0] is None:
+                _, body = case
                 if not body:
                     return None
                 result = None
@@ -1791,17 +1852,18 @@ class Interpreter:
                     else:
                         stmt.accept(self)
                 return result
-            
-            pattern_value = pattern.accept(self)
-            if subject_value == pattern_value:
-                if not body:
-                    return None
-                result = None
-                for stmt in body:
-                    if isinstance(stmt, ExprStmt):
-                        result = stmt.expression.accept(self)
-                    else:
-                        stmt.accept(self)
+            else:
+                pattern, body = case
+                pattern_value = pattern.accept(self)
+                if subject_value == pattern_value:
+                    if not body:
+                        return None
+                    result = None
+                    for stmt in body:
+                        if isinstance(stmt, ExprStmt):
+                            result = stmt.expression.accept(self)
+                        else:
+                            stmt.accept(self)
                 return result
         return None
 
