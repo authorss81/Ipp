@@ -1163,8 +1163,86 @@ class Compiler:
         if isinstance(pattern, MatchListPat):
             return self._compile_match_list_pat(pattern, body, guard)
 
+        # ── Dict destructure pattern ──────────────────────────────────────
+        if isinstance(pattern, MatchDictPat):
+            return self._compile_match_dict_pat(pattern, body, guard)
+
         self.error(f"Unsupported match pattern")
         return None
+
+    def _compile_match_dict_pat(self, pattern: MatchDictPat, body, guard) -> int:
+        """Compile dict destructure match case."""
+        keys = pattern.keys
+
+        # Check type is dict
+        self.chunk.write(OpCode.DUP, self.current_line)
+        cidx = len(self.chunk.constants)
+        self.chunk.constants.append("dict")
+        self.chunk.write(OpCode.CONSTANT, self.current_line)
+        self.chunk.write(cidx, self.current_line)
+        self.chunk.lines.append(self.current_line)
+        self.chunk.write(OpCode.IS_CHECK, self.current_line)
+        type_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+
+        # Check each key exists (before binding any)
+        # CONTAINS expects stack: [..., item, collection] → bool
+        # So DUP subject, push key, SWAP, then CONTAINS
+        key_fails = []
+        for key in keys:
+            self.chunk.write(OpCode.DUP, self.current_line)
+            ck = len(self.chunk.constants)
+            self.chunk.constants.append(key)
+            self.chunk.write(OpCode.CONSTANT, self.current_line)
+            self.chunk.write(ck, self.current_line)
+            self.chunk.lines.append(self.current_line)
+            self.chunk.write(OpCode.SWAP, self.current_line)
+            self.chunk.write(OpCode.CONTAINS, self.current_line)
+            kf = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+            key_fails.append(kf)
+
+        # All keys exist — store subject in temp local (depth 0)
+        subject_slot = self._get_or_create_temp_local()
+        base_local_count = len(self.locals)
+        self.push_scope()
+
+        # Bind each key's value as a named local
+        for key in keys:
+            self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+            self.chunk.write(subject_slot, self.current_line)
+            ck = len(self.chunk.constants)
+            self.chunk.constants.append(key)
+            self.chunk.write(OpCode.CONSTANT, self.current_line)
+            self.chunk.write(ck, self.current_line)
+            self.chunk.lines.append(self.current_line)
+            self.chunk.write(OpCode.GET_INDEX, self.current_line)
+            self._compile_define_var(key)
+
+        # Guard clause
+        guard_fail = None
+        if guard:
+            self.compile_expr(guard)
+            guard_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+
+        # Body
+        for stmt in body:
+            self.compile_stmt(stmt)
+
+        saved_elem_count = len(self.locals) - base_local_count
+        self.pop_scope()
+
+        end_j = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
+
+        # Guard fail cleanup
+        if guard_fail is not None:
+            self.chunk.patch_jump(guard_fail)
+            for _ in range(saved_elem_count):
+                self.chunk.write(OpCode.POP, self.current_line)
+
+        # Patch all fail jumps to next case
+        for kf in key_fails:
+            self.chunk.patch_jump(kf)
+        self.chunk.patch_jump(type_fail)
+        return end_j
 
     def _get_or_create_temp_local(self) -> int:
         """Return slot of __match_list_subject__ local, creating it at depth 0 if needed."""

@@ -584,6 +584,8 @@ class Parser:
         # List destructure: case [a, b, *rest] =>
         if self.check(TokenType.LEFT_BRACKET):
             pattern = self._parse_match_list_pat()
+        elif self.check(TokenType.LEFT_BRACE):
+            pattern = self._parse_match_dict_pat()
         elif self.check(TokenType.IDENTIFIER) and self.peek().lexeme == "_":
             self.advance()
             pattern = MatchDefaultPat()
@@ -643,6 +645,20 @@ class Parser:
                 self.skip_newlines()
         self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after list pattern")
         return MatchListPat(elements, rest_name)
+
+    def _parse_match_dict_pat(self):
+        """Parse dict destructure pattern: {key1, key2, ...}"""
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' to start dict pattern")
+        keys = []
+        while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
+            self.skip_newlines()
+            key_tok = self.consume(TokenType.IDENTIFIER, "Expect key name in dict pattern")
+            keys.append(key_tok.lexeme)
+            if not self.check(TokenType.RIGHT_BRACE):
+                self.consume(TokenType.COMMA, "Expect ',' after dict pattern key")
+                self.skip_newlines()
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after dict pattern")
+        return MatchDictPat(keys)
 
     def _parse_match_sub_pat(self):
         """Parse a single sub-pattern inside a list/destructure pattern"""
