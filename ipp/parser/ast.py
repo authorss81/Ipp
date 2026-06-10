@@ -428,16 +428,62 @@ class WithStmt(ASTNode):
     body: List[ASTNode]
     def accept(self, visitor): return visitor.visit_with_stmt(self)
 
+# ─── Pattern nodes (v2.0.5) ────────────────────────────────────────────────────
+
+class Pattern:
+    """Base class for match patterns (not AST nodes — no visitor pattern)"""
+    pass
+
+@dataclass
+class MatchValuePat(Pattern):
+    """Equality match: case 42 =>"""
+    expr: ASTNode
+
+@dataclass
+class MatchTypePat(Pattern):
+    """Type check, optionally bind: case Int: or case Int a =>"""
+    type_name: str
+    var_name: Optional[str] = None
+
+@dataclass
+class MatchBindPat(Pattern):
+    """Binds matched value to a variable: case a =>"""
+    name: str
+
+@dataclass
+class MatchListPat(Pattern):
+    """List destructure: case [a, b, *rest] =>"""
+    elements: List[Pattern]
+    rest: Optional[str] = None
+
+@dataclass
+class MatchDictPat(Pattern):
+    """Dict destructure: case {name, age} =>"""
+    keys: List[str]
+
+@dataclass
+class MatchDefaultPat(Pattern):
+    """Default case: case _ => or default =>"""
+    pass
+
+# ─── Match case (v2.0.5) ──────────────────────────────────────────────────────
+
+@dataclass
+class MatchCase:
+    pattern: Pattern
+    body: List[ASTNode] = field(default_factory=list)
+    guard: Optional[ASTNode] = None
+
 @dataclass
 class MatchStmt(ASTNode):
-    subject: ASTNode    # FIX: BUG-C4 — was ambiguously 'expression' in some places
-    cases: List[tuple]
+    subject: ASTNode
+    cases: List[MatchCase] = field(default_factory=list)
     def accept(self, visitor): return visitor.visit_match_stmt(self)
 
 @dataclass
 class MatchExpr(ASTNode):
     subject: ASTNode
-    cases: List[tuple]
+    cases: List[MatchCase] = field(default_factory=list)
     def accept(self, visitor): return visitor.visit_match_expr(self)
 
 @dataclass

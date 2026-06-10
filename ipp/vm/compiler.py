@@ -980,67 +980,297 @@ class Compiler:
 
     def compile_match(self, node: MatchStmt):
         self.compile_expr(node.subject)
-
         end_jumps = []
 
         for case in node.cases:
-            if len(case) == 4 and case[0] == "__type__":
-                # Type pattern: case TypeName varName =>
-                _, type_name, var_name, body = case
-                self.chunk.write(OpCode.DUP, self.current_line)
-                cidx = len(self.chunk.constants)
-                self.chunk.constants.append(type_name)
-                self.chunk.write(OpCode.CONSTANT, self.current_line)
-                self.chunk.write(cidx, self.current_line)
-                self.chunk.lines.append(self.current_line)
-                self.chunk.write(OpCode.IS_CHECK, self.current_line)
-                skip_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+            skip_to_next = self._compile_match_case(case)
+            if skip_to_next is not None:
+                end_jumps.append(skip_to_next)
 
-                # Type match confirmed — bind subject to var_name in a new scope
+        self.chunk.write(OpCode.POP, self.current_line)
+        for ej in end_jumps:
+            self.chunk.patch_jump(ej)
+
+    def _compile_define_var(self, name: str):
+        """Define a variable (local or global) with value from stack top."""
+        if self.depth > 0:
+            self.define_local(name)
+        else:
+            self.chunk.write(OpCode.DEFINE_GLOBAL, self.current_line)
+            gidx = len(self.chunk.constants)
+            self.chunk.constants.append(name)
+            self.chunk.write(gidx, self.current_line)
+            self.chunk.lines.append(self.current_line)
+
+    def _compile_named_case(self, body, guard, bind_after_guard, bind_before_guard=None):
+        """Shared helper for cases with optional guard. Returns end_jump offset.
+        
+        Assumes subject is on stack. After type/value check passes and subject remains.
+        bind_after_guard() is called inside the scope (after guard passes).
+        bind_before_guard() is called before guard is evaluated.
+        Returns end_jump offset for patching.
+        """
+        if guard:
+            if bind_before_guard:
+                bind_before_guard()
+            if self.depth > 0:
+                guard_copy = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
                 self.push_scope()
-                if self.depth > 0:
-                    self.define_local(var_name)
-                else:
-                    self.chunk.write(OpCode.DEFINE_GLOBAL, self.current_line)
-                    gidx = len(self.chunk.constants)
-                    self.chunk.constants.append(var_name)
-                    self.chunk.write(gidx, self.current_line)
-                    self.chunk.lines.append(self.current_line)
+            else:
+                self.push_scope()
+                self.chunk.write(OpCode.DUP, self.current_line)
+                self.compile_expr(guard)
+                guard_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+        else:
+            self.push_scope()
+
+        if not guard:
+            pass
+        elif self.depth <= 0:
+            pass
+
+        bind_after_guard()
+
+        for stmt in body:
+            self.compile_stmt(stmt)
+        self.pop_scope()
+        end_j = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
+
+        if guard:
+            self.chunk.patch_jump(guard_copy if self.depth > 0 else guard_fail)
+
+        return end_j
+
+    def _compile_match_case(self, case) -> Optional[int]:
+        """Compile a single match case. Returns end_jump offset or None for default."""
+        pattern = case.pattern
+        body = case.body
+        guard = case.guard
+
+        # ── helpers ───────────────────────────────────────────────────────
+        def _has_var(p):
+            return (isinstance(p, MatchBindPat) or
+                    (hasattr(p, 'var_name') and p.var_name is not None))
+
+        def _get_var_name(p):
+            if isinstance(p, MatchBindPat):
+                return p.name
+            return p.var_name  # hasattr guard ensures this exists
+
+        # ── Default/wildcard pattern ──────────────────────────────────────
+        if isinstance(pattern, MatchDefaultPat):
+            self.chunk.write(OpCode.POP, self.current_line)
+            self.push_scope()
+            if guard:
+                self.compile_expr(guard)
+                guard_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
                 for stmt in body:
                     self.compile_stmt(stmt)
                 self.pop_scope()
-
-                end_jump = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
-                end_jumps.append(end_jump)
-                self.chunk.patch_jump(skip_jump)
-            elif case[0] is None:
-                # default case — always matches
-                _, body = case
+                end_j = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
+                self.chunk.patch_jump(guard_fail)
+                self.pop_scope()
                 self.chunk.write(OpCode.POP, self.current_line)
-                for stmt in body:
-                    self.compile_stmt(stmt)
-                end_jump = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
-                end_jumps.append(end_jump)
-                break
-            else:
-                # Value match: DUP subject, push pattern, compare
-                pattern, body = case
+                return end_j
+            for stmt in body:
+                self.compile_stmt(stmt)
+            self.pop_scope()
+            return None
+
+        # ── Bind pattern (case v => ...) ──────────────────────────────────
+        if isinstance(pattern, MatchBindPat):
+            need_survival = guard is not None
+            if need_survival:
+                self.chunk.write(OpCode.DUP, self.current_line)  # survival copy
+            self.push_scope()
+            self._compile_define_var(pattern.name)
+            guard_fail = None
+            if guard:
+                self.compile_expr(guard)
+                guard_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+            for stmt in body:
+                self.compile_stmt(stmt)
+            self.pop_scope()
+            if need_survival:
+                self.chunk.write(OpCode.POP, self.current_line)  # success cleanup
+            end_j = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
+            if guard_fail is not None:
+                self.chunk.patch_jump(guard_fail)
+                self.pop_scope()
+            return end_j
+
+        # ── Value pattern (case 42 => ...) ────────────────────────────────
+        if isinstance(pattern, MatchValuePat):
+            self.chunk.write(OpCode.DUP, self.current_line)
+            self.compile_expr(pattern.expr)
+            self.chunk.write(OpCode.EQUAL, self.current_line)
+            skip_j = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+            self.chunk.write(OpCode.POP, self.current_line)
+            need_survival = guard is not None
+            if need_survival:
                 self.chunk.write(OpCode.DUP, self.current_line)
-                self.compile_expr(pattern)
-                self.chunk.write(OpCode.EQUAL, self.current_line)
-                skip_jump = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
-
+            self.push_scope()
+            guard_fail = None
+            if guard:
+                self.compile_expr(guard)
+                guard_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+            for stmt in body:
+                self.compile_stmt(stmt)
+            self.pop_scope()
+            if need_survival:
                 self.chunk.write(OpCode.POP, self.current_line)
-                for stmt in body:
-                    self.compile_stmt(stmt)
-                end_jump = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
-                end_jumps.append(end_jump)
-                self.chunk.patch_jump(skip_jump)
+            end_j = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
+            if guard_fail is not None:
+                self.chunk.patch_jump(guard_fail)
+                self.chunk.write(OpCode.POP, self.current_line)
+            self.chunk.patch_jump(skip_j)
+            return end_j
 
-        self.chunk.write(OpCode.POP, self.current_line)
+        # ── Type pattern (case int v => ...) ──────────────────────────────
+        if isinstance(pattern, MatchTypePat):
+            self.chunk.write(OpCode.DUP, self.current_line)
+            cidx = len(self.chunk.constants)
+            self.chunk.constants.append(pattern.type_name)
+            self.chunk.write(OpCode.CONSTANT, self.current_line)
+            self.chunk.write(cidx, self.current_line)
+            self.chunk.lines.append(self.current_line)
+            self.chunk.write(OpCode.IS_CHECK, self.current_line)
+            skip_j = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+            has_var = pattern.var_name is not None
+            need_survival = guard is not None and has_var
+            if need_survival:
+                self.chunk.write(OpCode.DUP, self.current_line)
+            self.push_scope()
+            if has_var:
+                self._compile_define_var(pattern.var_name)
+            guard_fail = None
+            if guard:
+                self.compile_expr(guard)
+                guard_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+            for stmt in body:
+                self.compile_stmt(stmt)
+            self.pop_scope()
+            if need_survival:
+                self.chunk.write(OpCode.POP, self.current_line)
+            end_j = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
+            if guard_fail is not None:
+                self.chunk.patch_jump(guard_fail)
+                self.pop_scope()
+            self.chunk.patch_jump(skip_j)
+            return end_j
 
-        for ej in end_jumps:
-            self.chunk.patch_jump(ej)
+        # ── List destructure pattern ──────────────────────────────────────
+        if isinstance(pattern, MatchListPat):
+            return self._compile_match_list_pat(pattern, body, guard)
+
+        self.error(f"Unsupported match pattern")
+        return None
+
+    def _get_or_create_temp_local(self) -> int:
+        """Return slot of __match_list_subject__ local, creating it at depth 0 if needed."""
+        for i, loc in enumerate(self.locals):
+            if loc.name == "__match_list_subject__":
+                return i
+        slot = self.define_local("__match_list_subject__")
+        return slot
+
+    def _compile_match_list_pat(self, pattern: MatchListPat, body, guard) -> int:
+        """Compile list destructure match case.
+
+        The subject is stored in a temp local at depth 0 (outside the match scope)
+        so that pop_scope (which removes depth-1 element locals) leaves it intact
+        for the next case when the guard fails.
+        """
+        elements = pattern.elements
+        rest_name = pattern.rest
+        n = len(elements)
+
+        # Check type is list
+        self.chunk.write(OpCode.DUP, self.current_line)
+        cidx = len(self.chunk.constants)
+        self.chunk.constants.append("list")
+        self.chunk.write(OpCode.CONSTANT, self.current_line)
+        self.chunk.write(cidx, self.current_line)
+        self.chunk.lines.append(self.current_line)
+        self.chunk.write(OpCode.IS_CHECK, self.current_line)
+        type_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+
+        # Check length
+        self.chunk.write(OpCode.DUP, self.current_line)
+        self.chunk.write(OpCode.LEN, self.current_line)
+        self.chunk.add_constant(n, self.current_line)
+        if rest_name:
+            self.chunk.write(OpCode.GREATER_EQUAL, self.current_line)
+        else:
+            self.chunk.write(OpCode.EQUAL, self.current_line)
+        len_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+
+        # Store subject in a temp local at the current depth (will survive pop_scope
+        # because element locals are pushed one depth deeper).
+        subject_slot = self._get_or_create_temp_local()
+        # The subject value is already on the operand stack at base + subject_slot.
+        # We register it as a local so that GET_LOCAL in the guard works, but
+        # we DON'T push a new scope for it — it lives at the base depth.
+
+        # Open scope for element variables (depth + 1)
+        base_local_count = len(self.locals)
+        self.push_scope()
+
+        # Helper: re-push the subject onto the operand stack for element extraction
+        def _load_subject():
+            self.chunk.write(OpCode.GET_LOCAL, self.current_line)
+            self.chunk.write(subject_slot, self.current_line)
+
+        # Element extraction
+        for i, elem_pat in enumerate(elements):
+            if isinstance(elem_pat, MatchBindPat):
+                _load_subject()
+                self.chunk.add_constant(i, self.current_line)
+                self.chunk.write(OpCode.GET_INDEX, self.current_line)
+                self._compile_define_var(elem_pat.name)
+            elif isinstance(elem_pat, MatchDefaultPat):
+                pass
+            else:
+                self.error(f"List pattern element must be a variable name or _ (got {type(elem_pat).__name__})")
+
+        # Rest variable
+        if rest_name:
+            _load_subject()
+            self.chunk.add_constant(n, self.current_line)
+            self.chunk.write(OpCode.NIL, self.current_line)
+            self.chunk.write(OpCode.NIL, self.current_line)
+            self.chunk.write(OpCode.BUILD_SLICE, self.current_line)
+            self.chunk.write(OpCode.GET_INDEX, self.current_line)
+            self._compile_define_var(rest_name)
+
+        # Guard clause
+        guard_fail = None
+        if guard:
+            self.compile_expr(guard)
+            guard_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+
+        # Compile body
+        for stmt in body:
+            self.compile_stmt(stmt)
+
+        # How many element locals were added?
+        saved_elem_count = len(self.locals) - base_local_count
+
+        # Pop scope: removes element locals from bookkeeping and emits POP for each
+        self.pop_scope()
+
+        end_j = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
+
+        # Guard fail — we jumped OVER the body + pop_scope, so element values are
+        # still on the runtime stack. Emit POPs to remove them.
+        if guard_fail is not None:
+            self.chunk.patch_jump(guard_fail)
+            for _ in range(saved_elem_count):
+                self.chunk.write(OpCode.POP, self.current_line)
+
+        self.chunk.patch_jump(type_fail)
+        self.chunk.patch_jump(len_fail)
+        return end_j
 
     def compile_return(self, node: ReturnStmt):
         if node.value:

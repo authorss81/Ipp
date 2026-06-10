@@ -2747,6 +2747,11 @@ class VM:
             parts.reverse()
             self.stack.append("".join(parts))
 
+        # ── Length opcode (v2.0.5) ──────────────────────────────────────
+        elif opcode == OpCode.LEN:
+            val = self.stack.pop() if self.stack else None
+            self.stack.append(len(val) if hasattr(val, '__len__') else 0)
+
         elif opcode in (OpCode.BREAK, OpCode.CONTINUE):
             pass  # resolved to JUMPs by compiler; these are fallback no-ops
 

@@ -196,6 +196,9 @@ class OpCode(IntEnum):
     # On-change callback definition (v2.0.2.1)
     ONCHANGE_DEFINE = 118  # pops field_name (str), closure; registers callback on class at stack[-1]
 
+    # Length opcode (v2.0.5)
+    LEN = 119  # pops value, pushes len(value)
+
 
 # ─── Operand size table (authoritative) ──────────────────────────────────────
 # Every opcode is exactly one of: 0-operand (size=1), 1-byte operand (size=2),
@@ -246,6 +249,8 @@ _SIZE1 = frozenset([
     OpCode.AWAIT,
     # v2.0.0.3: ENUM_DECL has no operands
     OpCode.ENUM_DECL,
+    # v2.0.5: LEN has no operands
+    OpCode.LEN,
 ])
 
 _SIZE2 = frozenset([

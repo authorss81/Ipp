@@ -548,10 +548,9 @@ class Parser:
                 case = self._parse_match_case()
                 cases.append(case)
             elif self.match(TokenType.DEFAULT) or self.match(TokenType.ELSE):
-                pattern = None
-                self.consume(TokenType.ARROW, "Expect '=>' after case pattern")
+                self.consume(TokenType.ARROW, "Expect '=>' after default/else")
                 body = self.block_or_statement()
-                cases.append((pattern, body))
+                cases.append(MatchCase(pattern=MatchDefaultPat(), body=body))
             else:
                 break
             self.skip_newlines()
@@ -569,10 +568,9 @@ class Parser:
                 case = self._parse_match_case()
                 cases.append(case)
             elif self.match(TokenType.DEFAULT) or self.match(TokenType.ELSE):
-                pattern = None
-                self.consume(TokenType.ARROW, "Expect '=>' after case pattern")
+                self.consume(TokenType.ARROW, "Expect '=>' after default/else")
                 body = self.block_or_statement()
-                cases.append((pattern, body))
+                cases.append(MatchCase(pattern=MatchDefaultPat(), body=body))
             else:
                 break
             self.skip_newlines()
@@ -580,36 +578,97 @@ class Parser:
         return MatchExpr(subject, cases)
 
     def _parse_match_case(self):
-        """Parse a single case pattern: value_expr => or TypeName varName =>""" 
+        """Parse a single match case: returns MatchCase with pattern, guard, body"""
         type_keywords = {TokenType.INT, TokenType.FLOAT, TokenType.BOOL, TokenType.NIL, TokenType.FUNC, TokenType.CLASS}
-        # Check for type pattern: case TypeName varName =>
-        if self.check(TokenType.IDENTIFIER) or self.peek().type in type_keywords:
-            # Peek one token ahead to check if followed by another identifier
+
+        # List destructure: case [a, b, *rest] =>
+        if self.check(TokenType.LEFT_BRACKET):
+            pattern = self._parse_match_list_pat()
+        elif self.check(TokenType.IDENTIFIER) and self.peek().lexeme == "_":
+            self.advance()
+            pattern = MatchDefaultPat()
+        elif self.check(TokenType.IDENTIFIER) or (not self.is_at_end() and self.peek().type in type_keywords):
             idx = self.current
-            # Consume the first token (type name)
             first = self.advance()
             first_name = first.lexeme if first.type == TokenType.IDENTIFIER else {
                 TokenType.INT: "int", TokenType.FLOAT: "float", TokenType.BOOL: "bool",
                 TokenType.NIL: "nil", TokenType.FUNC: "function", TokenType.CLASS: "class"
             }.get(first.type, first.lexeme)
-            # Check if next token is an identifier (var name), skipping newlines
+            while self.check(TokenType.NEWLINE):
+                self.advance()
+            if self.check(TokenType.IDENTIFIER) and not self.check(TokenType.ARROW) and not self.check(TokenType.IF):
+                var_tok = self.advance()
+                pattern = MatchTypePat(first_name, var_tok.lexeme)
+            elif first.type == TokenType.IDENTIFIER:
+                if self.check(TokenType.ARROW) or self.check(TokenType.IF):
+                    pattern = MatchBindPat(first_name)
+                else:
+                    self.current = idx
+                    expr = self.expression()
+                    pattern = MatchValuePat(expr)
+            else:
+                if self.check(TokenType.ARROW) or self.check(TokenType.IF):
+                    pattern = MatchTypePat(first_name)
+                else:
+                    self.current = idx
+                    expr = self.expression()
+                    pattern = MatchValuePat(expr)
+        else:
+            expr = self.expression()
+            pattern = MatchValuePat(expr)
+
+        guard = None
+        if self.match(TokenType.IF):
+            guard = self.expression()
+
+        self.consume(TokenType.ARROW, "Expect '=>' after case pattern")
+        body = self.block_or_statement()
+        return MatchCase(pattern=pattern, body=body, guard=guard)
+
+    def _parse_match_list_pat(self):
+        """Parse list destructure pattern: [a, b, *rest]"""
+        self.consume(TokenType.LEFT_BRACKET, "Expect '[' to start list pattern")
+        elements = []
+        rest_name = None
+        while not self.check(TokenType.RIGHT_BRACKET) and not self.is_at_end():
+            self.skip_newlines()
+            if self.match(TokenType.TRIPLE_DOT):
+                rest_tok = self.consume(TokenType.IDENTIFIER, "Expect variable name after '...'")
+                rest_name = rest_tok.lexeme
+                break
+            elem = self._parse_match_sub_pat()
+            elements.append(elem)
+            if not self.check(TokenType.RIGHT_BRACKET):
+                self.consume(TokenType.COMMA, "Expect ',' after pattern element")
+                self.skip_newlines()
+        self.consume(TokenType.RIGHT_BRACKET, "Expect ']' after list pattern")
+        return MatchListPat(elements, rest_name)
+
+    def _parse_match_sub_pat(self):
+        """Parse a single sub-pattern inside a list/destructure pattern"""
+        type_keywords = {TokenType.INT, TokenType.FLOAT, TokenType.BOOL, TokenType.NIL, TokenType.FUNC, TokenType.CLASS}
+        if self.check(TokenType.IDENTIFIER) and self.peek().lexeme == "_":
+            self.advance()
+            return MatchDefaultPat()
+        if self.check(TokenType.IDENTIFIER) or (not self.is_at_end() and self.peek().type in type_keywords):
+            idx = self.current
+            first = self.advance()
+            first_name = first.lexeme if first.type == TokenType.IDENTIFIER else {
+                TokenType.INT: "int", TokenType.FLOAT: "float", TokenType.BOOL: "bool",
+                TokenType.NIL: "nil", TokenType.FUNC: "function", TokenType.CLASS: "class"
+            }.get(first.type, first.lexeme)
             while self.check(TokenType.NEWLINE):
                 self.advance()
             if self.check(TokenType.IDENTIFIER):
-                # Type pattern: case TypeName varName =>
-                var_tok = self.consume(TokenType.IDENTIFIER, "Expect variable name after type name in match pattern")
-                self.consume(TokenType.ARROW, "Expect '=>' after case pattern")
-                body = self.block_or_statement()
-                return ("__type__", first_name, var_tok.lexeme, body)
-            # Not a type pattern — backtrack: first token is part of a value expression
-            # Reset current back to before consuming first
-            self.current = idx
-        
-        # Value match pattern
-        pattern = self.expression()
-        self.consume(TokenType.ARROW, "Expect '=>' after case pattern")
-        body = self.block_or_statement()
-        return (pattern, body)
+                var_tok = self.advance()
+                return MatchTypePat(first_name, var_tok.lexeme)
+            if first.type == TokenType.IDENTIFIER:
+                return MatchBindPat(first_name)
+            return MatchTypePat(first_name)
+        if self.check(TokenType.LEFT_BRACKET):
+            return self._parse_match_list_pat()
+        expr = self.expression()
+        return MatchValuePat(expr)
 
     def try_statement(self):
         try_body = self.block_or_statement()
