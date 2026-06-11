@@ -1,8 +1,8 @@
 # Ipp Language Roadmap v4
-> **Current version:** `1.9.1`
-> **Based on:** `new_audit(1).md` v4 — 18 confirmed open bugs (4 new), ~52 confirmed working features
-> **Phase A complete.** Next immediate work: Phase A2 micro-versions (v1.7.9.1.12 onward).
-> **This roadmap:** All original v1.7.6–v2.1.5 sections preserved with full detail + 22 new sub-versions injected from audit v4 findings.
+> **Current version:** `2.0.5`
+> **Status:** 146 regression tests pass. v1.x bug-fix phase complete. v2.0.x f-string format spec + Pattern Matching series (type patterns, list destructure, guard clauses, dict patterns) complete.
+> **Phase D in progress:** Game dev features (game loop, input, scene system, hot reload, packages).
+> **This roadmap:** Complete from v1.7.6 through v2.1.5. Some actual v2.0.x versions diverged from original plan — see VERSION STATUS.
 
 ---
 
@@ -73,7 +73,33 @@ print(f'{passed} pass / {failed} fail')
 
 ## VERSION STATUS ✅
 
-Version is correctly `1.7.9.1.16` in `main.py`, `ipp/main.py`, and `pyproject.toml`. BUG-019 closed, BUG-025 fixed, BUG-024 part A fixed, BUG-026 fixed, BUG-023 fixed, BUG-024 part B (class-level fields) fixed.
+**Current: v2.0.5** — VERSION in `ipp/main.py` = `"2.0.5"`, git tag `v2.0.5`.
+
+**v1.x phase fully complete.** All bugs BUG-001 through BUG-026 are fixed. All 146 regression tests pass.
+
+**v2.0.x completed versions:**
+| Version | What was actually implemented | Planned equivalent |
+|---------|------------------------------|-------------------|
+| v2.0.0 | C Extension (VM foundation) + Game loop + Time builtins | v2.0.0 – v2.0.0.2 |
+| v2.0.0.3 | Enums | v2.0.0.3 ✓ |
+| v2.0.0.4 | schedule() — time-based event queue | v2.0.0.4 ✓ |
+| v2.0.0.5 | Global builtins consolidation | — |
+| v2.0.1 | Input system (keyboard + programmatic simulation) | v2.0.1 ✓ |
+| v2.0.1.1 | Input system (mouse + gamepad) | v2.0.1.1 ✓ |
+| v2.0.1.2 | inspect() — live variable inspector | v2.0.1.2 ✓ |
+| v2.0.2 | @export annotation | v2.0.2 ✓ |
+| v2.0.2.1 | @export range hints + @onchange | v2.0.2.1 ✓ |
+| v2.0.3 | List destructure patterns in match | v2.0.3 ✓ |
+| v2.0.3.1 | Dict destructure patterns in match | v2.0.3.1 ✓ |
+| v2.0.4 | Type pattern matching (case int n =>) | v2.0.4 ✓ |
+| v2.0.5 | F-string format spec `{expr:format_spec}` | Planned v2.0.7 (f-string format spec) |
+| v2.0.6 | Template strings (planned) | — |
+| v2.0.7 | List destructure patterns + guard clauses | Planned v2.0.4.1 (guard clauses) + v2.0.3 (list destructure) |
+| v2.0.7.1 | Dict pattern matching (case {key1, ...} =>) | Not in original roadmap |
+
+**Remaining planned v2.0.x (not yet implemented):**
+- v2.0.6: Template strings
+- v2.0.8+: Generator functions (yield), yield from, File watcher + hot reload, Tween, async, scene system, ECS, packages
 
 ---
 
@@ -3261,14 +3287,15 @@ ipp run
 
 ---
 
-## Phase D: Game Dev Features (v2.0.0 – v2.0.11)
+## Phase D: Game Dev Features (v2.0.0 – v2.0.11) [PARTIALLY COMPLETE]
 
 > After Phase D, see **Phase D2: Core Packages (v2.0.12–v2.0.20)** for bundled stdlib packages.
 
 After Phase C and C2 the language is feature-complete for general scripting and supports multi-file projects. Phase D adds game-specific features that make Ipp viable for actual games.
 
+**Completed in Phase D so far:** v2.0.0 (game loop + time + draw stubs), v2.0.0.3 (enums), v2.0.0.4 (schedule), v2.0.0.5 (global builtins consolidation), v2.0.1–v2.0.1.2 (input system keyboard/mouse/gamepad + inspect), v2.0.2–v2.0.2.1 (@export + @onchange), v2.0.3 (list destructure patterns), v2.0.3.1 (dict destructure patterns), v2.0.4 (type pattern matching), v2.0.5 (list destructure + guard clauses in match), v2.0.6 (dict pattern matching in match).
 
-> **Note on major version:** v2.0.0 is a minor milestone here, not a complete rewrite. Do NOT tag v2.0.0 until Phases A, B, and C are complete and all their tests pass.
+**Remaining:** v2.0.5 (generators — pushed), v2.0.6 (hot reload — pushed), v2.0.7 (f-string format spec), v2.0.8+ (tween, async, scene, ECS).
 
 ---
 

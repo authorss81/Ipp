@@ -2,11 +2,11 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-1.9.1.1-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-2.0.5-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-163+-brightgreen.svg" alt="Builtins">
-<img src="https://img.shields.io/badge/tests-114%20total-brightgreen.svg" alt="Tests">
+<img src="https://img.shields.io/badge/tests-146%20total-brightgreen.svg" alt="Tests">
 <img src="https://img.shields.io/badge/status-stable-green.svg" alt="Status">
 
 **A beginner-friendly scripting language for game development.**  
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v1.9.1.1** includes: `nonlocal` keyword — explicit closure variable writes inside nested functions (e.g., `nonlocal count; count = count + 1` for counter closures and memoization patterns).
+**v2.0.5** includes: f-string format spec `{expr:format_spec}` — `{pi:.2f}`, `{val:+06d}`, `{name:<10}`, and all Python format specifiers via the `format()` builtin. Also adds dict destructure patterns, type patterns, list destructure patterns with guard clauses, and dict pattern matching (all since v2.0.0).
 
 ---
 
@@ -616,6 +616,23 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v1.9.1 | `global` keyword — explicit global variable declarations |
 | v1.9.1.1 | `nonlocal` keyword — explicit closure variable writes inside nested functions |
 | v2.0.0 | C Extension (VM foundation) |
+| v2.0.0.1 | Time builtins (time.now, time.sleep, time.since) |
+| v2.0.0.2 | Headless draw stubs for testing |
+| v2.0.0.3 | Enums |
+| v2.0.0.4 | schedule() — time-based event queue |
+| v2.0.0.5 | Global builtins consolidation |
+| v2.0.1 | Input system (keyboard, programmatic simulation) |
+| v2.0.1.1 | Input system (mouse + gamepad) |
+| v2.0.1.2 | inspect() — live in-game variable inspector |
+| v2.0.2 | @export annotation for editor-visible variables |
+| v2.0.2.1 | @export range hints + @onchange callback |
+| v2.0.3 | List destructure patterns in match |
+| v2.0.3.1 | Dict destructure patterns in match |
+| v2.0.4 | Type pattern matching (case int n =>) |
+| v2.0.5 | F-string format spec `{expr:format_spec}` |
+| v2.0.6 | Template strings (planned) |
+| v2.0.7 | List destructure patterns + guard clauses |
+| v2.0.7.1 | Dict pattern matching (case {key1, key2, ...} =>) |
 
 ---
 
@@ -629,7 +646,7 @@ python tests/regression.py
 python main.py run tests/v1_3_10/test_repl_intelligence.ipp
 ```
 
-All 113 test suites pass with zero failures.
+All 146 test suites pass with zero failures.
 
 ---
 

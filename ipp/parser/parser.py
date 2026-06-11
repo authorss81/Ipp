@@ -1154,8 +1154,24 @@ class Parser:
                         depth -= 1
                     j += 1
                 inner_text = raw[i + 1:j - 1]
+                # Check for format spec: first unbraced ':' separates expr from spec
+                format_spec = None
+                k, fmt_depth = 0, 0
+                while k < len(inner_text):
+                    ch = inner_text[k]
+                    if ch == '{':
+                        fmt_depth += 1
+                    elif ch == '}':
+                        fmt_depth -= 1
+                    elif ch == ':' and fmt_depth == 0:
+                        format_spec = inner_text[k + 1:]
+                        inner_text = inner_text[:k]
+                        break
+                    k += 1
                 from ipp.lexer.lexer import tokenize as lex
                 inner_ast = Parser(lex(inner_text)).expression()
+                if format_spec is not None:
+                    inner_ast = CallExpr(Identifier("format"), [inner_ast, StringLiteral(format_spec)])
                 segments.append(inner_ast)
                 i = j
             elif raw[i:i + 2] in ('{{', '}}'):

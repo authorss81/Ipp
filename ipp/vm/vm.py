@@ -669,6 +669,7 @@ class VM:
             'eval': lambda src: __import__('ipp.runtime.builtins', fromlist=['_ipp_eval'])._ipp_eval(src),
             'repr': lambda v: _repr_impl(v),
             'int': int,
+            'format': format,        # v2.0.5 — Python format() for f-string format specs
             'trunc': math.trunc,    # v1.7.9.1.14 — explicit truncation alias
             'float': float,
             'bool': bool,
@@ -706,8 +707,8 @@ class VM:
             'input': input,
             'exit': sys.exit,
             'assert': self._builtin_assert,
-            # String functions
-            'format': lambda s, *args, **kwargs: s.format(*args) if args else s.format(**kwargs) if kwargs else s,
+            # v2.0.5 — Python format() for f-string format specs and general use
+            'format': format,
             'upper': lambda s: str(s).upper(),
             'lower': lambda s: str(s).lower(),
             'strip': lambda s, *a: str(s).strip(*a),

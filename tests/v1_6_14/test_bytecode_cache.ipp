@@ -10,7 +10,7 @@ assert result == 30
 # Test 2: String formatting
 var name = "Ipp"
 var greeting = "Hello {}!"
-format(greeting, name)
+greeting.format(name)
 
 # Test 3: List operations
 var nums = [1, 2, 3, 4, 5]
