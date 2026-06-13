@@ -1,6 +1,6 @@
 # Ipp Language Roadmap v4
-> **Current version:** `2.0.5`
-> **Status:** 146 regression tests pass. v1.x bug-fix phase complete. v2.0.x f-string format spec + Pattern Matching series (type patterns, list destructure, guard clauses, dict patterns) complete.
+> **Current version:** `2.0.6`
+> **Status:** 147 regression tests pass. v1.x bug-fix phase complete. v2.0.x template strings, f-string format spec + Pattern Matching series complete.
 > **Phase D in progress:** Game dev features (game loop, input, scene system, hot reload, packages).
 > **This roadmap:** Complete from v1.7.6 through v2.1.5. Some actual v2.0.x versions diverged from original plan — see VERSION STATUS.
 
@@ -73,9 +73,9 @@ print(f'{passed} pass / {failed} fail')
 
 ## VERSION STATUS ✅
 
-**Current: v2.0.5** — VERSION in `ipp/main.py` = `"2.0.5"`, git tag `v2.0.5`.
+**Current: v2.0.6** — VERSION in `ipp/main.py` = `"2.0.6"`, git tag `v2.0.6`.
 
-**v1.x phase fully complete.** All bugs BUG-001 through BUG-026 are fixed. All 146 regression tests pass.
+**v1.x phase fully complete.** All bugs BUG-001 through BUG-026 are fixed. All 147 regression tests pass.
 
 **v2.0.x completed versions:**
 | Version | What was actually implemented | Planned equivalent |
@@ -93,12 +93,11 @@ print(f'{passed} pass / {failed} fail')
 | v2.0.3.1 | Dict destructure patterns in match | v2.0.3.1 ✓ |
 | v2.0.4 | Type pattern matching (case int n =>) | v2.0.4 ✓ |
 | v2.0.5 | F-string format spec `{expr:format_spec}` | Planned v2.0.7 (f-string format spec) |
-| v2.0.6 | Template strings (planned) | — |
+| v2.0.6 | Template strings `t"..."` for safe HTML/SQL | Planned v2.0.7.1 (template strings) |
 | v2.0.7 | List destructure patterns + guard clauses | Planned v2.0.4.1 (guard clauses) + v2.0.3 (list destructure) |
 | v2.0.7.1 | Dict pattern matching (case {key1, ...} =>) | Not in original roadmap |
 
 **Remaining planned v2.0.x (not yet implemented):**
-- v2.0.6: Template strings
 - v2.0.8+: Generator functions (yield), yield from, File watcher + hot reload, Tween, async, scene system, ECS, packages
 
 ---
@@ -4010,15 +4009,18 @@ assert reload_count == 2
 
 
 
-### v2.0.7.1 — Feature: Template Strings `t"..."` for Safe HTML/SQL
+### v2.0.6 — Feature: Template Strings `t"..."` for Safe HTML/SQL ✅ DONE
 
 **Why here:** Game UI often generates HTML or config text. Template strings are like f-strings but auto-escape interpolated values.
 
 ```ipp
 var player_name = "<script>alert('xss')</script>"
 var safe = t"<p>Hello, {player_name}!</p>"
-assert safe == "<p>Hello, &lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;!</p>"
+assert safe == "<p>Hello, &lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;!</p>"
 ```
+
+**Files changed:** `token.py` (TEMPLATE_STRING token), `lexer.py` (`t"..."` lexing), `ast.py` (TemplateStringExpr), `parser.py` (parse + html_escape wrapping), `interpreter.py` (visitor), `compiler.py` (compile), `vm.py` (`_builtin_html_escape`).
+**Test:** `tests/v2_0_6/test_template_strings.ipp` (14 assertions).
 
 ---
 

@@ -1,7 +1,7 @@
 # Ipp Language — Full Technical Audit v4 (Live Inspection Edition)
-> **Version audited:** `2.0.5` (verified from `ipp/main.py` and git tag)
-> **Audit method:** 146 `.ipp` test files run through the VM; f-string format spec + pattern matching suite (type, list, dict) tested exhaustively
-> **Previous audit:** `new_audit.md` v4 (v1.7.9.1.11) — all 26 BUGs now fixed; v2.x f-string format spec + pattern matching series complete
+> **Version audited:** `2.0.6` (verified from `ipp/main.py` and git tag)
+> **Audit method:** 147 `.ipp` test files run through the VM; template strings, f-string format spec + pattern matching suite tested exhaustively
+> **Previous audit:** `new_audit.md` v4 (v1.7.9.1.11) — all 26 BUGs now fixed; v2.x template strings, f-string format spec + pattern matching series complete
 > **Auditor stance:** Ruthless, specific. A test that passes the interpreter but not the VM is BROKEN.
 > **Comparison targets:** Lua 5.4, Python 3.12, GDScript 4.x
 
@@ -15,7 +15,7 @@
 
 **Semicolons (`;`) now silently ignored in lexer.** This was fixed in v1.7.6. Previously crashed with `SyntaxError: Unexpected character: ';'`.
 
-## WHAT CHANGED SINCE v4 AUDIT (v1.7.9.1.11 → v2.0.5)
+## WHAT CHANGED SINCE v4 AUDIT (v1.7.9.1.11 → v2.0.6)
 
 ### v1.8.x Series — Standard Library Completeness (All DONE)
 
@@ -70,7 +70,7 @@ The v1.8.x series systematically fixed standard library gaps and correctness iss
 | v1.9.8 | sorted() + lst.sorted() non-mutating sort |
 | v1.9.9 | dict.map(), dict.filter(), dict.items() |
 
-### v2.0.x Series — Pattern Matching + F-String Format Spec + Game Dev Foundations (v2.0.0–v2.0.5 done)
+### v2.0.x Series — Template Strings + Pattern Matching + Game Dev Foundations (v2.0.0–v2.0.6 done)
 
 | Version | Feature |
 |---------|---------|
@@ -89,7 +89,7 @@ The v1.8.x series systematically fixed standard library gaps and correctness iss
 | v2.0.3.1 | Dict destructure patterns in match |
 | v2.0.4 | Type pattern matching (case int n =>) |
 | v2.0.5 | F-string format spec `{expr:format_spec}` |
-| v2.0.6 | Template strings (planned) |
+| v2.0.6 | Template strings `t"..."` — auto-escapes interpolated values |
 | v2.0.7 | List destructure patterns + guard clauses (case n if cond =>) |
 | v2.0.7.1 | Dict pattern matching (case {key1, key2, ...} =>) |
 
@@ -122,7 +122,7 @@ Every test in this audit is written without semicolons. Results marked ✅ were 
 
 ## 1. Updated Score Table
 
-| Criterion | Ipp 2.0.5 (THIS audit) | Ipp 1.7.9.1.11 (v4 audit) | Lua 5.4 | Python 3.12 | GDScript 4.x |
+| Criterion | Ipp 2.0.6 (THIS audit) | Ipp 1.7.9.1.11 (v4 audit) | Lua 5.4 | Python 3.12 | GDScript 4.x |
 |-----------|-----------------------|---------------------------|---------|-------------|--------------|
 | Syntax Clarity & Consistency | 7/10 | 5/10 | 8/10 | 9/10 | 8/10 |
 | Type System | 4/10 | 4/10 | 5/10 | 8/10 | 8/10 |
@@ -152,7 +152,7 @@ Every test in this audit is written without semicolons. Results marked ✅ were 
 
 **⚠️ Ecosystem (1/10):** No packages, no registry, no formatter. This remains the largest gap.
 
-**Key improvements since v4:** All 26 BUGs fixed. v1.8.x filled standard library gaps (str methods, list methods, variadic fix, map/filter/reduce, prop fix, is operator, spread fix, vec arithmetic). v1.9.x added global builtins, multi-line strings, async return, set operations, slice syntax, enumerate, zip, sorted. v2.0.x added game loop, time, input, enums, schedule, @export, inspect, f-string format spec, and the complete pattern matching series (type patterns, list destructure, guard clauses, dict patterns). 146/146 tests pass.
+**Key improvements since v4:** All 26 BUGs fixed. v1.8.x filled standard library gaps (str methods, list methods, variadic fix, map/filter/reduce, prop fix, is operator, spread fix, vec arithmetic). v1.9.x added global builtins, multi-line strings, async return, set operations, slice syntax, enumerate, zip, sorted. v2.0.x added game loop, time, input, enums, schedule, @export, inspect, f-string format spec, template strings `t"..."`, and the complete pattern matching series (type patterns, list destructure, guard clauses, dict patterns). 147/147 tests pass.
 
 ---
 
@@ -1038,11 +1038,11 @@ At 4 bugs/week fixed, the checklist could complete in ~2 months of focused work.
 | — | — | `dict.get(k, default)` w/string key broken | ✅ **FIXED v1.7.6.2** |
 | — | — | Test honesty (dishonest tests fixed) | ✅ **All tests rewritten — 145/145 pass** |
 
-### All Bugs Fixed (v2.0.5)
+### All Bugs Fixed (v2.0.6)
 
-**All 26 BUGs are fixed. All 146 regression tests pass with honest assertions.**
+**All 26 BUGs are fixed. All 147 regression tests pass with honest assertions.**
 
-Working features as of v2.0.5 include everything from v1.3 through v2.0.5 — complete control flow (for-in, while, do-while, break, continue, match with => and default), closures, recursion, default params, named args, multiple return, decorators, pipeline `|>`, ternary, optional chaining `?.`, nullish coalescing `??`, list/dict/set comprehensions, f-strings with format spec `{expr:spec}`, let immutability, static methods, operator overloading (Ipp classes), signals/events, mat4/vec4/quat constructors, bytecode cache, tail call, all core math builtins, full string methods, full list methods (map/filter/reduce/extend/insert/clear/copy), dict methods (keys/values/items/get/update/map/filter), set operations (union/intersect/difference/add/remove/contains), global builtins (map/filter/reduce/isclose/trunc/sorted/enumerate/zip/schedule), multi-line strings, async/await coroutines, generators with yield, enums, @export annotation, type pattern matching (`case int n =>`), list destructure patterns (`case [a, b, ...rest] =>`), dict pattern matching (`case {key1, key2} =>`), guard clauses (`case n if n > 0 =>`), properties with get/set bodies, `is`/`is not` operator, spread operator (list and dict), vec2/3/4 arithmetic + methods, game loop, input system, scene stack, schedule(), inspect().
+Working features as of v2.0.6 include everything from v1.3 through v2.0.6 — complete control flow (for-in, while, do-while, break, continue, match with => and default), closures, recursion, default params, named args, multiple return, decorators, pipeline `|>`, ternary, optional chaining `?.`, nullish coalescing `??`, list/dict/set comprehensions, f-strings with format spec `{expr:spec}`, template strings `t"..."` with auto-escaping, let immutability, static methods, operator overloading (Ipp classes), signals/events, mat4/vec4/quat constructors, bytecode cache, tail call, all core math builtins, full string methods, full list methods (map/filter/reduce/extend/insert/clear/copy), dict methods (keys/values/items/get/update/map/filter), set operations (union/intersect/difference/add/remove/contains), global builtins (map/filter/reduce/isclose/trunc/sorted/enumerate/zip/schedule), multi-line strings, async/await coroutines, generators with yield, enums, @export annotation, type pattern matching (`case int n =>`), list destructure patterns (`case [a, b, ...rest] =>`), dict pattern matching (`case {key1, key2} =>`), guard clauses (`case n if n > 0 =>`), properties with get/set bodies, `is`/`is not` operator, spread operator (list and dict), vec2/3/4 arithmetic + methods, game loop, input system, scene stack, schedule(), inspect().
 
 ## 13. New Bugs Found In This Audit
 
@@ -1169,7 +1169,7 @@ This is not a code bug (it matches Python's behavior exactly) but an **undocumen
 
 ---
 
-*Audit v5 — June 2026 | Ipp v2.0.5*
-*Source inspection: Full pipeline (lexer, parser, compiler, VM) + 146 regression tests*
-*146/146 tests pass (100%) | 0 open bugs (all 26 BUGs fixed) | ~90+ confirmed working features*
+*Audit v5 — June 2026 | Ipp v2.0.6*
+*Source inspection: Full pipeline (lexer, parser, compiler, VM) + 147 regression tests*
+*147/147 tests pass (100%) | 0 open bugs (all 26 BUGs fixed) | ~90+ confirmed working features*
 *Score: 79/170 (D+) → 123/170 (B−) since v4 | All bugs fixed since v4*

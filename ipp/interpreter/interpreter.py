@@ -1270,6 +1270,14 @@ class Interpreter:
             parts.append(ipp_str(val))
         return ''.join(parts)
 
+    def visit_template_string_expr(self, node: TemplateStringExpr):
+        from ipp.runtime.builtins import ipp_str
+        parts = []
+        for seg in node.segments:
+            val = seg.accept(self)
+            parts.append(ipp_str(val))
+        return ''.join(parts)
+
     def visit_list_comprehension(self, node: ListComprehension):
         result = []
         iterable = node.iterator.accept(self)

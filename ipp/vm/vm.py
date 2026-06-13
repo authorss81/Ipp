@@ -679,6 +679,7 @@ class VM:
             'to_bool': bool,
             'to_string': str,
             'wasm_run': wasm_run,
+            'html_escape': self._builtin_html_escape,
             'sqrt': math.sqrt,
             'pow': pow,
             'append': lambda lst, item: lst.append(item),
@@ -1177,6 +1178,10 @@ class VM:
             logger.addHandler(handler)
         return logger
         return []
+
+    def _builtin_html_escape(self, obj):
+        s = self._builtin_ipp_str(obj)
+        return s.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;').replace('"', '&quot;').replace("'", '&#39;')
 
     def _builtin_assert(self, cond, msg="Assertion failed"):
         if not self._is_truthy(cond):

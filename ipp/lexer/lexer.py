@@ -189,6 +189,17 @@ class Lexer:
             else:
                 self.string(quote_char, is_fstring=True)
 
+        # Template strings — check for t" or t' or t""" prefix (v2.0.6)
+        elif c == 't' and (self.peek() == '"' or self.peek() == "'"):
+            quote_char = self.advance()  # consume the quote
+            if quote_char == '"' and self.peek() == '"' and self.peek_next() == '"':
+                # t"""..."""
+                self.advance()
+                self.advance()
+                self.triple_quote_string('"', is_template=True)
+            else:
+                self.string(quote_char, is_template=True)
+
         # Numbers — with hex/octal/binary support (FIX: BUG-L7)
         elif c == '0' and self.peek() in 'xXoObB':
             self.number_prefixed()
@@ -270,7 +281,7 @@ class Lexer:
             self.error(f"Invalid numeric literal: {raw}")
         self.add_token(TokenType.NUMBER, literal=value)
 
-    def string(self, quote_char, is_fstring=False):
+    def string(self, quote_char, is_fstring=False, is_template=False):
         """Lex string with escape sequence processing. FIX: BUG-L5"""
         value_chars = []
         
@@ -314,10 +325,15 @@ class Lexer:
 
         self.advance()  # Closing quote
         value = ''.join(value_chars)
-        token_type = TokenType.FSTRING if is_fstring else TokenType.STRING
+        if is_template:
+            token_type = TokenType.TEMPLATE_STRING
+        elif is_fstring:
+            token_type = TokenType.FSTRING
+        else:
+            token_type = TokenType.STRING
         self.add_token(token_type, literal=value)
 
-    def triple_quote_string(self, quote_char, is_fstring=False):
+    def triple_quote_string(self, quote_char, is_fstring=False, is_template=False):
         """Lex a triple-quoted string (three double-quotes or f-three-double-quotes)."""
         value_chars = []
 
@@ -369,7 +385,12 @@ class Lexer:
             self.error("Unterminated triple-quoted string")
 
         value = ''.join(value_chars)
-        token_type = TokenType.FSTRING if is_fstring else TokenType.STRING
+        if is_template:
+            token_type = TokenType.TEMPLATE_STRING
+        elif is_fstring:
+            token_type = TokenType.FSTRING
+        else:
+            token_type = TokenType.STRING
         self.add_token(token_type, literal=value)
 
     def skip_whitespace(self):

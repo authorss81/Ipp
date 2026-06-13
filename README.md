@@ -2,11 +2,11 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-2.0.5-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-2.0.6-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-163+-brightgreen.svg" alt="Builtins">
-<img src="https://img.shields.io/badge/tests-146%20total-brightgreen.svg" alt="Tests">
+<img src="https://img.shields.io/badge/tests-147%20total-brightgreen.svg" alt="Tests">
 <img src="https://img.shields.io/badge/status-stable-green.svg" alt="Status">
 
 **A beginner-friendly scripting language for game development.**  
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v2.0.5** includes: f-string format spec `{expr:format_spec}` — `{pi:.2f}`, `{val:+06d}`, `{name:<10}`, and all Python format specifiers via the `format()` builtin. Also adds dict destructure patterns, type patterns, list destructure patterns with guard clauses, and dict pattern matching (all since v2.0.0).
+**v2.0.6** includes: template strings `t"..."` for safe HTML/SQL — auto-escapes interpolated values. Also f-string format spec `{expr:format_spec}`, dict destructure patterns, type patterns, list destructure patterns with guard clauses, and dict pattern matching (all since v2.0.0).
 
 ---
 
@@ -630,7 +630,7 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v2.0.3.1 | Dict destructure patterns in match |
 | v2.0.4 | Type pattern matching (case int n =>) |
 | v2.0.5 | F-string format spec `{expr:format_spec}` |
-| v2.0.6 | Template strings (planned) |
+| v2.0.6 | Template strings `t"..."` for safe HTML/SQL |
 | v2.0.7 | List destructure patterns + guard clauses |
 | v2.0.7.1 | Dict pattern matching (case {key1, key2, ...} =>) |
 
@@ -646,7 +646,7 @@ python tests/regression.py
 python main.py run tests/v1_3_10/test_repl_intelligence.ipp
 ```
 
-All 146 test suites pass with zero failures.
+All 147 test suites pass with zero failures.
 
 ---
 

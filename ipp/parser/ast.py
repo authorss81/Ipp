@@ -173,6 +173,11 @@ class FStringExpr(ASTNode):
     def accept(self, visitor): return visitor.visit_fstring_expr(self)
 
 @dataclass
+class TemplateStringExpr(ASTNode):
+    segments: List[ASTNode]
+    def accept(self, visitor): return visitor.visit_template_string_expr(self)
+
+@dataclass
 class LambdaExpr(ASTNode):
     parameters: List[str]
     body: List[ASTNode]

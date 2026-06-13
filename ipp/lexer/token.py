@@ -15,6 +15,9 @@ class TokenType(Enum):
     # f-strings (v1.5.17)
     FSTRING = auto()
 
+    # Template strings (v2.0.6)
+    TEMPLATE_STRING = auto()
+
     # Keywords
     VAR = auto()
     LET = auto()

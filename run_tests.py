@@ -182,6 +182,7 @@ TESTS = [
     ("v2.0.3.1-dict-destruct","tests/v2_0_3_1/test_dict_destructure.ipp"),
     ("v2.0.4-type-match","tests/v2_0_4/test_type_match.ipp"),
     ("v2.0.5-fstring-format","tests/v2_0_5/test_fstring_format.ipp"),
+    ("v2.0.6-template-strings","tests/v2_0_6/test_template_strings.ipp"),
     ("v2.0.7-list-guard-match","tests/v2_0_7/test_pattern_match.ipp"),
     ("v2.0.7.1-dict-match","tests/v2_0_7.1/test_dict_match.ipp"),
 ]
