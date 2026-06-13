@@ -270,6 +270,78 @@ class IppAsyncCoroutine:
         return f"<coroutine {name}>"
 
 
+class _Tween:
+    """Tween object returned by tween_create(). Has .step(dt) method."""
+    def __init__(self, target, field, to_val, duration, easing_fn):
+        self.target = target
+        self.field = field
+        self.to_val = to_val
+        self.duration = duration
+        self.easing_fn = easing_fn
+        self.elapsed = 0.0
+        self._from_val = None
+
+    def _ensure_started(self):
+        if self._from_val is None:
+            if isinstance(self.target, IppInstance):
+                self._from_val = self.target.get(self.field)
+            elif isinstance(self.target, dict):
+                self._from_val = self.target[self.field]
+            elif hasattr(self.target, self.field):
+                self._from_val = getattr(self.target, self.field)
+            else:
+                self._from_val = self.target[self.field]
+
+    def step(self, dt):
+        self._ensure_started()
+        self.elapsed += dt
+        t = min(self.elapsed / self.duration, 1.0) if self.duration > 0 else 1.0
+        eased = self.easing_fn(t)
+        val = self._from_val + (self.to_val - self._from_val) * eased
+        if isinstance(self.target, IppInstance):
+            self.target.set(self.field, val)
+        elif isinstance(self.target, dict):
+            self.target[self.field] = val
+        elif hasattr(self.target, self.field):
+            setattr(self.target, self.field, val)
+        else:
+            self.target[self.field] = val
+        return t < 1.0
+
+    def __repr__(self):
+        return f"<Tween {self.field}: {self._from_val} -> {self.to_val}>"
+
+
+def _ease_linear(t): return t
+
+def _ease_in(t): return t * t
+
+def _ease_out(t): return 1 - (1 - t) * (1 - t)
+
+def _ease_in_out(t): return t * t * (3 - 2 * t)
+
+def _ease_bounce(t):
+    if t < 4/11: return (121*t*t)/16
+    elif t < 8/11: return (363/40.0*t*t) - (99/10.0*t) + 17/5.0
+    elif t < 9/10: return (4356/361.0*t*t) - (35442/1805.0*t) + 16061/1805.0
+    else: return (54/5.0*t*t) - (513/25.0*t) + 268/25.0
+
+def _ease_elastic(t):
+    import math
+    if t < 0.01: return 0
+    if t > 0.99: return 1
+    return math.pow(2, -10 * t) * math.sin((t - 0.075) * (2 * math.pi) / 0.3) + 1
+
+_EASING_MAP = {
+    "linear": _ease_linear,
+    "ease_in": _ease_in,
+    "ease_out": _ease_out,
+    "ease_in_out": _ease_in_out,
+    "bounce": _ease_bounce,
+    "elastic": _ease_elastic,
+}
+
+
 class IppVMGenerator:
     """VM-level generator object — suspends on YIELD, resumes on next()."""
     def __init__(self, closure, args):
@@ -790,6 +862,16 @@ class VM:
             'complex': lambda r=0, i=0: __import__('ipp.runtime.builtins', fromlist=['Complex']).Complex(float(r), float(i)),
             # Logging
             'logger': self._builtin_logger,
+            # v2.0.8 — Tween / easing
+            'tween': self._builtin_tween,
+            'tween_sync': self._builtin_tween_sync,
+            'tween_create': self._builtin_tween_create,
+            'delay': self._builtin_delay,
+            'ease_in': _ease_in,
+            'ease_out': _ease_out,
+            'ease_in_out': _ease_in_out,
+            'ease_bounce': _ease_bounce,
+            'ease_elastic': _ease_elastic,
         })
 
         # v2.0.0.1 — time namespace module
@@ -1187,6 +1269,40 @@ class VM:
         if not self._is_truthy(cond):
             raise VMError(f"Assertion failed: {msg}" if msg != "Assertion failed" else "Assertion failed")
         return None
+
+    def _builtin_tween_sync(self, target, field, to, duration):
+        """Synchronous tween — blocks until complete."""
+        easing_fn = _ease_linear
+        tw = _Tween(target, field, to, duration, easing_fn)
+        t_step = 0.016
+        while tw.step(t_step):
+            time.sleep(t_step)
+        return None
+
+    def _builtin_tween_create(self, target, field, to, duration, easing="linear"):
+        """Create a tween object with .step(dt) method."""
+        easing_fn = _EASING_MAP.get(easing.lower() if isinstance(easing, str) else "linear", _ease_linear)
+        return _Tween(target, field, to, duration, easing_fn)
+
+    def _builtin_tween(self, target, field, to, duration, easing="linear"):
+        """Async tween — returns IppAsyncCoroutine for use with 'await'."""
+        easing_fn = _EASING_MAP.get(easing.lower() if isinstance(easing, str) else "linear", _ease_linear)
+        t_step = 0.016
+
+        def _run_tween():
+            tw = _Tween(target, field, to, duration, easing_fn)
+            while tw.step(t_step):
+                time.sleep(t_step)
+            return None
+
+        return IppAsyncCoroutine(_run_tween, [])
+
+    def _builtin_delay(self, seconds):
+        """Async delay — returns IppAsyncCoroutine for use with 'await'."""
+        def _run_delay():
+            time.sleep(seconds)
+            return None
+        return IppAsyncCoroutine(_run_delay, [])
 
     def _builtin_set(self, *args):
         """FIX BUG-NEW-M6 — set() / set(iterable) factory."""
@@ -2078,21 +2194,30 @@ class VM:
         elif opcode == OpCode.AWAIT:
             val = self.stack.pop()
             if isinstance(val, IppAsyncCoroutine):
-                sub_vm = VM()
-                sub_vm.globals = self.globals
-                src = getattr(self, '_current_source_file', None)
-                if src:
-                    sub_vm._current_source_file = src
-                proto = getattr(val.closure, '_proto', None)
-                orig_async = getattr(proto, 'is_async', False)
-                if proto:
-                    proto.is_async = False
-                sub_vm._call(val.closure, list(val.args), None)
-                sub_vm.running = True
-                result = sub_vm.run()
-                if proto:
-                    proto.is_async = orig_async
-                self.stack.append(result)
+                if callable(val.closure) and not isinstance(val.closure, (Closure, IppFunction, IppClass, BoundMethod, type(str.format))):
+                    try:
+                        result = val.closure(*val.args)
+                    except VMError:
+                        raise
+                    except Exception as e:
+                        raise VMError(str(e))
+                    self.stack.append(result)
+                else:
+                    sub_vm = VM()
+                    sub_vm.globals = self.globals
+                    src = getattr(self, '_current_source_file', None)
+                    if src:
+                        sub_vm._current_source_file = src
+                    proto = getattr(val.closure, '_proto', None)
+                    orig_async = getattr(proto, 'is_async', False)
+                    if proto:
+                        proto.is_async = False
+                    sub_vm._call(val.closure, list(val.args), None)
+                    sub_vm.running = True
+                    result = sub_vm.run()
+                    if proto:
+                        proto.is_async = orig_async
+                    self.stack.append(result)
             else:
                 self.stack.append(val)
 

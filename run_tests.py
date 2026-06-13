@@ -185,6 +185,7 @@ TESTS = [
     ("v2.0.6-template-strings","tests/v2_0_6/test_template_strings.ipp"),
     ("v2.0.7-list-guard-match","tests/v2_0_7/test_pattern_match.ipp"),
     ("v2.0.7.1-dict-match","tests/v2_0_7.1/test_dict_match.ipp"),
+    ("v2.0.8-tween","tests/v2_0_8/test_tween.ipp"),
 ]
 
 passed=failed=0
