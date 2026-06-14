@@ -862,11 +862,12 @@ class VM:
             'complex': lambda r=0, i=0: __import__('ipp.runtime.builtins', fromlist=['Complex']).Complex(float(r), float(i)),
             # Logging
             'logger': self._builtin_logger,
-            # v2.0.8 — Tween / easing
+            # v2.0.8 — Tween / easing; v2.0.8.2 — parallel
             'tween': self._builtin_tween,
             'tween_sync': self._builtin_tween_sync,
             'tween_create': self._builtin_tween_create,
             'delay': self._builtin_delay,
+            'parallel': self._builtin_parallel,
             'ease_in': _ease_in,
             'ease_out': _ease_out,
             'ease_in_out': _ease_in_out,
@@ -1303,6 +1304,42 @@ class VM:
             time.sleep(seconds)
             return None
         return IppAsyncCoroutine(_run_delay, [])
+
+    def _builtin_parallel(self, *coros):
+        """Run coroutines in parallel — returns IppAsyncCoroutine."""
+        import threading
+        def _run_parallel():
+            results = [None] * len(coros)
+            threads = []
+            def _run_one(idx, coro):
+                if isinstance(coro, IppAsyncCoroutine):
+                    if callable(coro.closure) and not isinstance(coro.closure, (Closure, IppFunction, IppClass, BoundMethod)):
+                        results[idx] = coro.closure(*coro.args)
+                    else:
+                        sub_vm = VM()
+                        sub_vm.globals = self.globals
+                        src = getattr(self, '_current_source_file', None)
+                        if src:
+                            sub_vm._current_source_file = src
+                        proto = getattr(coro.closure, '_proto', None)
+                        orig_async = getattr(proto, 'is_async', False)
+                        if proto:
+                            proto.is_async = False
+                        sub_vm._call(coro.closure, list(coro.args), None)
+                        sub_vm.running = True
+                        results[idx] = sub_vm.run()
+                        if proto:
+                            proto.is_async = orig_async
+                elif callable(coro):
+                    results[idx] = coro()
+            for i, coro in enumerate(coros):
+                t = threading.Thread(target=_run_one, args=(i, coro))
+                t.start()
+                threads.append(t)
+            for t in threads:
+                t.join()
+            return results
+        return IppAsyncCoroutine(_run_parallel, [])
 
     def _builtin_set(self, *args):
         """FIX BUG-NEW-M6 — set() / set(iterable) factory."""

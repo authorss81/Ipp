@@ -93,6 +93,7 @@ The v1.8.x series systematically fixed standard library gaps and correctness iss
 | v2.0.7 | List destructure patterns + guard clauses (case n if cond =>) |
 | v2.0.7.1 | Dict pattern matching (case {key1, key2, ...} =>) |
 | v2.0.8 | Tween system + easing functions (`tween`, `tween_sync`, `tween_create`, `delay`) |
+| v2.0.8.2 | `parallel(coro1, coro2, ...)` — concurrent coroutine execution |
 
 ---
 
