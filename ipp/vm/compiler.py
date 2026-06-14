@@ -159,6 +159,10 @@ class Compiler:
             self.compile_import(node)
         elif isinstance(node, GameLoopStmt):
             self.compile_game_loop(node)
+        elif isinstance(node, SequenceStmt):
+            self.compile_sequence(node)
+        elif isinstance(node, ParallelBlock):
+            self.compile_parallel_block(node)
         elif isinstance(node, ExprStmt):
             self.compile_expr(node.expression)
             self.chunk.write(OpCode.POP, self.current_line)
@@ -940,6 +944,64 @@ class Compiler:
         while self.locals and self.locals[-1].depth == self.depth:
             self.locals.pop()
         self.depth -= 1
+
+    def compile_sequence(self, node: SequenceStmt):
+        """Compile a sequence as an async function. v2.0.8.3"""
+        sub = Compiler(parent=self)
+        sub.depth = 1
+
+        for stmt in node.body:
+            sub.compile_stmt(stmt)
+
+        last = sub.chunk.code[-1] if sub.chunk.code else None
+        if last not in (int(OpCode.RETURN), int(OpCode.RETURN_VAL)):
+            sub.chunk.write(OpCode.NIL, self.current_line)
+            sub.chunk.write(OpCode.RETURN_VAL, self.current_line)
+
+        proto = FunctionProto(sub.chunk, sub.upvalues, name=node.name, is_async=True, param_names=[])
+        idx = len(self.chunk.constants)
+        self.chunk.constants.append(proto)
+
+        self.chunk.write(OpCode.CLOSURE, self.current_line)
+        self.chunk.write(idx, self.current_line)
+
+        if self.depth > 0:
+            self.define_local(node.name)
+        else:
+            self.chunk.write(OpCode.DEFINE_GLOBAL, self.current_line)
+            cidx = len(self.chunk.constants)
+            self.chunk.constants.append(node.name)
+            self.chunk.write(cidx, self.current_line)
+            self.chunk.lines.append(self.current_line)
+
+    def compile_parallel_block(self, node: ParallelBlock):
+        """Compile parallel { ... } inside a sequence. v2.0.8.3
+        Creates an async lambda for each inner statement, calls them,
+        then calls parallel() and awaits the result."""
+        par_name_idx = len(self.chunk.constants)
+        self.chunk.constants.append("parallel")
+        self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
+        self.chunk.write(par_name_idx, self.current_line)
+
+        for i, stmt in enumerate(node.body):
+            sub = Compiler(parent=self)
+            sub.depth = 1
+            sub.compile_stmt(stmt)
+            sub.chunk.write(OpCode.NIL, self.current_line)
+            sub.chunk.write(OpCode.RETURN_VAL, self.current_line)
+            proto = FunctionProto(sub.chunk, sub.upvalues, name=f"__seq_par_{i}", is_async=True, param_names=[])
+            pidx = len(self.chunk.constants)
+            self.chunk.constants.append(proto)
+            self.chunk.write(OpCode.CLOSURE, self.current_line)
+            self.chunk.write(pidx, self.current_line)
+            self.chunk.write(OpCode.CALL, self.current_line)
+            self.chunk.write(0, self.current_line)
+
+        self.chunk.write(OpCode.CALL, self.current_line)
+        self.chunk.write(len(node.body), self.current_line)
+
+        self.chunk.write(OpCode.AWAIT, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
 
     def compile_do_while(self, node: DoWhileStmt):
         self.push_scope()

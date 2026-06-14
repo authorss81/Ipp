@@ -63,6 +63,7 @@ class TokenType(Enum):
     NONLOCAL = auto()  # v1.9.1.1 nonlocal keyword
     EXPORT = auto()  # v1.9.12 export keyword
     GAME_LOOP = auto()  # v2.0.0 game_loop keyword
+    SEQUENCE = auto()  # v2.0.8.3 sequence keyword
 
     # Decorator (v1.5.17)
     AT = auto()
@@ -184,4 +185,5 @@ KEYWORDS = {
     "nonlocal": TokenType.NONLOCAL, # v1.9.1.1 nonlocal keyword
     "export": TokenType.EXPORT,    # v1.9.12 export keyword
     "game_loop": TokenType.GAME_LOOP,  # v2.0.0 game loop keyword
+    "sequence": TokenType.SEQUENCE,    # v2.0.8.3 sequence keyword
 }

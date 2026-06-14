@@ -283,6 +283,19 @@ class GameLoopStmt(ASTNode):
     def accept(self, visitor): return visitor.visit_game_loop_stmt(self)
 
 @dataclass
+class SequenceStmt(ASTNode):
+    """sequence name { body } — v2.0.8.3 cutscene/timeline block"""
+    name: str
+    body: List[ASTNode]
+    def accept(self, visitor): return visitor.visit_sequence_stmt(self)
+
+@dataclass
+class ParallelBlock(ASTNode):
+    """parallel { ... } inside a sequence — runs statements concurrently"""
+    body: List[ASTNode]
+    def accept(self, visitor): return visitor.visit_parallel_block(self)
+
+@dataclass
 class VarDecl(ASTNode):
     name: str
     initializer: Optional[ASTNode]

@@ -187,6 +187,7 @@ TESTS = [
     ("v2.0.7.1-dict-match","tests/v2_0_7.1/test_dict_match.ipp"),
     ("v2.0.8-tween","tests/v2_0_8/test_tween.ipp"),
     ("v2.0.8.2-parallel","tests/v2_0_8_2/test_parallel.ipp"),
+    ("v2.0.8.3-sequence","tests/v2_0_8_3/test_sequence.ipp"),
 ]
 
 passed=failed=0

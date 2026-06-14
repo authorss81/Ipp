@@ -867,7 +867,9 @@ class VM:
             'tween_sync': self._builtin_tween_sync,
             'tween_create': self._builtin_tween_create,
             'delay': self._builtin_delay,
+            'wait': self._builtin_delay,
             'parallel': self._builtin_parallel,
+            'run_sequence': self._builtin_run_sequence,
             'ease_in': _ease_in,
             'ease_out': _ease_out,
             'ease_in_out': _ease_in_out,
@@ -1304,6 +1306,26 @@ class VM:
             time.sleep(seconds)
             return None
         return IppAsyncCoroutine(_run_delay, [])
+
+    def _builtin_run_sequence(self, seq_fn):
+        """Call a sequence function synchronously and return its result."""
+        if callable(seq_fn) and not isinstance(seq_fn, (Closure, IppFunction, IppClass, BoundMethod)):
+            return seq_fn()
+        proto = getattr(seq_fn, '_proto', None)
+        orig_async = getattr(proto, 'is_async', False)
+        if proto:
+            proto.is_async = False
+        sub_vm = VM()
+        sub_vm.globals = self.globals
+        src = getattr(self, '_current_source_file', None)
+        if src:
+            sub_vm._current_source_file = src
+        sub_vm._call(seq_fn, [], None)
+        sub_vm.running = True
+        result = sub_vm.run()
+        if proto:
+            proto.is_async = orig_async
+        return result
 
     def _builtin_parallel(self, *coros):
         """Run coroutines in parallel — returns IppAsyncCoroutine."""

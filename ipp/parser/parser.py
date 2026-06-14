@@ -481,6 +481,8 @@ class Parser:
             return self.with_statement()
         if self.match(TokenType.GAME_LOOP):
             return self.game_loop_statement()
+        if self.match(TokenType.SEQUENCE):
+            return self.sequence_statement()
         # Check for assert statement (identifier "assert" followed by expression)
         if self.check(TokenType.IDENTIFIER) and self.peek().lexeme == "assert":
             self.advance()  # consume "assert"
@@ -752,6 +754,37 @@ class Parser:
         self.consume(TokenType.LEFT_BRACE, "Expect '{' after game_loop(...)")
         body = self.block()
         return GameLoopStmt(fps, body)
+
+    def sequence_statement(self):
+        """sequence name { body } — v2.0.8.3 cutscene/timeline block"""
+        name = self.consume(TokenType.IDENTIFIER, "Expect sequence name").lexeme
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' after sequence name")
+        body = self._parse_sequence_body()
+        return SequenceStmt(name, body)
+
+    def _parse_sequence_body(self):
+        """Parse a { } block with sequence-specific handling:
+        - parallel { } is context-sensitive syntax (starts concurrent block)
+        - ExprStmt(CallExpr) get auto-wrapped with AwaitExpr"""
+        statements = []
+        self.skip_newlines()
+        while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
+            # Check for parallel { } without making it a keyword
+            if (self.check(TokenType.IDENTIFIER) and self.peek().lexeme == "parallel"
+                    and self.current + 1 < len(self.tokens)
+                    and self.tokens[self.current + 1].type == TokenType.LEFT_BRACE):
+                self.advance()  # consume 'parallel'
+                self.advance()  # consume '{'
+                inner = self._parse_sequence_body()
+                statements.append(ParallelBlock(inner))
+            else:
+                stmt = self.declaration()
+                if isinstance(stmt, ExprStmt) and isinstance(stmt.expression, CallExpr):
+                    stmt = ExprStmt(AwaitExpr(stmt.expression))
+                statements.append(stmt)
+            self.skip_newlines()
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after block")
+        return statements
 
     def return_statement(self):
         value = None

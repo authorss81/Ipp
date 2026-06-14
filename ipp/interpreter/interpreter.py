@@ -2161,6 +2161,17 @@ class Interpreter:
         func = IppCoroutine(node.parameters, node.body, closure, node.name)
         self.environment.define(node.name, func, constant=False)
 
+    def visit_sequence_stmt(self, node: SequenceStmt):
+        """Sequence statement — treat as async function declaration"""
+        closure = Environment(self.environment)
+        func = IppCoroutine([], node.body, closure, node.name)
+        self.environment.define(node.name, func, constant=False)
+
+    def visit_parallel_block(self, node: ParallelBlock):
+        """Parallel block — run statements sequentially in interpreter"""
+        for stmt in node.body:
+            stmt.accept(self)
+
     def _make_python_generator(self, generator):
         """Legacy - not used anymore"""
         pass
