@@ -1,4 +1,4 @@
-# Ipp REPL Tutorial v1.8.3
+# Ipp REPL Tutorial v2.0.10
 
 A comprehensive guide to the Ipp programming language REPL (Read-Eval-Print Loop).
 
@@ -29,7 +29,7 @@ ipp repl
 
 ## Keywords
 
-Ipp supports the following keywords (41 total):
+Ipp supports the following keywords (43 total):
 
 ### Variable Declarations
 | Keyword | Description | Example |
@@ -102,11 +102,28 @@ Ipp supports the following keywords (41 total):
 | `false` | Boolean false | `false` |
 | `nil` | Null value | `nil` |
 
+### Story Keywords (v2.0.8.4 — context-sensitive, only valid inside `story {}` blocks)
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `npc` | NPC dialogue line | `npc "Guard": "Halt!"` |
+| `choice` | Player choice menu | `choice { "Go" => { ... } }` |
+| `when` | Choice option guard | `"Go" when has_key => { ... }` |
+| `flag` | Set story flag | `flag has_key = true` |
+| `goto` | Jump to label | `goto ending` |
+| `label` | Define jump target | `label ending` |
+| `scene` | Scene transition | `scene "forest"` |
+
+### Sequence Keywords (v2.0.8.3 — context-sensitive)
+| Keyword | Description | Example |
+|---------|-------------|---------|
+| `sequence` | Cutscene/timeline block | `sequence intro { ... }` |
+| `parallel` | Concurrent sub-block | `parallel { ... }` |
+
 ---
 
 ## Builtin Functions
 
-Ipp includes 233 built-in functions. Here they are organized by category:
+Ipp includes 260+ built-in functions. Here they are organized by category:
 
 ### I/O & Printing (5)
 ```ipp
@@ -185,6 +202,41 @@ spring(0.5, 0.5)              # Spring damping
 smoothstep(0, 1, 0.5)         # Smooth step
 ```
 
+### Tween & Animation (v2.0.8 — 4)
+```ipp
+tween(target, "x", 100, 1.0)           # Animate property over 1s
+tween_sync(target, "y", 200, 2.0)      # Synchronous tween
+tween_create(target, "alpha", 0, 0.5)  # Create tween object for manual stepping
+delay(0.5)                              # Wait 0.5 seconds (awaitable)
+```
+
+### Sequence & Cutscenes (v2.0.8.3 — 2)
+```ipp
+sequence intro {
+    move player, 100, 0
+    npc_say guard, "Halt!"
+    parallel {
+        move camera, 0, -50
+        fade_out 0.5
+    }
+    wait(1.0)
+}
+run_sequence(intro)                     # Run asynchronously
+```
+
+### Story & Narrative (v2.0.8.4 — 4)
+```ipp
+story chapter1 {
+    npc "Guard": "Who goes there?"
+    choice {
+        "Fight" => { flag combat = true }
+        "Flee"  => { scene "escape" }
+    }
+}
+run_story(chapter1)                     # Run story synchronously
+story_flag("combat")                    # Read story flag
+```
+
 ### Random & Numbers (8)
 ```ipp
 random()                      # Random float 0-1
@@ -247,11 +299,22 @@ index_of("hello", "e")         # 1
 truncate("hello world", 8)     # "hello..."
 ```
 
-### String - Advanced (3)
+### String - Advanced (5)
 ```ipp
 pad_left("hi", 5, "0")         # "000hi"
 pad_right("hi", 5, "0")        # "hi000"
 escape("hello\nworld")         # Escape special chars
+```
+
+### F-String Format Spec (v2.0.5)
+```ipp
+f"{value:.2f}"                 # Format as float with 2 decimals
+f"{value:06d}"                 # Zero-pad integer to 6 digits
+```
+
+### Template Strings (v2.0.6)
+```ipp
+t"Hello {{name}}"              # Template string with escaped interpolation
 ```
 
 ### JSON & Data (8)
@@ -373,6 +436,20 @@ to_hex(r, g, b)              # To hex string
 from_hex("#FF0000")          # From hex string
 ```
 
+### Game Loop & Input (v2.0.0–v2.0.1 — 10)
+```ipp
+game_loop(60) {                    # Game loop at 60 FPS
+    delta_time()                   # Delta time in seconds
+    delta_time_ms()                # Delta time in milliseconds
+}
+key_pressed(KEY_W)                 # Check if key is held
+key_down(KEY_SPACE)                # Check if key pressed this frame
+key_up(KEY_A)                      # Check if key released
+mouse_x()                          # Mouse X position
+mouse_y()                          # Mouse Y position
+mouse_pressed(0)                   # Check mouse button
+```
+
 ### Game Math (20)
 ```ipp
 vec2(x, y)                   # 2D vector
@@ -402,7 +479,7 @@ Tree()                       # Create tree
 PriorityQueue()              # Priority queue
 ```
 
-### Async & Concurrency (8)
+### Async & Concurrency (12)
 ```ipp
 async_run(coroutine)         # Run async function
 create_task(coroutine)       # Create task
@@ -413,6 +490,7 @@ thread(func)                 # Start thread
 thread_current()            # Current thread
 thread_sleep(ms)             # Thread sleep
 sleep(seconds)               # Sleep
+parallel(coro1, coro2)       # Run coroutines concurrently (v2.0.8.2)
 ```
 
 ### Environment (4)
@@ -770,4 +848,4 @@ canvas_show()
 
 ---
 
-This tutorial covers all 41 keywords, 233 builtins, and 50+ REPL commands in Ipp v1.8.3.
+This tutorial covers all 43 keywords, 260+ builtins, and 50+ REPL commands in Ipp v2.0.10.

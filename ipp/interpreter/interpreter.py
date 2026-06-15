@@ -2167,6 +2167,57 @@ class Interpreter:
         func = IppCoroutine([], node.body, closure, node.name)
         self.environment.define(node.name, func, constant=False)
 
+    def visit_story_stmt(self, node: StoryStmt):
+        """Story statement — treat as async function declaration"""
+        closure = Environment(self.environment)
+        func = IppCoroutine([], node.body, closure, node.name)
+        self.environment.define(node.name, func, constant=False)
+
+    def visit_npc_stmt(self, node: NpcStmt):
+        """NPC dialogue line"""
+        speaker = node.speaker.accept(self)
+        text = node.text.accept(self)
+        print(f"[{speaker}] {text}")
+        raise IppCoroutineYield()
+
+    def visit_choice_stmt(self, node: ChoiceStmt):
+        """Player choice"""
+        print("[Choice]")
+        for i, opt in enumerate(node.options):
+            if opt.guard:
+                guard_val = opt.guard.accept(self)
+                if not guard_val:
+                    continue
+            text = opt.text.accept(self)
+            print(f"  {i}: {text}")
+        # Default: pick first option
+        if node.options:
+            chosen = node.options[0]
+            closure = Environment(self.environment)
+            for stmt in chosen.body:
+                stmt.accept(self)
+        raise IppCoroutineYield()
+
+    def visit_flag_stmt(self, node: FlagStmt):
+        """Set story flag — store in story state"""
+        val = node.value.accept(self)
+        if not hasattr(self, '_story_flags'):
+            self._story_flags = {}
+        self._story_flags[node.name] = val
+
+    def visit_goto_stmt(self, node: GotoStmt):
+        """Goto label — not supported in interpreter"""
+        pass
+
+    def visit_scene_stmt(self, node: SceneStmt):
+        """Scene transition"""
+        name = node.name.accept(self)
+        print(f"[Scene: {name}]")
+
+    def visit_label_stmt(self, node: LabelStmt):
+        """Label definition — no-op"""
+        pass
+
     def visit_parallel_block(self, node: ParallelBlock):
         """Parallel block — run statements sequentially in interpreter"""
         for stmt in node.body:

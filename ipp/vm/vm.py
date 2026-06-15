@@ -875,6 +875,14 @@ class VM:
             'ease_in_out': _ease_in_out,
             'ease_bounce': _ease_bounce,
             'ease_elastic': _ease_elastic,
+            # v2.0.8.4 — story builtins
+            'show_dialogue': self._builtin_show_dialogue,
+            'show_choice': self._builtin_show_choice,
+            'set_story_flag': self._builtin_set_story_flag,
+            'set_story_goto': self._builtin_set_story_goto,
+            'scene_transition': self._builtin_scene_transition,
+            'run_story': self._builtin_run_story,
+            'story_flag': self._builtin_story_flag,
         })
 
         # v2.0.0.1 — time namespace module
@@ -939,6 +947,7 @@ class VM:
             'mat4_perspective', 'quat_from_axis_angle', 'quat_multiply', 'quat_slerp', 'quat_to_mat4',
             'scene', 'node', 'camera', 'mesh', 'light',
             'mesh_cube', 'mesh_sphere', 'mesh_plane',
+            'resources',
         ]
         
         for name in missing_builtins:
@@ -1326,6 +1335,60 @@ class VM:
         if proto:
             proto.is_async = orig_async
         return result
+
+    # ─── v2.0.8.4 Story builtins ────────────────────────────────────────────────
+
+    def _builtin_show_dialogue(self, speaker, text):
+        """Show dialogue box — returns IppAsyncCoroutine for yield."""
+        def _run_dialogue():
+            print(f"[{speaker}] {text}")
+            return None
+        return IppAsyncCoroutine(_run_dialogue, [])
+
+    def _builtin_show_choice(self, *args):
+        """Show choice options and return selected index.
+        Called as show_choice(opt1_text, opt2_text, ..., count).
+        The last argument is the number of options."""
+        if not args:
+            return 0
+        count = args[-1]
+        option_texts = args[:-1]
+        # If user overrode with a test hook, args[-1] may be the count
+        # and option_texts are the option descriptions
+        def _run_choice():
+            print("[Choice]")
+            for i in range(min(count, len(option_texts))):
+                print(f"  {i}: {option_texts[i]}")
+            # Default: return option 0
+            return 0
+        return IppAsyncCoroutine(_run_choice, [])
+
+    def _builtin_set_story_flag(self, name, value):
+        """Set a story flag."""
+        if not hasattr(VM, '_story_flags'):
+            VM._story_flags = {}
+        VM._story_flags[name] = value
+        return None
+
+    def _builtin_set_story_goto(self, label):
+        """Set story goto target — stub for now."""
+        return None
+
+    def _builtin_scene_transition(self, name):
+        """Scene transition — returns IppAsyncCoroutine for yield."""
+        def _run_scene():
+            print(f"[Scene: {name}]")
+            return None
+        return IppAsyncCoroutine(_run_scene, [])
+
+    def _builtin_run_story(self, story_fn):
+        """Run a story synchronously (like run_sequence)."""
+        return self._builtin_run_sequence(story_fn)
+
+    def _builtin_story_flag(self, flag_name):
+        """Get a story flag value."""
+        flags = getattr(VM, '_story_flags', {})
+        return flags.get(flag_name, None)
 
     def _builtin_parallel(self, *coros):
         """Run coroutines in parallel — returns IppAsyncCoroutine."""
@@ -2043,6 +2106,8 @@ class VM:
                 self.stack.append(list(obj._items)[int(idx)])
             elif hasattr(obj, 'start') and hasattr(obj, 'stop') and hasattr(obj, 'step'):
                 self.stack.append(obj[int(idx)])
+            elif hasattr(obj, '__getitem__'):
+                self.stack.append(obj[idx])
             else:
                 raise VMError(f"Cannot index {type(obj).__name__} with {idx!r}{line_info}")
 
@@ -2062,6 +2127,8 @@ class VM:
                 obj.elements[int(idx)] = value
             elif hasattr(obj, 'data'):
                 obj.data[idx] = value
+            elif hasattr(obj, '__setitem__'):
+                obj[idx] = value
             self.stack.append(value)  # push assigned value so ExprStmt POP works correctly
 
         # ── Jumps — FIX: BUG-C1/BUG-M8 all use read_int (3-byte operands) ─

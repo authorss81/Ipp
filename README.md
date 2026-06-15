@@ -2,11 +2,11 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-2.0.6-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-2.0.10-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
-<img src="https://img.shields.io/badge/builtins-163+-brightgreen.svg" alt="Builtins">
-<img src="https://img.shields.io/badge/tests-147%20total-brightgreen.svg" alt="Tests">
+<img src="https://img.shields.io/badge/builtins-180+-brightgreen.svg" alt="Builtins">
+<img src="https://img.shields.io/badge/tests-153%20total-brightgreen.svg" alt="Tests">
 <img src="https://img.shields.io/badge/status-stable-green.svg" alt="Status">
 
 **A beginner-friendly scripting language for game development.**  
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v2.0.6** includes: template strings `t"..."` for safe HTML/SQL — auto-escapes interpolated values. Also f-string format spec `{expr:format_spec}`, dict destructure patterns, type patterns, list destructure patterns with guard clauses, and dict pattern matching (all since v2.0.0).
+**v2.0.10** includes: Resource Manager (`resources.load()`, `preload()`, `is_loaded()`, `get()`, `clear()`, `remove()`) with async `preload()` support. Scene tree hierarchy with parent-child node transforms, `add_child()`/`remove_child()`/`get_parent()`/`get_children()`/`find_node()`/`get_world_transform()`, `Scene.set_root()`/`get_root()`, and `get_world_position()` convenience method. Also `story {}` narrative branching syntax with NPC dialogue, player choices, story flags, goto/label, and scene transitions. `sequence {}` cutscene blocks, `parallel()` concurrent coroutines, `tween()`/`delay()` animation system, easing functions, template strings `t"..."`, f-string format spec `{expr:format_spec}`, dict destructure and pattern matching extensions.
 
 ---
 
@@ -633,6 +633,12 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 | v2.0.6 | Template strings `t"..."` for safe HTML/SQL |
 | v2.0.7 | List destructure patterns + guard clauses |
 | v2.0.7.1 | Dict pattern matching (case {key1, key2, ...} =>) |
+| v2.0.8 | Tween system + easing functions (`tween`, `tween_sync`, `tween_create`, `delay`) |
+| v2.0.8.2 | `parallel(coro1, coro2, ...)` concurrent coroutine execution |
+| v2.0.8.3 | `sequence {}` cutscene/timeline block with `parallel {}` sub-blocks |
+| v2.0.8.4 | `story {}` narrative branching syntax (NPC dialogue, choices, flags, scene) |
+| v2.0.9 | Scene tree hierarchy with parent-child transforms (`add_child`, `remove_child`, `get_parent`, `get_children`, `find_node`, `get_world_transform`, `Scene.set_root`/`get_root`) |
+| v2.0.10 | Resource Manager (`resources.load()`, `preload()`, `is_loaded()`, `get()`, `clear()`, `remove()`) |
 
 ---
 
@@ -640,13 +646,13 @@ print(g.shortest_path("A", "C"))  # [A, B, C]
 
 ```bash
 # Run all regression tests
-python tests/regression.py
+python run_tests.py
 
 # Run a single test
 python main.py run tests/v1_3_10/test_repl_intelligence.ipp
 ```
 
-All 147 test suites pass with zero failures.
+All 153 test suites pass with zero failures.
 
 ---
 

@@ -1,6 +1,6 @@
 # Ipp Language — Full Technical Audit v4 (Live Inspection Edition)
-> **Version audited:** `2.0.6` (verified from `ipp/main.py` and git tag)
-> **Audit method:** 147 `.ipp` test files run through the VM; template strings, f-string format spec + pattern matching suite tested exhaustively
+> **Version audited:** `2.0.10` (verified from `ipp/main.py`)
+> **Audit method:** 153 `.ipp` test files run through the VM; v2.0.10 (resource manager) + v2.0.9 (scene tree hierarchy) + v2.0.8.x (tween, parallel, sequence, story) + v2.0.7.x (pattern matching) + v2.0.5-6 (f-string format spec, template strings) tested exhaustively
 > **Previous audit:** `new_audit.md` v4 (v1.7.9.1.11) — all 26 BUGs now fixed; v2.x template strings, f-string format spec + pattern matching series complete
 > **Auditor stance:** Ruthless, specific. A test that passes the interpreter but not the VM is BROKEN.
 > **Comparison targets:** Lua 5.4, Python 3.12, GDScript 4.x
@@ -70,7 +70,7 @@ The v1.8.x series systematically fixed standard library gaps and correctness iss
 | v1.9.8 | sorted() + lst.sorted() non-mutating sort |
 | v1.9.9 | dict.map(), dict.filter(), dict.items() |
 
-### v2.0.x Series — Template Strings + Pattern Matching + Game Dev Foundations (v2.0.0–v2.0.6 done)
+### v2.0.x Series — Template Strings + Pattern Matching + Game Dev Foundations (v2.0.0–v2.0.8.4 done)
 
 | Version | Feature |
 |---------|---------|
@@ -94,6 +94,10 @@ The v1.8.x series systematically fixed standard library gaps and correctness iss
 | v2.0.7.1 | Dict pattern matching (case {key1, key2, ...} =>) |
 | v2.0.8 | Tween system + easing functions (`tween`, `tween_sync`, `tween_create`, `delay`) |
 | v2.0.8.2 | `parallel(coro1, coro2, ...)` — concurrent coroutine execution |
+| v2.0.8.3 | `sequence {}` — cutscene/timeline block with `parallel {}` sub-blocks |
+| v2.0.8.4 | `story {}` — narrative branching syntax (NPC, choice, flag, goto, scene) |
+| v2.0.9 | Scene tree hierarchy with parent-child transforms |
+| v2.0.10 | Resource Manager (`resources.load()`, `preload()`, `is_loaded()`, `get()`, `clear()`, `remove()`) |
 
 ---
 
@@ -124,7 +128,7 @@ Every test in this audit is written without semicolons. Results marked ✅ were 
 
 ## 1. Updated Score Table
 
-| Criterion | Ipp 2.0.6 (THIS audit) | Ipp 1.7.9.1.11 (v4 audit) | Lua 5.4 | Python 3.12 | GDScript 4.x |
+| Criterion | Ipp 2.0.8.4 (THIS audit) | Ipp 1.7.9.1.11 (v4 audit) | Lua 5.4 | Python 3.12 | GDScript 4.x |
 |-----------|-----------------------|---------------------------|---------|-------------|--------------|
 | Syntax Clarity & Consistency | 7/10 | 5/10 | 8/10 | 9/10 | 8/10 |
 | Type System | 4/10 | 4/10 | 5/10 | 8/10 | 8/10 |
@@ -1171,7 +1175,7 @@ This is not a code bug (it matches Python's behavior exactly) but an **undocumen
 
 ---
 
-*Audit v5 — June 2026 | Ipp v2.0.6*
-*Source inspection: Full pipeline (lexer, parser, compiler, VM) + 147 regression tests*
-*147/147 tests pass (100%) | 0 open bugs (all 26 BUGs fixed) | ~90+ confirmed working features*
-*Score: 79/170 (D+) → 123/170 (B−) since v4 | All bugs fixed since v4*
+*Audit v6 — June 2026 | Ipp v2.0.10*
+*Source inspection: Full pipeline (lexer, parser, compiler, VM) + 153 regression tests*
+*153/153 tests pass (100%) | 0 open bugs (all 26 BUGs fixed) | ~100+ confirmed working features*
+*Score: 79/170 (D+) → 123/170 (B−) since v4 | All bugs fixed since v4 | v2.0.8.x series (tween, parallel, sequence, story) complete*

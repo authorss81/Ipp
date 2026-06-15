@@ -64,6 +64,8 @@ class TokenType(Enum):
     EXPORT = auto()  # v1.9.12 export keyword
     GAME_LOOP = auto()  # v2.0.0 game_loop keyword
     SEQUENCE = auto()  # v2.0.8.3 sequence keyword
+    STORY = auto()     # v2.0.8.4 story keyword
+    # v2.0.8.4 story keywords are context-sensitive (not token-level keywords)
 
     # Decorator (v1.5.17)
     AT = auto()
@@ -186,4 +188,5 @@ KEYWORDS = {
     "export": TokenType.EXPORT,    # v1.9.12 export keyword
     "game_loop": TokenType.GAME_LOOP,  # v2.0.0 game loop keyword
     "sequence": TokenType.SEQUENCE,    # v2.0.8.3 sequence keyword
+    "story": TokenType.STORY,          # v2.0.8.4 story keyword
 }

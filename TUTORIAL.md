@@ -438,6 +438,11 @@ Ipp has 132+ built-in functions. Here are the most common:
 | `mesh_plane(width, height)` | Plane primitive |
 | `light(name, type, intensity)` | Create light |
 | `scene.add(node)`, `scene.set_camera(cam)` | Scene methods |
+| `scene.set_root(node)`, `scene.get_root()` | Scene root management |
+| `node.add_child(child)`, `node.remove_child(child)` | Hierarchy management |
+| `node.get_parent()`, `node.get_children()` | Hierarchy queries |
+| `node.find_node(name)` | Recursive node search |
+| `node.get_world_transform()`, `node.get_world_position()` | World-space transforms |
 | `scene.render()`, `scene.render_to_canvas(w, h)` | Rendering |
 
 ### Canvas 2D
@@ -491,6 +496,37 @@ var dict = {k: k*2 for k in range(5)}
 func hello() {
     print("Hello!")
 }
+```
+
+### Tween System (v2.0.8)
+```ipp
+tween(player, "x", 300, 1.0)          # Animate x to 300 over 1 second
+delay(0.5)                              # Wait 0.5 seconds (awaitable)
+```
+
+### Sequence Cutscenes (v2.0.8.3)
+```ipp
+sequence intro {
+    move player, 100, 0
+    parallel {
+        fade_out 0.5
+        play_music "intro.ogg"
+    }
+    wait(0.5)
+}
+run_sequence(intro)
+```
+
+### Story Narrative (v2.0.8.4)
+```ipp
+story tavern {
+    npc "Bartender": "What'll it be?"
+    choice {
+        "Ale" => { flag has_ale = true }
+        "Wine" => { npc "Bartender": "Good choice!" }
+    }
+}
+run_story(tavern)
 ```
 
 See [ERRORS.md](ERRORS.md) for a complete error reference.

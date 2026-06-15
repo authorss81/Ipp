@@ -483,6 +483,8 @@ class Parser:
             return self.game_loop_statement()
         if self.match(TokenType.SEQUENCE):
             return self.sequence_statement()
+        if self.match(TokenType.STORY):
+            return self.story_statement()
         # Check for assert statement (identifier "assert" followed by expression)
         if self.check(TokenType.IDENTIFIER) and self.peek().lexeme == "assert":
             self.advance()  # consume "assert"
@@ -785,6 +787,88 @@ class Parser:
             self.skip_newlines()
         self.consume(TokenType.RIGHT_BRACE, "Expect '}' after block")
         return statements
+
+    def story_statement(self):
+        """story name { body } — v2.0.8.4 narrative branching block"""
+        name = self.consume(TokenType.IDENTIFIER, "Expect story name").lexeme
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' after story name")
+        body = self._parse_story_body()
+        return StoryStmt(name, body)
+
+    def _parse_story_body(self):
+        """Parse a { } block with story-specific handling:
+        - npc 'name': 'text' — NPC dialogue
+        - choice { ... } — player choice with options
+        - flag name = value — set story flag
+        - goto label — jump to label
+        - label name — define jump target
+        - scene 'name' — scene transition
+        - Regular Ipp statements also allowed"""
+        statements = []
+        self.skip_newlines()
+        while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
+            statements.append(self._parse_story_stmt())
+            self.skip_newlines()
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after story body")
+        return statements
+
+    def _match_ident_keyword(self, keyword: str) -> bool:
+        """Context-sensitive keyword match: consume current token if it's
+        an IDENTIFIER with the given lexeme. Returns True if matched."""
+        if self.check(TokenType.IDENTIFIER) and self.peek().lexeme == keyword:
+            self.advance()
+            return True
+        return False
+
+    def _parse_story_stmt(self):
+        """Parse a single statement inside a story body
+        (also used for choice option bodies)."""
+        if self._match_ident_keyword("npc"):
+            speaker = self.expression()
+            self.consume(TokenType.COLON, "Expect ':' after npc speaker")
+            text = self.expression()
+            return NpcStmt(speaker, text)
+        elif self._match_ident_keyword("choice"):
+            self.consume(TokenType.LEFT_BRACE, "Expect '{' after choice")
+            options = []
+            self.skip_newlines()
+            while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
+                opt_text = self.expression()
+                guard = None
+                if self._match_ident_keyword("when"):
+                    guard = self.expression()
+                self.consume(TokenType.ARROW, "Expect '=>' after choice option")
+                opt_body = []
+                if self.check(TokenType.LEFT_BRACE):
+                    self.advance()
+                    self.skip_newlines()
+                    while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
+                        opt_body.append(self._parse_story_stmt())
+                        self.skip_newlines()
+                    self.consume(TokenType.RIGHT_BRACE, "Expect '}' after choice option body")
+                options.append(ChoiceOption(opt_text, opt_body, guard))
+                self.skip_newlines()
+            self.consume(TokenType.RIGHT_BRACE, "Expect '}' after choice")
+            return ChoiceStmt(options)
+        elif self._match_ident_keyword("flag"):
+            name = self.consume(TokenType.IDENTIFIER, "Expect flag name").lexeme
+            self.consume(TokenType.EQUAL, "Expect '=' after flag name")
+            value = self.expression()
+            return FlagStmt(name, value)
+        elif self._match_ident_keyword("goto"):
+            label = self.consume(TokenType.IDENTIFIER, "Expect label name").lexeme
+            return GotoStmt(label)
+        elif self._match_ident_keyword("scene"):
+            name = self.expression()
+            return SceneStmt(name)
+        elif self._match_ident_keyword("label"):
+            name = self.consume(TokenType.IDENTIFIER, "Expect label name").lexeme
+            return LabelStmt(name)
+        else:
+            stmt = self.declaration()
+            if isinstance(stmt, ExprStmt) and isinstance(stmt.expression, CallExpr):
+                stmt = ExprStmt(AwaitExpr(stmt.expression))
+            return stmt
 
     def return_statement(self):
         value = None

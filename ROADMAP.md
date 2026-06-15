@@ -1,6 +1,6 @@
 # Ipp Language Roadmap v4
-> **Current version:** `2.0.6`
-> **Status:** 147 regression tests pass. v1.x bug-fix phase complete. v2.0.x template strings, f-string format spec + Pattern Matching series complete.
+> **Current version:** `2.0.10`
+> **Status:** 153 regression tests pass. v1.x bug-fix phase complete. v2.0.x template strings, f-string format spec, Pattern Matching, Tween, Sequence, Story, Scene Tree, and Resource Manager series complete.
 > **Phase D in progress:** Game dev features (game loop, input, scene system, hot reload, packages).
 > **This roadmap:** Complete from v1.7.6 through v2.1.5. Some actual v2.0.x versions diverged from original plan — see VERSION STATUS.
 
@@ -73,9 +73,9 @@ print(f'{passed} pass / {failed} fail')
 
 ## VERSION STATUS ✅
 
-**Current: v2.0.6** — VERSION in `ipp/main.py` = `"2.0.6"`, git tag `v2.0.6`.
+**Current: v2.0.10** — VERSION in `ipp/main.py` = `"2.0.10"`.
 
-**v1.x phase fully complete.** All bugs BUG-001 through BUG-026 are fixed. All 147 regression tests pass.
+**v1.x phase fully complete.** All bugs BUG-001 through BUG-026 are fixed. All regression tests pass.
 
 **v2.0.x completed versions:**
 | Version | What was actually implemented | Planned equivalent |
@@ -96,9 +96,20 @@ print(f'{passed} pass / {failed} fail')
 | v2.0.6 | Template strings `t"..."` for safe HTML/SQL | Planned v2.0.7.1 (template strings) |
 | v2.0.7 | List destructure patterns + guard clauses | Planned v2.0.4.1 (guard clauses) + v2.0.3 (list destructure) |
 | v2.0.7.1 | Dict pattern matching (case {key1, ...} =>) | Not in original roadmap |
+| v2.0.8 | Tween system + easing functions | v2.0.8 ✓ |
+| v2.0.8.2 | `parallel()` concurrent coroutine execution | v2.0.8.2 ✓ |
+| v2.0.8.3 | `sequence {}` cutscene/timeline block | v2.0.8.3 ✓ |
+| v2.0.8.4 | `story {}` narrative branching syntax | v2.0.8.4 ✓ |
+| v2.0.9 | Scene tree hierarchy with parent-child transforms | v2.0.9 ✓ |
+| v2.0.10 | Resource Manager (`resources.load()`, `preload()`, `is_loaded()`, `get()`, `clear()`, `remove()`) | v2.0.10 |
 
-**Remaining planned v2.0.x (not yet implemented):**
-- v2.0.8+: Generator functions (yield), yield from, File watcher + hot reload, Tween, async, scene system, ECS, packages
+**Remaining planned (not yet implemented):**
+- ECS (Entity Component System), packages, file watcher + hot reload
+- **v2.0.11** onwards (see version history in README.md for planned features)
+- **v2.0.22** — GPU Rendering Backend (hardware-accelerated 3D via OpenGL/Vulkan)
+- **v2.0.23** — Physics Engine (2D/3D collision detection + rigidbody simulation)
+- **v2.0.24** — Proper Audio Backend (real playback replacing stubs, positional audio)
+- **v2.0.25** — Debugger with Breakpoints (step-through, call stack inspection)
 
 ---
 
@@ -4024,7 +4035,7 @@ assert safe == "<p>Hello, &lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;!</p>
 
 ---
 
-### v2.0.8 — Feature: `tween()` and Timeline-Based Async
+### v2.0.8 — Feature: `tween()` and Timeline-Based Async ✅ IMPLEMENTED
 
 **What:** Language-level `tween(target, field, to, duration, easing)` that works with the game loop's timing. Requires async (v1.9.4) and game loop (v2.0.0) to be working.
 
@@ -4060,7 +4071,7 @@ assert abs(p.x - 200.0) < 0.001
 
 ---
 
-### v2.0.8.1 — Feature: `await delay(seconds)` in Coroutines
+### v2.0.8.1 — Feature: `await delay(seconds)` in Coroutines ✅ IMPLEMENTED (merged into v2.0.8)
 
 ```ipp
 async func countdown(from) {
@@ -4077,7 +4088,7 @@ async_run(countdown(3))
 
 ---
 
-### v2.0.8.2 — Feature: `parallel(coro1, coro2, ...)` Concurrent Execution
+### v2.0.8.2 — Feature: `parallel(coro1, coro2, ...)` Concurrent Execution ✅ IMPLEMENTED
 
 ```ipp
 async func move_x(obj, target, dur) {
@@ -4094,7 +4105,7 @@ await parallel(move_x(player, 200, 1.0), move_y(player, 300, 1.5))
 
 ---
 
-### v2.0.8.3 — Feature: `sequence {}` — First-Class Cutscene/Timeline Block
+### v2.0.8.3 — Feature: `sequence {}` — First-Class Cutscene/Timeline Block ✅ IMPLEMENTED
 
 **What:** A `sequence` block runs its statements in order, waiting for each to complete before moving to the next. It desugars to a coroutine but reads like synchronous code. The canonical tool for cutscenes, tutorial flows, boss intros, and narrative sequences. No scripting language embeds this as syntax — Ink/Yarn/Twine are all separate tools requiring a bridge.
 
@@ -4511,7 +4522,7 @@ t._update(0.016)    # crosses 1.0s
 assert fired == true
 ```
 
-### v2.0.8.4 — Feature: `story {}` — Narrative Branching Syntax
+### v2.0.8.4 — Feature: `story {}` — Narrative Branching Syntax ✅ IMPLEMENTED
 
 **What:** First-class dialogue and branching narrative syntax. A `story` block is a named, resumable narrative flow with characters, player choices, conditions, and flags. It shares variables and closures with the surrounding Ipp code natively — no bridge to Ink or Yarn needed.
 
@@ -8189,7 +8200,108 @@ injected into `__init__`. Pure desugaring — the bootstrapped compiler handles 
 **Regression risk:** Low. New decorator names. Requires `pip install pygame` for sound (gracefully
 skips if absent).
 
+---
 
+## Phase D4: Core Engine Systems (v2.0.22 – v2.0.25)
+
+### v2.0.22 — Feature: GPU Rendering Backend
+
+**What:** Replace the software projection in `Scene.render()` with hardware-accelerated 3D rendering via OpenGL/Vulkan. Mesh data is uploaded to GPU buffers, shaders process vertices/fragments, and the camera/view/projection pipeline uses the GPU.
+
+**Implementation approach:** Use a Python GPU library (e.g. `moderngl` or `pyglet`) as an optional dependency. The `render()` builtin creates an OpenGL context, uploads meshes, applies the scene's camera/view/projection transforms on GPU, and outputs to a window or framebuffer.
+
+```ipp
+var win = window_open(1280, 720, "My Game")
+var my_scene = scene("main")
+# ... populate scene with meshes, lights, camera ...
+
+game_loop(fps=60) {
+    my_scene.render(win)  # GPU-accelerated render to window
+}
+```
+
+**Files to change:** `ipp/runtime/builtins.py` (GPU renderer class), `ipp/runtime/renderer.py` (new file — OpenGL/shaders), `ipp/vm/vm.py` (register `window_open`, GPU render builtins).
+
+**Dependencies:** `moderngl` (or `pyglet` — TBD). Graceful stub if not installed.
+
+**Test file:** `tests/v2_0_22/test_gpu_render.ipp`
+
+---
+
+### v2.0.23 — Feature: Physics Engine
+
+**What:** Add 2D/3D physics simulation with rigidbodies, collisions, and constraints. Wraps a mature physics library (e.g. `pymunk` for 2D, `pybullet` for 3D) with an Ipp-native API.
+
+**API:**
+```ipp
+var space = PhysicsSpace()
+var body = space.create_body(shape="box", x=0, y=10, w=1, h=1)
+body.gravity_scale = 1.0
+
+game_loop(fps=60) {
+    space.step(delta_time())
+    var pos = body.position
+    print("ball at: " + str(pos.x) + ", " + str(pos.y))
+}
+```
+
+**Files to change:** `ipp/runtime/physics.py` (new file — wraps physics library), `ipp/runtime/builtins.py` (register builtins), `ipp/vm/vm.py` (add `PhysicsSpace`, `RigidBody` to globals).
+
+**Dependencies:** `pymunk` (2D) or `pybullet` (3D). Graceful stub if not installed.
+
+**Test file:** `tests/v2_0_23/test_physics.ipp`
+
+---
+
+### v2.0.24 — Feature: Proper Audio Backend
+
+**What:** Replace the current audio stubs (`[volume set to 0.5]`) with real sound playback using `pygame.mixer` or `sounddevice`. Supports WAV/OGG/MP3, positional audio, sound pools, and volume/pan control.
+
+**API:**
+```ipp
+var bgm = sound_load("music/theme.ogg")
+bgm.play(loops=-1, volume=0.7)
+
+var sfx = sound_load("sfx/explosion.wav")
+sfx.play(volume=1.0, pan=0.5)  # positional
+```
+
+**Files to change:** `ipp/runtime/audio.py` (replace stubs with real playback), `ipp/vm/vm.py` (wire sound builtins).
+
+**Dependencies:** `pygame.mixer` already available. Graceful stub if mixer init fails.
+
+**Test file:** `tests/v2_0_24/test_audio_real.ipp`
+
+---
+
+### v2.0.25 — Feature: Debugger with Breakpoints
+
+**What:** A step-through debugger accessible from the REPL or CLI. Set breakpoints with `breakpoint()` or `dbg_set()` in code. When hit, the VM suspends and drops into an interactive debug REPL with commands: `step`, `continue`, `print var`, `stack`, `locals`.
+
+**API:**
+```ipp
+func update(enemy) {
+    breakpoint()  # VM suspends here, drops into debug REPL
+    enemy.hp = enemy.hp - 10
+}
+```
+
+**Commands in debug REPL:**
+```
+[dbg] step         # execute next line
+[dbg] continue     # resume normal execution
+[dbg] print x      # evaluate expression in current frame
+[dbg] locals       # show all local variables
+[dbg] stack        # show call stack with line numbers
+```
+
+**Files to change:** `ipp/vm/vm.py` (BREAKPOINT opcode, debug REPL loop), `ipp/vm/compiler.py` (emit breakpoint), `ipp/vm/bytecode.py` (BREAKPOINT opcode).
+
+**Dependencies:** None — pure Ipp VM feature.
+
+**Test file:** `tests/v2_0_25/test_debugger.ipp`
+
+---
 
 ## Phase E: Architecture and Performance (v2.1.0+)
 

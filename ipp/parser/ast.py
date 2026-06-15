@@ -290,6 +290,57 @@ class SequenceStmt(ASTNode):
     def accept(self, visitor): return visitor.visit_sequence_stmt(self)
 
 @dataclass
+class StoryStmt(ASTNode):
+    """story name { body } — v2.0.8.4 narrative branching block"""
+    name: str
+    body: List[ASTNode]
+    def accept(self, visitor): return visitor.visit_story_stmt(self)
+
+@dataclass
+class NpcStmt(ASTNode):
+    """npc 'Name': 'dialogue' — v2.0.8.4 NPC dialogue line"""
+    speaker: ASTNode
+    text: ASTNode
+    def accept(self, visitor): return visitor.visit_npc_stmt(self)
+
+@dataclass
+class ChoiceOption:
+    text: ASTNode
+    body: List[ASTNode]
+    guard: Optional[ASTNode] = None
+
+@dataclass
+class ChoiceStmt(ASTNode):
+    """choice { 'opt' => { ... } ... } — v2.0.8.4 player choice"""
+    options: list  # List[ChoiceOption]
+    def accept(self, visitor): return visitor.visit_choice_stmt(self)
+
+@dataclass
+class FlagStmt(ASTNode):
+    """flag name = value — v2.0.8.4 set a story flag"""
+    name: str
+    value: ASTNode
+    def accept(self, visitor): return visitor.visit_flag_stmt(self)
+
+@dataclass
+class GotoStmt(ASTNode):
+    """goto label_name — v2.0.8.4 jump to label"""
+    label: str
+    def accept(self, visitor): return visitor.visit_goto_stmt(self)
+
+@dataclass
+class SceneStmt(ASTNode):
+    """scene 'name' — v2.0.8.4 scene transition"""
+    name: ASTNode
+    def accept(self, visitor): return visitor.visit_scene_stmt(self)
+
+@dataclass
+class LabelStmt(ASTNode):
+    """label name — v2.0.8.4 define a jump target"""
+    name: str
+    def accept(self, visitor): return visitor.visit_label_stmt(self)
+
+@dataclass
 class ParallelBlock(ASTNode):
     """parallel { ... } inside a sequence — runs statements concurrently"""
     body: List[ASTNode]

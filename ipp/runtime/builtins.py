@@ -1929,6 +1929,44 @@ class SceneNode:
             child.parent = None
             self.children.remove(child)
     
+    def add_child(self, child):
+        if isinstance(child, SceneNode):
+            child.parent = self
+            self.children.append(child)
+    
+    def remove_child(self, child):
+        if child in self.children:
+            child.parent = None
+            self.children.remove(child)
+            return True
+        return False
+    
+    def get_parent(self):
+        return self.parent
+    
+    def get_children(self):
+        return list(self.children)
+    
+    def find_node(self, name):
+        if self.name == name:
+            return self
+        for child in self.children:
+            result = child.find_node(name)
+            if result is not None:
+                return result
+        return None
+    
+    def get_world_transform(self):
+        local = self.get_transform()
+        if self.parent is not None:
+            parent_world = self.parent.get_world_transform()
+            return ipp_mat4_multiply(parent_world, local)
+        return local
+    
+    def get_world_position(self):
+        wt = self.get_world_transform()
+        return Vector3(wt[3], wt[7], wt[11])
+    
     def get_transform(self):
         t = ipp_mat4_translate(self.position.x, self.position.y, self.position.z)
         r = self.rotation.to_mat4()
@@ -2035,12 +2073,24 @@ class Light(SceneNode):
 
 
 class Scene:
-    __slots__ = ('name', 'nodes', 'camera')
+    __slots__ = ('name', 'nodes', 'camera', 'root')
     
     def __init__(self, name="scene"):
         self.name = name
         self.nodes = []
         self.camera = None
+        self.root = None
+    
+    def set_root(self, node):
+        if isinstance(node, SceneNode):
+            if node not in self.nodes:
+                self.add(node)
+            self.root = node
+            return True
+        return False
+    
+    def get_root(self):
+        return self.root
     
     def add(self, node):
         if isinstance(node, (SceneNode, Camera, Mesh, Light)):
@@ -2051,6 +2101,8 @@ class Scene:
     def remove(self, node):
         if node in self.nodes:
             self.nodes.remove(node)
+            if self.root is node:
+                self.root = None
             return True
         return False
     
@@ -2083,7 +2135,7 @@ class Scene:
         projected = []
         
         for mesh in meshes:
-            transform = mesh.get_transform()
+            transform = mesh.get_world_transform()
             view = camera.get_view()
             proj = camera.get_projection()
             
@@ -4173,8 +4225,43 @@ def set_draw_target(canvas):
     _draw_buffer.append(("set_target", canvas))
 
 
+class ResourceManager:
+    """Resource manager for loading, caching, and preloading assets."""
+    def __init__(self):
+        self._cache = {}
+    
+    def load(self, path):
+        path = str(path)
+        if path in self._cache:
+            return self._cache[path]
+        with open(path, 'r', encoding='utf-8') as f:
+            data = f.read()
+        self._cache[path] = data
+        return data
+    
+    def preload(self, path):
+        path = str(path)
+        from ipp.vm.vm import IppAsyncCoroutine
+        def _load():
+            return self.load(path)
+        return IppAsyncCoroutine(_load, [])
+    
+    def is_loaded(self, path):
+        return str(path) in self._cache
+    
+    def get(self, path):
+        return self._cache.get(str(path), None)
+    
+    def clear(self):
+        self._cache.clear()
+    
+    def remove(self, path):
+        self._cache.pop(str(path), None)
+
+
 BUILTINS = {
     "time": _TIME_MODULE,
+    "resources": ResourceManager(),
     # v2.0.0.2 — draw_* stubs
     "draw_clear": draw_clear,
     "draw_rect": draw_rect,

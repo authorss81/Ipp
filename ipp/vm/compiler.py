@@ -161,8 +161,22 @@ class Compiler:
             self.compile_game_loop(node)
         elif isinstance(node, SequenceStmt):
             self.compile_sequence(node)
+        elif isinstance(node, StoryStmt):
+            self.compile_story(node)
         elif isinstance(node, ParallelBlock):
             self.compile_parallel_block(node)
+        elif isinstance(node, NpcStmt):
+            self.compile_npc(node)
+        elif isinstance(node, ChoiceStmt):
+            self.compile_choice(node)
+        elif isinstance(node, FlagStmt):
+            self.compile_flag(node)
+        elif isinstance(node, GotoStmt):
+            self.compile_goto(node)
+        elif isinstance(node, SceneStmt):
+            self.compile_scene(node)
+        elif isinstance(node, LabelStmt):
+            self.compile_label(node)
         elif isinstance(node, ExprStmt):
             self.compile_expr(node.expression)
             self.chunk.write(OpCode.POP, self.current_line)
@@ -1002,6 +1016,145 @@ class Compiler:
 
         self.chunk.write(OpCode.AWAIT, self.current_line)
         self.chunk.write(OpCode.POP, self.current_line)
+
+    def compile_story(self, node: StoryStmt):
+        """Compile a story as an async function. v2.0.8.4"""
+        sub = Compiler(parent=self)
+        sub.depth = 1
+
+        for stmt in node.body:
+            sub.compile_stmt(stmt)
+
+        last = sub.chunk.code[-1] if sub.chunk.code else None
+        if last not in (int(OpCode.RETURN), int(OpCode.RETURN_VAL)):
+            sub.chunk.write(OpCode.NIL, self.current_line)
+            sub.chunk.write(OpCode.RETURN_VAL, self.current_line)
+
+        proto = FunctionProto(sub.chunk, sub.upvalues, name=node.name, is_async=True, param_names=[])
+        idx = len(self.chunk.constants)
+        self.chunk.constants.append(proto)
+
+        self.chunk.write(OpCode.CLOSURE, self.current_line)
+        self.chunk.write(idx, self.current_line)
+
+        if self.depth > 0:
+            self.define_local(node.name)
+        else:
+            self.chunk.write(OpCode.DEFINE_GLOBAL, self.current_line)
+            cidx = len(self.chunk.constants)
+            self.chunk.constants.append(node.name)
+            self.chunk.write(cidx, self.current_line)
+            self.chunk.lines.append(self.current_line)
+
+    def compile_npc(self, node: NpcStmt):
+        """Compile npc 'speaker': 'text' — call show_dialogue and await."""
+        fn_idx = len(self.chunk.constants)
+        self.chunk.constants.append("show_dialogue")
+        self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
+        self.chunk.write(fn_idx, self.current_line)
+        self.compile_expr(node.speaker)
+        self.compile_expr(node.text)
+        self.chunk.write(OpCode.CALL, self.current_line)
+        self.chunk.write(2, self.current_line)
+        self.chunk.write(OpCode.AWAIT, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
+
+    def compile_choice(self, node: ChoiceStmt):
+        """Compile choice { ... } — push option texts, call show_choice,
+        await result, then dispatch to the selected option body.
+        v2.0.8.4"""
+        fn_idx = len(self.chunk.constants)
+        self.chunk.constants.append("show_choice")
+        self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
+        self.chunk.write(fn_idx, self.current_line)
+
+        # Push all option texts onto stack
+        for opt in node.options:
+            self.compile_expr(opt.text)
+
+        # push option count
+        self.chunk.write(OpCode.CONSTANT, self.current_line)
+        cidx = len(self.chunk.constants)
+        self.chunk.constants.append(len(node.options))
+        self.chunk.write(cidx, self.current_line)
+
+        # Stack: [show_choice_fn, opt1, opt2, ..., count]
+        self.chunk.write(OpCode.CALL, self.current_line)
+        self.chunk.write(len(node.options) + 1, self.current_line)
+        self.chunk.write(OpCode.AWAIT, self.current_line)
+
+        # Stack: selected_index (0-based integer)
+        # Build if-elif chain using DUP + EQUAL + JUMP_IF_FALSE_POP
+        end_jumps = []
+        for i, opt in enumerate(node.options):
+            self.chunk.write(OpCode.DUP, self.current_line)
+            self.chunk.write(OpCode.CONSTANT, self.current_line)
+            cidx = len(self.chunk.constants)
+            self.chunk.constants.append(i)
+            self.chunk.write(cidx, self.current_line)
+            self.chunk.write(OpCode.EQUAL, self.current_line)
+
+            skip_patch = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
+
+            self.chunk.write(OpCode.POP, self.current_line)
+
+            for stmt in opt.body:
+                self.compile_stmt(stmt)
+
+            jmp_pos = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
+            end_jumps.append(jmp_pos)
+
+            self.chunk.patch_jump(skip_patch)
+
+        self.chunk.write(OpCode.POP, self.current_line)
+
+        for jmp_pos in end_jumps:
+            self.chunk.patch_jump(jmp_pos)
+
+    def compile_flag(self, node: FlagStmt):
+        """Compile flag name = value — set a story flag."""
+        fn_idx = len(self.chunk.constants)
+        self.chunk.constants.append("set_story_flag")
+        self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
+        self.chunk.write(fn_idx, self.current_line)
+        self.chunk.write(OpCode.CONSTANT, self.current_line)
+        cidx = len(self.chunk.constants)
+        self.chunk.constants.append(node.name)
+        self.chunk.write(cidx, self.current_line)
+        self.compile_expr(node.value)
+        self.chunk.write(OpCode.CALL, self.current_line)
+        self.chunk.write(2, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
+
+    def compile_goto(self, node: GotoStmt):
+        """Compile goto label — not supported yet."""
+        fn_idx = len(self.chunk.constants)
+        self.chunk.constants.append("set_story_goto")
+        self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
+        self.chunk.write(fn_idx, self.current_line)
+        self.chunk.write(OpCode.CONSTANT, self.current_line)
+        cidx = len(self.chunk.constants)
+        self.chunk.constants.append(node.label)
+        self.chunk.write(cidx, self.current_line)
+        self.chunk.write(OpCode.CALL, self.current_line)
+        self.chunk.write(1, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
+
+    def compile_scene(self, node: SceneStmt):
+        """Compile scene 'name' — call scene_transition and await."""
+        fn_idx = len(self.chunk.constants)
+        self.chunk.constants.append("scene_transition")
+        self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
+        self.chunk.write(fn_idx, self.current_line)
+        self.compile_expr(node.name)
+        self.chunk.write(OpCode.CALL, self.current_line)
+        self.chunk.write(1, self.current_line)
+        self.chunk.write(OpCode.AWAIT, self.current_line)
+        self.chunk.write(OpCode.POP, self.current_line)
+
+    def compile_label(self, node: LabelStmt):
+        """Compile label name — no-op."""
+        pass
 
     def compile_do_while(self, node: DoWhileStmt):
         self.push_scope()
