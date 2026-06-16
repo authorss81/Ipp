@@ -177,6 +177,10 @@ class Compiler:
             self.compile_scene(node)
         elif isinstance(node, LabelStmt):
             self.compile_label(node)
+        elif isinstance(node, EntityDecl):
+            self.compile_entity(node)
+        elif isinstance(node, SystemDecl):
+            self.compile_system(node)
         elif isinstance(node, ExprStmt):
             self.compile_expr(node.expression)
             self.chunk.write(OpCode.POP, self.current_line)
@@ -1155,6 +1159,91 @@ class Compiler:
     def compile_label(self, node: LabelStmt):
         """Compile label name — no-op."""
         pass
+
+    def compile_entity(self, node: EntityDecl):
+        """Compile entity Name { component Foo(x=0) } — v2.0.11 ECS"""
+        fn_idx = len(self.chunk.constants)
+        self.chunk.constants.append("__entity_create")
+        self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
+        self.chunk.write(fn_idx, self.current_line)
+
+        self.chunk.write(OpCode.CONSTANT, self.current_line)
+        cidx = len(self.chunk.constants)
+        self.chunk.constants.append(node.name)
+        self.chunk.write(cidx, self.current_line)
+
+        for comp in node.components:
+            self.chunk.write(OpCode.CONSTANT, self.current_line)
+            cidx = len(self.chunk.constants)
+            self.chunk.constants.append(comp.name)
+            self.chunk.write(cidx, self.current_line)
+            for field in comp.fields:
+                self.chunk.write(OpCode.CONSTANT, self.current_line)
+                cidx = len(self.chunk.constants)
+                self.chunk.constants.append(field.name)
+                self.chunk.write(cidx, self.current_line)
+                self.compile_expr(field.default)
+            self.chunk.write(OpCode.DICT, self.current_line)
+            self.chunk.write(len(comp.fields), self.current_line)
+            self.chunk.write(OpCode.LIST, self.current_line)
+            self.chunk.write(2, self.current_line)
+
+        self.chunk.write(OpCode.LIST, self.current_line)
+        self.chunk.write(len(node.components), self.current_line)
+
+        self.chunk.write(OpCode.CALL, self.current_line)
+        self.chunk.write(2, self.current_line)
+
+        self.chunk.write(OpCode.DEFINE_GLOBAL, self.current_line)
+        cidx = len(self.chunk.constants)
+        self.chunk.constants.append(node.name)
+        self.chunk.write(cidx, self.current_line)
+        self.chunk.lines.append(self.current_line)
+
+    def compile_system(self, node: SystemDecl):
+        """Compile system Name { requires A, B func update(e, dt) { } } — v2.0.11 ECS"""
+        fn_idx = len(self.chunk.constants)
+        self.chunk.constants.append("__system_create")
+        self.chunk.write(OpCode.GET_GLOBAL, self.current_line)
+        self.chunk.write(fn_idx, self.current_line)
+
+        self.chunk.write(OpCode.CONSTANT, self.current_line)
+        cidx = len(self.chunk.constants)
+        self.chunk.constants.append(node.name)
+        self.chunk.write(cidx, self.current_line)
+
+        for req in node.requires:
+            self.chunk.write(OpCode.CONSTANT, self.current_line)
+            cidx = len(self.chunk.constants)
+            self.chunk.constants.append(req)
+            self.chunk.write(cidx, self.current_line)
+        self.chunk.write(OpCode.LIST, self.current_line)
+        self.chunk.write(len(node.requires), self.current_line)
+
+        sub = Compiler(parent=self)
+        sub.depth = 1
+        for param in node.func.parameters:
+            sub.define_local(param)
+        for stmt in node.func.body:
+            sub.compile_stmt(stmt)
+        last = sub.chunk.code[-1] if sub.chunk.code else None
+        if last not in (int(OpCode.RETURN), int(OpCode.RETURN_VAL)):
+            sub.chunk.write(OpCode.NIL, self.current_line)
+            sub.chunk.write(OpCode.RETURN_VAL, self.current_line)
+        proto = FunctionProto(sub.chunk, sub.upvalues, name=node.func.name, is_async=False, param_names=node.func.parameters)
+        idx = len(self.chunk.constants)
+        self.chunk.constants.append(proto)
+        self.chunk.write(OpCode.CLOSURE, self.current_line)
+        self.chunk.write(idx, self.current_line)
+
+        self.chunk.write(OpCode.CALL, self.current_line)
+        self.chunk.write(3, self.current_line)
+
+        self.chunk.write(OpCode.DEFINE_GLOBAL, self.current_line)
+        cidx = len(self.chunk.constants)
+        self.chunk.constants.append(node.name)
+        self.chunk.write(cidx, self.current_line)
+        self.chunk.lines.append(self.current_line)
 
     def compile_do_while(self, node: DoWhileStmt):
         self.push_scope()

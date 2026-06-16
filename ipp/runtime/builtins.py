@@ -4259,6 +4259,102 @@ class ResourceManager:
         self._cache.pop(str(path), None)
 
 
+# ── v2.0.11 ECS (Entity-Component-System) ────────────────────────────────
+
+class _ECSComponentField:
+    __slots__ = ('name', 'default')
+    def __init__(self, name, default):
+        self.name = name
+        self.default = default
+
+class ComponentDef:
+    __slots__ = ('name', 'fields')
+    def __init__(self, name, fields):
+        self.name = name
+        self.fields = fields
+
+class EntityDef:
+    __slots__ = ('name', 'components')
+    def __init__(self, name, components):
+        self.name = name
+        self.components = components
+
+class ComponentData:
+    def __init__(self, comp_def):
+        self._comp_def = comp_def
+        for field in comp_def.fields:
+            val = field.default
+            if isinstance(val, list):
+                val = list(val)
+            elif isinstance(val, dict):
+                val = dict(val)
+            self.__dict__[field.name] = val
+
+class EntityInstance:
+    __slots__ = ('_entity_def', '_components')
+    def __init__(self, entity_def):
+        self._entity_def = entity_def
+        self._components = {}
+        for comp_def in entity_def.components:
+            self._components[comp_def.name] = ComponentData(comp_def)
+
+    def __getattr__(self, name):
+        if name.startswith('_'):
+            raise AttributeError(name)
+        if name in self._components:
+            return self._components[name]
+        raise AttributeError(f"Entity '{self._entity_def.name}' has no component '{name}'")
+
+    def __setattr__(self, name, value):
+        if name.startswith('_'):
+            object.__setattr__(self, name, value)
+        elif name in self._get_components_dict():
+            self._components[name] = value
+        else:
+            object.__setattr__(self, name, value)
+
+    def _get_components_dict(self):
+        return self._components
+
+class SystemDef:
+    __slots__ = ('name', 'requires', 'func')
+    def __init__(self, name, requires, func):
+        self.name = name
+        self.requires = requires
+        self.func = func
+
+class World:
+    __slots__ = ('entities', 'systems')
+    def __init__(self):
+        self.entities = []
+        self.systems = []
+
+    def spawn(self, entity_def):
+        inst = EntityInstance(entity_def)
+        self.entities.append(inst)
+        return inst
+
+    def add_system(self, system_def):
+        self.systems.append(system_def)
+
+    def update(self, dt):
+        for sys in self.systems:
+            for entity in self.entities:
+                if all(cn in entity._components for cn in sys.requires):
+                    sys.func(entity, dt)
+
+
+def __ecs_entity_create(name, components):
+    comp_defs = []
+    for comp_name, field_defaults in components:
+        fields = [_ECSComponentField(k, v) for k, v in field_defaults.items()]
+        comp_defs.append(ComponentDef(comp_name, fields))
+    return EntityDef(name, comp_defs)
+
+def __ecs_system_create(name, requires_list, func):
+    return SystemDef(name, requires_list, func)
+
+
 BUILTINS = {
     "time": _TIME_MODULE,
     "resources": ResourceManager(),
@@ -4641,4 +4737,8 @@ BUILTINS = {
     # v1.7.9.1.2 — ANSI helpers
     "strip_ansi": lambda s: __import__('re').sub(r'\033\[[0-9;]*[mKJHF]', '', str(s)),
     "ipp_version": lambda: __import__("ipp.main", fromlist=["VERSION"]).VERSION,
+    # v2.0.11 — ECS (Entity-Component-System)
+    "World": World,
+    "__entity_create": __ecs_entity_create,
+    "__system_create": __ecs_system_create,
 }

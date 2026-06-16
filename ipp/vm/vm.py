@@ -226,6 +226,11 @@ class Closure:
         self.chunk = chunk
         self.upvalues: List[UpvalueCell] = upvalues or []
 
+    def __call__(self, *args):
+        sub_vm = VM(debug=False)
+        sub_vm.globals = VM._main_vm.globals if hasattr(VM, '_main_vm') else {}
+        return sub_vm._call_sync(self, list(args))
+
 
 class IppFunction:
     def __init__(self, name: str = "<script>", arity: int = 0,
@@ -948,6 +953,7 @@ class VM:
             'scene', 'node', 'camera', 'mesh', 'light',
             'mesh_cube', 'mesh_sphere', 'mesh_plane',
             'resources',
+            'World', '__entity_create', '__system_create',
         ]
         
         for name in missing_builtins:

@@ -485,6 +485,10 @@ class Parser:
             return self.sequence_statement()
         if self.match(TokenType.STORY):
             return self.story_statement()
+        if self.match(TokenType.ENTITY):
+            return self.entity_statement()
+        if self.match(TokenType.SYSTEM):
+            return self.system_statement()
         # Check for assert statement (identifier "assert" followed by expression)
         if self.check(TokenType.IDENTIFIER) and self.peek().lexeme == "assert":
             self.advance()  # consume "assert"
@@ -794,6 +798,56 @@ class Parser:
         self.consume(TokenType.LEFT_BRACE, "Expect '{' after story name")
         body = self._parse_story_body()
         return StoryStmt(name, body)
+
+    def entity_statement(self):
+        """entity Name { component Foo(x=0) } — v2.0.11 ECS entity template"""
+        name = self.consume(TokenType.IDENTIFIER, "Expect entity name").lexeme
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' after entity name")
+        components = []
+        self.skip_newlines()
+        while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
+            if self._match_ident_keyword("component"):
+                comp_name = self.consume(TokenType.IDENTIFIER, "Expect component name").lexeme
+                self.consume(TokenType.LEFT_PAREN, "Expect '(' after component name")
+                fields = []
+                while not self.check(TokenType.RIGHT_PAREN):
+                    field_name = self.consume(TokenType.IDENTIFIER, "Expect field name").lexeme
+                    self.consume(TokenType.EQUAL, "Expect '=' after field name")
+                    field_default = self.expression()
+                    fields.append(ComponentField(field_name, field_default))
+                    if self.check(TokenType.COMMA):
+                        self.advance()
+                self.consume(TokenType.RIGHT_PAREN, "Expect ')' after component fields")
+                components.append(EntityComponent(comp_name, fields))
+            else:
+                raise ParseError("Expected 'component' inside entity block", self.peek())
+            self.skip_newlines()
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after entity body")
+        return EntityDecl(name, components)
+
+    def system_statement(self):
+        """system Name { requires A, B func update(e, dt) { } } — v2.0.11 ECS system"""
+        name = self.consume(TokenType.IDENTIFIER, "Expect system name").lexeme
+        self.consume(TokenType.LEFT_BRACE, "Expect '{' after system name")
+        requires = []
+        func_node = None
+        self.skip_newlines()
+        while not self.check(TokenType.RIGHT_BRACE) and not self.is_at_end():
+            if self._match_ident_keyword("requires"):
+                req_name = self.consume(TokenType.IDENTIFIER, "Expect component name").lexeme
+                requires.append(req_name)
+                while self.match(TokenType.COMMA):
+                    req_name = self.consume(TokenType.IDENTIFIER, "Expect component name").lexeme
+                    requires.append(req_name)
+            elif self.match(TokenType.FUNC):
+                func_node = self.function_declaration()
+            else:
+                raise ParseError("Expected 'requires' or 'func' inside system block", self.peek())
+            self.skip_newlines()
+        self.consume(TokenType.RIGHT_BRACE, "Expect '}' after system body")
+        if func_node is None:
+            raise ParseError("System must have a 'func' declaration", self.peek())
+        return SystemDecl(name, requires, func_node)
 
     def _parse_story_body(self):
         """Parse a { } block with story-specific handling:

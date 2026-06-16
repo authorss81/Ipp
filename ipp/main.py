@@ -70,7 +70,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "2.0.10"
+VERSION = "2.0.11"
 
 # ─── Windows ANSI enablement — v1.7.9.1.2 ────────────────────────────────────
 def _enable_windows_ansi() -> bool:
@@ -1065,6 +1065,8 @@ class VMInterpreter:
     def __init__(self, debug: bool = True):
         from ipp.vm import VM
         self.vm = VM(debug=debug)
+        if not hasattr(VM, '_main_vm'):
+            VM._main_vm = self.vm
         self.return_value = None
         self.last_value = None
         self.current_file = None
@@ -2800,6 +2802,8 @@ def run_file(path: str, debug: bool = True) -> int:
         from ipp.vm.vm import VM
         from ipp.vm.compiler import compile_ast
         vm = VM(debug=debug)
+        if not hasattr(VM, '_main_vm'):
+            VM._main_vm = vm
         vm._current_source_file = os.path.abspath(path)
         chunk = compile_ast(ast)
         vm.run(chunk)

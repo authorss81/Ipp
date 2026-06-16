@@ -347,6 +347,35 @@ class ParallelBlock(ASTNode):
     def accept(self, visitor): return visitor.visit_parallel_block(self)
 
 @dataclass
+class ComponentField(ASTNode):
+    """field_name = default_value inside a component definition"""
+    name: str
+    default: ASTNode
+    def accept(self, visitor): return visitor.visit_component_field(self)
+
+@dataclass
+class EntityComponent(ASTNode):
+    """component Name(field=val, ...) inside an entity declaration"""
+    name: str
+    fields: List[ComponentField]
+    def accept(self, visitor): return visitor.visit_entity_component(self)
+
+@dataclass
+class EntityDecl(ASTNode):
+    """entity Name { component Foo(x=0) } — v2.0.11 ECS entity template"""
+    name: str
+    components: List[EntityComponent]
+    def accept(self, visitor): return visitor.visit_entity_decl(self)
+
+@dataclass
+class SystemDecl(ASTNode):
+    """system Name { requires A, B func update(e, dt) { } } — v2.0.11 ECS system"""
+    name: str
+    requires: List[str]
+    func: 'FunctionDecl'
+    def accept(self, visitor): return visitor.visit_system_decl(self)
+
+@dataclass
 class VarDecl(ASTNode):
     name: str
     initializer: Optional[ASTNode]

@@ -65,6 +65,8 @@ class TokenType(Enum):
     GAME_LOOP = auto()  # v2.0.0 game_loop keyword
     SEQUENCE = auto()  # v2.0.8.3 sequence keyword
     STORY = auto()     # v2.0.8.4 story keyword
+    ENTITY = auto()    # v2.0.11 entity keyword (ECS)
+    SYSTEM = auto()    # v2.0.11 system keyword (ECS)
     # v2.0.8.4 story keywords are context-sensitive (not token-level keywords)
 
     # Decorator (v1.5.17)
@@ -189,4 +191,6 @@ KEYWORDS = {
     "game_loop": TokenType.GAME_LOOP,  # v2.0.0 game loop keyword
     "sequence": TokenType.SEQUENCE,    # v2.0.8.3 sequence keyword
     "story": TokenType.STORY,          # v2.0.8.4 story keyword
+    "entity": TokenType.ENTITY,        # v2.0.11 entity keyword (ECS)
+    "system": TokenType.SYSTEM,        # v2.0.11 system keyword (ECS)
 }

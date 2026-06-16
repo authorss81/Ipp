@@ -191,6 +191,7 @@ TESTS = [
     ("v2.0.8.4-story","tests/v2_0_8_4/test_story.ipp"),
     ("v2.0.9-scene-tree","tests/v2_0_9/test_scene_tree.ipp"),
     ("v2.0.10-resource-mgr","tests/v2_0_10/test_resource_manager.ipp"),
+    ("v2.0.11-ecs","tests/v2_0_11/test_ecs.ipp"),
 ]
 
 passed=failed=0
