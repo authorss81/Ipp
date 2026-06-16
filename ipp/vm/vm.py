@@ -954,6 +954,7 @@ class VM:
             'mesh_cube', 'mesh_sphere', 'mesh_plane',
             'resources',
             'World', '__entity_create', '__system_create',
+            'get_args',
         ]
         
         for name in missing_builtins:
@@ -2563,6 +2564,18 @@ class VM:
                         found_path = candidate
                         break
 
+                if not found_path:
+                    # Try stdlib: ipp/stdlib/<name>/<name>.ipp or <name>/io.ipp
+                    import pathlib
+                    ipp_pkg_dir = pathlib.Path(__file__).parent.parent
+                    stdlib_dir = ipp_pkg_dir / 'stdlib'
+                    pkg_name = module_path.replace('.ipp', '')
+                    for candidate_name in [f'{pkg_name}.ipp', 'io.ipp']:
+                        pkg_candidate = stdlib_dir / pkg_name / candidate_name
+                        if pkg_candidate.exists():
+                            found_path = str(pkg_candidate)
+                            break
+            
                 if not found_path:
                     raise VMError(f"Module not found: '{module_path}'")
 

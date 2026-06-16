@@ -234,24 +234,39 @@ class Parser:
         return EnumDecl(name_token.lexeme, values)
 
     def import_declaration(self):
-        module_path_token = self.consume(TokenType.STRING, "Expect module path")
-        module_path = module_path_token.literal
+        module_path = None
         alias = None
         imports = None
 
-        if self.match(TokenType.AS):
-            if self.check(TokenType.LEFT_BRACE):
-                self.advance()
-                imports = []
-                while not self.check(TokenType.RIGHT_BRACE):
-                    name_token = self.consume(TokenType.IDENTIFIER, "Expect import name")
-                    imports.append(name_token.lexeme)
-                    if not self.check(TokenType.RIGHT_BRACE):
-                        self.consume(TokenType.COMMA, "Expect ',' or '}'")
-                self.consume(TokenType.RIGHT_BRACE, "Expect '}'")
-            else:
-                alias_token = self.consume(TokenType.IDENTIFIER, "Expect alias name")
-                alias = alias_token.lexeme
+        # Parse: import "module.ipp" [as alias | as { name1, name2 }]
+        # Or:    import { name1, name2 } from "package"
+        if self.match(TokenType.LEFT_BRACE):
+            imports = []
+            while not self.check(TokenType.RIGHT_BRACE):
+                name_token = self.consume(TokenType.IDENTIFIER, "Expect import name")
+                imports.append(name_token.lexeme)
+                if not self.check(TokenType.RIGHT_BRACE):
+                    self.consume(TokenType.COMMA, "Expect ',' or '}'")
+            self.consume(TokenType.RIGHT_BRACE, "Expect '}' after import names")
+            self.consume(TokenType.FROM, "Expect 'from' after import names")
+            pkg_token = self.consume(TokenType.STRING, "Expect package path")
+            module_path = pkg_token.literal
+        else:
+            module_path_token = self.consume(TokenType.STRING, "Expect module path")
+            module_path = module_path_token.literal
+            if self.match(TokenType.AS):
+                if self.check(TokenType.LEFT_BRACE):
+                    self.advance()
+                    imports = []
+                    while not self.check(TokenType.RIGHT_BRACE):
+                        name_token = self.consume(TokenType.IDENTIFIER, "Expect import name")
+                        imports.append(name_token.lexeme)
+                        if not self.check(TokenType.RIGHT_BRACE):
+                            self.consume(TokenType.COMMA, "Expect ',' or '}'")
+                    self.consume(TokenType.RIGHT_BRACE, "Expect '}'")
+                else:
+                    alias_token = self.consume(TokenType.IDENTIFIER, "Expect alias name")
+                    alias = alias_token.lexeme
 
         return ImportDecl(module_path, alias, imports)
 
@@ -399,7 +414,12 @@ class Parser:
             is_variadic = False
             while True:
                 is_variadic = self.match(TokenType.TRIPLE_DOT)
-                p = self.consume(TokenType.IDENTIFIER, "Expect parameter name").lexeme
+                if self.match(TokenType.IDENTIFIER):
+                    p = self.previous().lexeme
+                elif self.match(TokenType.DEFAULT):
+                    p = "default"
+                else:
+                    raise self.error(self.peek(), "Expect parameter name")
                 parameters.append("..." + p if is_variadic else p)
                 # FIX: BUG-P3 — parse parameter type annotations
                 pt = None
@@ -1267,6 +1287,10 @@ class Parser:
             ident = Identifier(self.previous().lexeme)
             ident.line = self.previous().line
             return ident
+        if self.match(TokenType.DEFAULT):
+            return Identifier("default")
+        if self.match(TokenType.CATCH):
+            return Identifier("catch")
         
         # Parse yield expression
         if self.match(TokenType.YIELD):

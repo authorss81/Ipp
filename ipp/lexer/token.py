@@ -67,6 +67,7 @@ class TokenType(Enum):
     STORY = auto()     # v2.0.8.4 story keyword
     ENTITY = auto()    # v2.0.11 entity keyword (ECS)
     SYSTEM = auto()    # v2.0.11 system keyword (ECS)
+    FROM = auto()      # v2.0.12 from keyword (package import)
     # v2.0.8.4 story keywords are context-sensitive (not token-level keywords)
 
     # Decorator (v1.5.17)
@@ -193,4 +194,5 @@ KEYWORDS = {
     "story": TokenType.STORY,          # v2.0.8.4 story keyword
     "entity": TokenType.ENTITY,        # v2.0.11 entity keyword (ECS)
     "system": TokenType.SYSTEM,        # v2.0.11 system keyword (ECS)
+    "from": TokenType.FROM,            # v2.0.12 from keyword (package import)
 }

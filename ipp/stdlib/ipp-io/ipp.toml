@@ -1,0 +1,5 @@
+[package]
+name        = "ipp-io"
+version     = "1.0.0"
+description = "File I/O, JSON, environment variables, command-line args"
+bundled     = true

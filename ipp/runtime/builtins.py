@@ -4447,14 +4447,21 @@ BUILTINS = {
     "filter": ipp_filter,    # v1.9.2 global filter(fn, list)
     "reduce": ipp_reduce,    # v1.9.2 global reduce(fn, list, init?)
     "read_file": ipp_read_file,
+    "_builtin_read_file": ipp_read_file,
     "file_read": ipp_read_file,  # Alias FIX: Standard Library
     "write_file": ipp_write_file,
+    "_builtin_write_file": ipp_write_file,
     "file_write": ipp_write_file,  # Alias FIX: Standard Library
     "append_file": ipp_append_file,
+    "_builtin_append_file": ipp_append_file,
     "file_exists": ipp_file_exists,
+    "_builtin_file_exists": ipp_file_exists,
     "delete_file": ipp_delete_file,
+    "_builtin_delete_file": ipp_delete_file,
     "list_dir": ipp_list_dir,
+    "_builtin_list_dir": ipp_list_dir,
     "mkdir": ipp_mkdir,
+    "_builtin_make_dir": ipp_mkdir,
     "sleep": ipp_sleep,
     "clock": ipp_clock,
     "memory_info": ipp_memory_info,
@@ -4479,7 +4486,9 @@ BUILTINS = {
     "ascii": ipp_ascii,
     "from_ascii": ipp_from_ascii,
     "json_parse": ipp_json_parse,
+    "_builtin_json_parse": ipp_json_parse,
     "json_stringify": ipp_json_stringify,
+    "_builtin_json_stringify": ipp_json_stringify,
     "regex_match": ipp_regex_match,
     "regex_search": ipp_regex_search,
     "regex_replace": ipp_regex_replace,
@@ -4556,11 +4565,15 @@ BUILTINS = {
     "csv_to_string": ipp_csv_to_string,
     "os_platform": ipp_os_platform,
     "env_get": ipp_os_getenv,
+    "get_env": ipp_os_getenv,
+    "_builtin_get_env": ipp_os_getenv,
     "env_set": ipp_os_setenv,
     "list_env": ipp_os_listenv,
     "os_cwd": ipp_os_cwd,
     "os_chdir": ipp_os_chdir,
     "complex": ipp_complex,
+    "get_args": lambda: list(__import__('sys').argv[1:]),
+    "_builtin_get_args": lambda: list(__import__('sys').argv[1:]),
     
     # v0.11.2 Additional Libraries
     "xml_parse": ipp_xml_parse,

@@ -2,11 +2,11 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-2.0.11-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-2.0.12-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-180+-brightgreen.svg" alt="Builtins">
-<img src="https://img.shields.io/badge/tests-154%20total-brightgreen.svg" alt="Tests">
+<img src="https://img.shields.io/badge/tests-155%20total-brightgreen.svg" alt="Tests">
 <img src="https://img.shields.io/badge/status-stable-green.svg" alt="Status">
 
 **A beginner-friendly scripting language for game development.**  
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v2.0.11** includes: Entity-Component-System (ECS) core — `entity {}` declarations with `component` blocks, `system {}` declarations with `requires` + `func update(e, dt)`, `World` class with `spawn()`, `add_system()`, `update()`. **v2.0.10** added Resource Manager (`resources.load()`, `preload()`, `is_loaded()`, `get()`, `clear()`, `remove()`) with async `preload()` support. Scene tree hierarchy with parent-child node transforms, `add_child()`/`remove_child()`/`get_parent()`/`get_children()`/`find_node()`/`get_world_transform()`, `Scene.set_root()`/`get_root()`, and `get_world_position()` convenience method. Also `story {}` narrative branching syntax with NPC dialogue, player choices, story flags, goto/label, and scene transitions. `sequence {}` cutscene blocks, `parallel()` concurrent coroutines, `tween()`/`delay()` animation system, easing functions, template strings `t"..."`, f-string format spec `{expr:format_spec}`, dict destructure and pattern matching extensions.
+**v2.0.12** includes: `ipp-io` stdlib package — file I/O, JSON, environment variables (`get_env`), CLI args (`get_args`). Package import syntax: `import { X } from "ipp-io"` resolves to `ipp/stdlib/<name>/io.ipp`. **v2.0.11** added Entity-Component-System (ECS) core — `entity {}` declarations, `system {}` declarations, `World` class with `spawn()`, `add_system()`, `update()`. Scene tree hierarchy with parent-child node transforms, `add_child()`/`remove_child()`/`get_parent()`/`get_children()`/`find_node()`/`get_world_transform()`, `Scene.set_root()`/`get_root()`, and `get_world_position()` convenience method. Also `story {}` narrative branching syntax with NPC dialogue, player choices, story flags, goto/label, and scene transitions. `sequence {}` cutscene blocks, `parallel()` concurrent coroutines, `tween()`/`delay()` animation system, easing functions, template strings `t"..."`, f-string format spec `{expr:format_spec}`, dict destructure and pattern matching extensions.
 
 ---
 

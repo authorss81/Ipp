@@ -1,6 +1,6 @@
 # Ipp Language — Full Technical Audit v4 (Live Inspection Edition)
-> **Version audited:** `2.0.11` (verified from `ipp/main.py`)
-> **Audit method:** 154 `.ipp` test files run through the VM; v2.0.11 (ECS core) + v2.0.10 (resource manager) + v2.0.9 (scene tree hierarchy) + v2.0.8.x (tween, parallel, sequence, story) + v2.0.7.x (pattern matching) + v2.0.5-6 (f-string format spec, template strings) tested exhaustively
+> **Version audited:** `2.0.12` (verified from `ipp/main.py`)
+> **Audit method:** 155 `.ipp` test files run through the VM; v2.0.12 (`ipp-io` package) + v2.0.11 (ECS core) + v2.0.10 (resource manager) + v2.0.9 (scene tree hierarchy) + v2.0.8.x (tween, parallel, sequence, story) + v2.0.7.x (pattern matching) + v2.0.5-6 (f-string format spec, template strings) tested exhaustively
 > **Previous audit:** `new_audit.md` v4 (v1.7.9.1.11) — all 26 BUGs now fixed; v2.x template strings, f-string format spec + pattern matching series complete
 > **Auditor stance:** Ruthless, specific. A test that passes the interpreter but not the VM is BROKEN.
 > **Comparison targets:** Lua 5.4, Python 3.12, GDScript 4.x
@@ -99,6 +99,7 @@ The v1.8.x series systematically fixed standard library gaps and correctness iss
 | v2.0.9 | Scene tree hierarchy with parent-child transforms |
 | v2.0.10 | Resource Manager (`resources.load()`, `preload()`, `is_loaded()`, `get()`, `clear()`, `remove()`) |
 | v2.0.11 | Entity-Component-System (ECS) core — `entity {}` / `system {}` / `World.spawn()` / `add_system()` / `update()` |
+| v2.0.12 | `ipp-io` stdlib package — `import { X } from "ipp-io"`, `get_env`, `get_args`, file I/O + JSON re-exports |
 
 ---
 
@@ -1176,7 +1177,7 @@ This is not a code bug (it matches Python's behavior exactly) but an **undocumen
 
 ---
 
-*Audit v6 — June 2026 | Ipp v2.0.11*
-*Source inspection: Full pipeline (lexer, parser, compiler, VM) + 154 regression tests*
-*154/154 tests pass (100%) | 0 open bugs (all 26 BUGs fixed) | ~100+ confirmed working features*
-*Score: 79/170 (D+) → 123/170 (B−) since v4 | All bugs fixed since v4 | v2.0.8.x series (tween, parallel, sequence, story) + ECS complete*
+*Audit v6 — June 2026 | Ipp v2.0.12*
+*Source inspection: Full pipeline (lexer, parser, compiler, VM) + 155 regression tests*
+*155/155 tests pass (100%) | 0 open bugs (all 26 BUGs fixed) | ~100+ confirmed working features*
+*Score: 79/170 (D+) → 123/170 (B−) since v4 | All bugs fixed since v4 | v2.0.8.x series (tween, parallel, sequence, story) + ECS + ipp-io complete*
