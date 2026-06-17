@@ -1,0 +1,5 @@
+[package]
+name        = "ipp-log"
+version     = "1.0.0"
+description = "Structured logging with levels: DEBUG, INFO, WARN, ERROR"
+bundled     = true

@@ -193,6 +193,7 @@ TESTS = [
     ("v2.0.10-resource-mgr","tests/v2_0_10/test_resource_manager.ipp"),
     ("v2.0.11-ecs","tests/v2_0_11/test_ecs.ipp"),
     ("v2.0.12-io","tests/v2_0_12/test_io.ipp"),
+    ("v2.0.13-log","tests/v2_0_13/test_log.ipp"),
 ]
 
 passed=failed=0

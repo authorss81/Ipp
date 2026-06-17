@@ -2565,16 +2565,14 @@ class VM:
                         break
 
                 if not found_path:
-                    # Try stdlib: ipp/stdlib/<name>/<name>.ipp or <name>/io.ipp
+                    # Try stdlib: ipp/stdlib/<name>/ — find any .ipp file
                     import pathlib
                     ipp_pkg_dir = pathlib.Path(__file__).parent.parent
-                    stdlib_dir = ipp_pkg_dir / 'stdlib'
-                    pkg_name = module_path.replace('.ipp', '')
-                    for candidate_name in [f'{pkg_name}.ipp', 'io.ipp']:
-                        pkg_candidate = stdlib_dir / pkg_name / candidate_name
-                        if pkg_candidate.exists():
-                            found_path = str(pkg_candidate)
-                            break
+                    pkg_dir = ipp_pkg_dir / 'stdlib' / module_path.replace('.ipp', '')
+                    if pkg_dir.is_dir():
+                        ipp_files = list(pkg_dir.glob('*.ipp'))
+                        if ipp_files:
+                            found_path = str(ipp_files[0])
             
                 if not found_path:
                     raise VMError(f"Module not found: '{module_path}'")
@@ -2612,6 +2610,13 @@ class VM:
                         raise VMError(f"Name '{name}' is not exported by module '{module_path}'")
                     if name in new_globals:
                         self.globals[name] = new_globals[name]
+                # Auto-import free variables referenced by imported closures
+                for name, val in new_globals.items():
+                    if hasattr(val, 'chunk'):
+                        chunk = val.chunk
+                        for const in chunk.constants:
+                            if isinstance(const, str) and const in new_globals and const not in self.globals:
+                                self.globals[const] = new_globals[const]
             else:
                 self.globals.update(new_globals)
 
