@@ -1,0 +1,5 @@
+[package]
+name        = "ipp-math2d"
+version     = "1.0.0"
+description = "2D game math primitives: vec2i, rect, circle, color"
+bundled     = true

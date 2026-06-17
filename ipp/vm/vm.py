@@ -1771,6 +1771,7 @@ class VM:
                 prop = obj.cls.properties.get(name)
                 if prop is not None and prop[0] is not None:
                     getter = prop[0]
+                    self.stack.pop()  # pop obj before calling getter (getter pushes result)
                     frame = self.frames[-1] if self.frames else None
                     frame.ip += 2  # advance past GET_PROPERTY + operand
                     self._call_method(obj, getter, [], frame)

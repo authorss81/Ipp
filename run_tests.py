@@ -195,6 +195,7 @@ TESTS = [
     ("v2.0.12-io","tests/v2_0_12/test_io.ipp"),
     ("v2.0.13-log","tests/v2_0_13/test_log.ipp"),
     ("v2.0.14-test","tests/v2_0_14/test_framework.ipp"),
+    ("v2.0.15-math2d","tests/v2_0_15/test_math2d.ipp"),
 ]
 
 passed=failed=0
