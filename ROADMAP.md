@@ -1,6 +1,6 @@
 # Ipp Language Roadmap v4
-> **Current version:** `2.0.13`
-> **Status:** 156 regression tests pass. v1.x bug-fix phase complete. v2.0.x template strings, f-string format spec, Pattern Matching, Tween, Sequence, Story, Scene Tree, Resource Manager, ECS, ipp-io, and ipp-log package series complete.
+> **Current version:** `2.0.14`
+> **Status:** 157 regression tests pass. v1.x bug-fix phase complete. v2.0.x template strings, f-string format spec, Pattern Matching, Tween, Sequence, Story, Scene Tree, Resource Manager, ECS, ipp-io, ipp-log, and ipp-test packages complete.
 > **Phase D in progress:** Game dev features (game loop, input, scene system, hot reload, packages).
 > **This roadmap:** Complete from v1.7.6 through v2.1.5. Some actual v2.0.x versions diverged from original plan — see VERSION STATUS.
 
@@ -73,7 +73,7 @@ print(f'{passed} pass / {failed} fail')
 
 ## VERSION STATUS ✅
 
-**Current: v2.0.13** — VERSION in `ipp/main.py` = `"2.0.13"`.
+**Current: v2.0.14** — VERSION in `ipp/main.py` = `"2.0.14"`.
 
 **v1.x phase fully complete.** All bugs BUG-001 through BUG-026 are fixed. All regression tests pass.
 
@@ -105,10 +105,11 @@ print(f'{passed} pass / {failed} fail')
 | v2.0.11 | Entity-Component-System (ECS) core — `entity {}` / `system {}` / `World.spawn()` / `add_system()` / `update()` | v2.0.11 |
 | v2.0.12 | `ipp-io` stdlib package — `import { X } from "ipp-io"`, `get_env`, `get_args`, file I/O re-exports, JSON re-exports | v2.0.12 |
 | v2.0.13 | `ipp-log` stdlib package — structured logging with levels (`DEBUG`, `INFO`, `WARN`, `ERROR`), log filtering, file output | v2.0.13 |
+| v2.0.14 | `ipp-test` stdlib package — unit test framework with `describe`/`it`/`expect` style | v2.0.14 |
 
 **Remaining planned (not yet implemented):**
 - File watcher + hot reload
-- **v2.0.14** onwards (see version history in README.md for planned features)
+- **v2.0.15** onwards (see version history in README.md for planned features)
 - **v2.0.22** — GPU Rendering Backend (hardware-accelerated 3D via OpenGL/Vulkan)
 - **v2.0.23** — Physics Engine (2D/3D collision detection + rigidbody simulation)
 - **v2.0.24** — Proper Audio Backend (real playback replacing stubs, positional audio)

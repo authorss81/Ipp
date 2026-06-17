@@ -2,11 +2,11 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-2.0.13-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-2.0.14-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-180+-brightgreen.svg" alt="Builtins">
-<img src="https://img.shields.io/badge/tests-156%20total-brightgreen.svg" alt="Tests">
+<img src="https://img.shields.io/badge/tests-157%20total-brightgreen.svg" alt="Tests">
 <img src="https://img.shields.io/badge/status-stable-green.svg" alt="Status">
 
 **A beginner-friendly scripting language for game development.**  
@@ -20,7 +20,7 @@ Python-like syntax · Closures · Classes with Inheritance · Pattern Matching �
 
 Ipp is a dynamically-typed, interpreted scripting language designed to feel like Python and Lua combined, built specifically for game development scripting. It compiles to a custom bytecode VM and also runs on a tree-walking interpreter for rapid development.
 
-**v2.0.13** includes: `ipp-log` stdlib package — structured logging with levels (`DEBUG`, `INFO`, `WARN`, `ERROR`), log filtering via `set_level()`, file output via `set_file()`, auto-import of free variables for module closures. **v2.0.12** added `ipp-io` stdlib package with `import { X } from "..."` syntax. Scene tree hierarchy with parent-child node transforms, `add_child()`/`remove_child()`/`get_parent()`/`get_children()`/`find_node()`/`get_world_transform()`, `Scene.set_root()`/`get_root()`, and `get_world_position()` convenience method. Also `story {}` narrative branching syntax with NPC dialogue, player choices, story flags, goto/label, and scene transitions. `sequence {}` cutscene blocks, `parallel()` concurrent coroutines, `tween()`/`delay()` animation system, easing functions, template strings `t"..."`, f-string format spec `{expr:format_spec}`, dict destructure and pattern matching extensions.
+**v2.0.14** includes: `ipp-test` stdlib package — unit test framework with `describe`/`it`/`expect` style, `Expectation` matchers (`to_equal`, `to_be_true`, `to_be_close_to`, `to_throw`, `to_contain`, `negate`), and `run_all()` reporting. **v2.0.13** added `ipp-log` package. Scene tree hierarchy with parent-child node transforms, `add_child()`/`remove_child()`/`get_parent()`/`get_children()`/`find_node()`/`get_world_transform()`, `Scene.set_root()`/`get_root()`, and `get_world_position()` convenience method. Also `story {}` narrative branching syntax with NPC dialogue, player choices, story flags, goto/label, and scene transitions. `sequence {}` cutscene blocks, `parallel()` concurrent coroutines, `tween()`/`delay()` animation system, easing functions, template strings `t"..."`, f-string format spec `{expr:format_spec}`, dict destructure and pattern matching extensions.
 
 ---
 
