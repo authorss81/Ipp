@@ -1,0 +1,5 @@
+[package]
+name        = "ipp-random"
+version     = "1.0.0"
+description = "Seedable Random class with distributions, shuffle, sample, weighted choice"
+bundled     = true
