@@ -3294,10 +3294,31 @@ class VM:
         instance._current_class = instance.cls
 
         # FIX: BUG-M7 — push self + args onto stack
+        # Handle variadic: pack excess args into list
+        proto = getattr(closure, '_proto', None) if closure else None
+        variadic_param = getattr(proto, 'variadic_param', None) if proto else None
+        proto_param_count = len(getattr(proto, 'param_names', None) or []) if proto else 0
+        # expected_args = number of regular (non-variadic) params including self
+        expected_args = proto_param_count + 1  # +1 for 'self'
+
+        from ipp.interpreter.interpreter import IppList as _IppList
         base = len(self.stack)
         self.stack.append(instance)   # slot 0 = self
-        for a in args:
-            self.stack.append(a)
+        if variadic_param:
+            normal_count = proto_param_count  # regular params besides self
+            for i in range(normal_count):
+                if i < len(args):
+                    self.stack.append(args[i])
+                else:
+                    self.stack.append(None)
+            remaining = args[normal_count:]
+            self.stack.append(_IppList(list(remaining)))
+        else:
+            for a in args:
+                self.stack.append(a)
+            if expected_args - 1 > len(args):
+                for _ in range(expected_args - 1 - len(args)):
+                    self.stack.append(None)
 
         new_frame = VMFrame(chunk, closure=closure, function=method, stack_base=base)
         # Store instance on frame so RETURN_VAL can clear _current_class

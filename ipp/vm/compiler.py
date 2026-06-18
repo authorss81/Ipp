@@ -542,8 +542,18 @@ class Compiler:
                 # FIX v1.5.25: Skip 'self' for static methods
                 if not method.is_static:
                     sub.define_local("self")
+                variadic_param = None
+                _param_names = []
                 for param in method.parameters:
-                    sub.define_local(param)
+                    if param.startswith("..."):
+                        variadic_param = param[3:]
+                        sub.define_local(variadic_param)
+                    else:
+                        sub.define_local(param)
+                # Build param_names (excluding 'self') for named-arg dispatch
+                _param_names = [p.lstrip('.') for p in method.parameters if not p.startswith("...")]
+                if not method.is_static and _param_names and _param_names[0] == 'self':
+                    _param_names = _param_names[1:]
                 for stmt in method.body:
                     sub.compile_stmt(stmt)
                 last = sub.chunk.code[-1] if sub.chunk.code else None
@@ -553,7 +563,7 @@ class Compiler:
 
                 midx = len(self.chunk.constants)
                 # FIX BUG-NEW-M5: store FunctionProto for method closures too
-                self.chunk.constants.append(FunctionProto(sub.chunk, sub.upvalues, name=method.name))
+                self.chunk.constants.append(FunctionProto(sub.chunk, sub.upvalues, name=method.name, variadic_param=variadic_param, param_names=_param_names))
                 self.chunk.write(OpCode.CLOSURE, self.current_line)
                 self.chunk.write(midx, self.current_line)
                 # v2.0.2.1 — @onchange callback: dup closure before METHOD

@@ -1,0 +1,5 @@
+[package]
+name        = "ipp-signal"
+version     = "1.0.0"
+description = "Signal, EventEmitter, reactive values, watch/unwatch"
+bundled     = true
