@@ -197,6 +197,7 @@ TESTS = [
     ("v2.0.14-test","tests/v2_0_14/test_framework.ipp"),
     ("v2.0.15-math2d","tests/v2_0_15/test_math2d.ipp"),
     ("v2.0.16-random","tests/v2_0_16/test_random.ipp"),
+    ("v2.0.17-collections","tests/v2_0_17/test_collections.ipp"),
 ]
 
 passed=failed=0

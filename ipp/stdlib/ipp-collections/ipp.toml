@@ -1,0 +1,5 @@
+[package]
+name        = "ipp-collections"
+version     = "1.0.0"
+description = "Stack, Queue, LinkedList, LRUCache data structures"
+bundled     = true
