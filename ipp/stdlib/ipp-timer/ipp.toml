@@ -1,0 +1,5 @@
+[package]
+name        = "ipp-timer"
+version     = "1.0.0"
+description = "Timer, Stopwatch, Cooldown — pure Ipp time utilities"
+bundled     = true

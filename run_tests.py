@@ -201,6 +201,7 @@ TESTS = [
     ("v2.0.18-signal","tests/v2_0_18/test_signal.ipp"),
     ("v2.0.19-ai","tests/v2_0_19/test_ai.ipp"),
     ("v2.0.19.1-pool","tests/v2_0_19_1/test_pool.ipp"),
+    ("v2.0.19.2-timer","tests/v2_0_19_2/test_timer.ipp"),
 ]
 
 passed=failed=0
