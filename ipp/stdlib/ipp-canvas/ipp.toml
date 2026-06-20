@@ -1,0 +1,5 @@
+[package]
+name        = "ipp-canvas"
+version     = "1.0.0"
+description = "Canvas 2D drawing, Color utilities, game loop integration"
+bundled     = true

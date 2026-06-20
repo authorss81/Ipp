@@ -170,3 +170,28 @@ def ipp_canvas_bg(color="white"):
 def ipp_canvas_color(r, g, b):
     """Convert r,g,b (0-255) to a hex color string (v2.2.0)."""
     return f"#{int(r):02x}{int(g):02x}{int(b):02x}"
+
+
+def ipp_canvas_run(update_fn, fps=60):
+    """Run a game loop inside tkinter's event loop.
+    update_fn: callable(dt) — called once per frame with delta time in seconds.
+    Blocks until the window is closed."""
+    global _canvas_window, _update_job, _canvas
+    if _canvas_window is None:
+        ipp_canvas_open()
+    frame_ms = int(1000 / fps)
+    last_time = [time.perf_counter()]
+    import time as _time
+    def frame():
+        now = _time.perf_counter()
+        dt = now - last_time[0]
+        last_time[0] = now
+        try:
+            update_fn(dt)
+        except Exception as e:
+            print(f"[canvas] Error in game loop: {e}")
+        if _canvas_window:
+            _update_job = _canvas_window.after(frame_ms, frame)
+    _canvas_window.after(frame_ms, frame)
+    _canvas_window.mainloop()
+    return "[game loop ended]"
