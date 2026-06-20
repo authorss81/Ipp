@@ -1,0 +1,5 @@
+[package]
+name        = "ipp-net"
+version     = "1.0.0"
+description = "HTTP client/server, WebSocket, FTP, SMTP — clean Ipp API over builtins"
+bundled     = true
