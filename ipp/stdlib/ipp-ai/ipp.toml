@@ -1,0 +1,5 @@
+[package]
+name        = "ipp-ai"
+version     = "1.0.0"
+description = "State machine, A* pathfinding, behavior tree, grid utils"
+bundled     = true

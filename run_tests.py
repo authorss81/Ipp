@@ -199,6 +199,7 @@ TESTS = [
     ("v2.0.16-random","tests/v2_0_16/test_random.ipp"),
     ("v2.0.17-collections","tests/v2_0_17/test_collections.ipp"),
     ("v2.0.18-signal","tests/v2_0_18/test_signal.ipp"),
+    ("v2.0.19-ai","tests/v2_0_19/test_ai.ipp"),
 ]
 
 passed=failed=0
