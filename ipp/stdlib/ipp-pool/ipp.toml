@@ -1,0 +1,5 @@
+[package]
+name        = "ipp-pool"
+version     = "1.0.0"
+description = "Generic object pool: acquire, release, resize, clear"
+bundled     = true
