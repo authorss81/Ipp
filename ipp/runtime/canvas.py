@@ -11,6 +11,7 @@ except ImportError:
 _canvas_window = None
 _canvas = None
 _update_job = None
+_image_cache = {}
 
 
 def ipp_canvas_open():
@@ -165,6 +166,64 @@ def ipp_canvas_bg(color="white"):
         _canvas_window.update_idletasks()
         _canvas_window.update()
     return "[background set]"
+
+
+def ipp_canvas_load_image(path, name):
+    """Load an image file into the canvas image cache (v2.0.20.1)."""
+    global _image_cache
+    if tk is None:
+        return None
+    try:
+        from PIL import Image, ImageTk
+        img = Image.open(path)
+        _image_cache[name] = ImageTk.PhotoImage(img)
+        return name
+    except ImportError:
+        try:
+            _image_cache[name] = tk.PhotoImage(file=path)
+            return name
+        except Exception:
+            return None
+    except Exception:
+        return None
+
+
+def ipp_canvas_draw_image(x, y, image_name):
+    """Draw a cached image at (x, y) (v2.0.20.1)."""
+    global _canvas, _canvas_window, _image_cache
+    if _canvas and _canvas_window and image_name in _image_cache:
+        _canvas.create_image(x, y, image=_image_cache[image_name], anchor="nw")
+        _canvas_window.update_idletasks()
+        _canvas_window.update()
+
+
+def ipp_canvas_load_spritesheet(path, name, tile_w, tile_h):
+    """Load and slice a sprite sheet into individual frames (v2.0.20.1)."""
+    global _image_cache
+    frames = []
+    if tk is None:
+        return frames
+    try:
+        from PIL import Image, ImageTk
+        sheet = Image.open(path)
+        sheet_w, sheet_h = sheet.size
+        idx = 0
+        for y in range(0, sheet_h, tile_h):
+            for x in range(0, sheet_w, tile_w):
+                frame = sheet.crop((x, y, x + tile_w, y + tile_h))
+                key = f"{name}_{idx}"
+                _image_cache[key] = ImageTk.PhotoImage(frame)
+                frames.append(key)
+                idx += 1
+        return frames
+    except ImportError:
+        try:
+            _image_cache[name + "_0"] = tk.PhotoImage(file=path)
+            return [name + "_0"]
+        except Exception:
+            return []
+    except Exception:
+        return []
 
 
 def ipp_canvas_color(r, g, b):

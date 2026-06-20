@@ -110,3 +110,41 @@ export class Canvas {
 export func run(update_fn, fps=60) {
     return canvas_run(update_fn, fps)
 }
+
+# ── Image Loading & Sprites (v2.0.20.1) ──
+
+export func load_image(path, name) {
+    return canvas_load_image(path, name)
+}
+
+export func draw_image(x, y, image_name) {
+    return canvas_draw_image(x, y, image_name)
+}
+
+export func load_spritesheet(path, name, tile_w, tile_h) {
+    return canvas_load_spritesheet(path, name, tile_w, tile_h)
+}
+
+export class Sprite {
+    func init(image_name, x=nil, y=nil) {
+        self.image = image_name
+        self.x = x ?? 0
+        self.y = y ?? 0
+        self.visible = true
+    }
+
+    func draw() {
+        if self.visible {
+            draw_image(self.x, self.y, self.image)
+        }
+    }
+
+    func move(dx, dy) {
+        self.x = self.x + dx
+        self.y = self.y + dy
+    }
+
+    func _str() {
+        return "Sprite(" + self.image + ", " + str(self.x) + ", " + str(self.y) + ")"
+    }
+}

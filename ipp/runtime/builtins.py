@@ -7,6 +7,7 @@ from ipp.runtime.canvas import (
     ipp_canvas_line, ipp_canvas_text, ipp_canvas_clear, ipp_canvas_show,
     ipp_canvas_pixel, ipp_canvas_fill, ipp_canvas_size, ipp_canvas_bg, ipp_canvas_color,
     ipp_canvas_run,
+    ipp_canvas_load_image, ipp_canvas_draw_image, ipp_canvas_load_spritesheet,
 )
 
 
@@ -4717,6 +4718,10 @@ BUILTINS = {
     "canvas_bg": ipp_canvas_bg,
     "canvas_color": ipp_canvas_color,
     "canvas_run": ipp_canvas_run,
+    # Image loading (v2.0.20.1)
+    "canvas_load_image": ipp_canvas_load_image,
+    "canvas_draw_image": ipp_canvas_draw_image,
+    "canvas_load_spritesheet": ipp_canvas_load_spritesheet,
     # Audio Playback (v2.3.0)
     "play_sound": __import__('ipp.runtime.audio', fromlist=['ipp_play_sound']).ipp_play_sound,
     "stop_sound": __import__('ipp.runtime.audio', fromlist=['ipp_stop_sound']).ipp_stop_sound,
