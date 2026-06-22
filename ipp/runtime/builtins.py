@@ -8,8 +8,10 @@ from ipp.runtime.canvas import (
     ipp_canvas_pixel, ipp_canvas_fill, ipp_canvas_size, ipp_canvas_bg, ipp_canvas_color,
     ipp_canvas_run,
     ipp_canvas_load_image, ipp_canvas_draw_image, ipp_canvas_load_spritesheet,
+    ipp_canvas_mouse_pos, ipp_canvas_mouse_down,
     ipp_assert_frame,
 )
+from ipp.runtime.resources import load_texture, load_sound, load_tilemap
 
 
 class _IppSignal:
@@ -4723,8 +4725,14 @@ BUILTINS = {
     "canvas_load_image": ipp_canvas_load_image,
     "canvas_draw_image": ipp_canvas_draw_image,
     "canvas_load_spritesheet": ipp_canvas_load_spritesheet,
+    "canvas_mouse_pos": ipp_canvas_mouse_pos,
+    "canvas_mouse_down": ipp_canvas_mouse_down,
     # Visual regression testing (v2.0.20.3)
     "assert_frame": ipp_assert_frame,
+    # v2.0.20.4 — Resource annotations
+    "load_texture": load_texture,
+    "load_sound": load_sound,
+    "load_tilemap": load_tilemap,
     # Audio Playback (v2.3.0)
     "play_sound": __import__('ipp.runtime.audio', fromlist=['ipp_play_sound']).ipp_play_sound,
     "stop_sound": __import__('ipp.runtime.audio', fromlist=['ipp_stop_sound']).ipp_stop_sound,

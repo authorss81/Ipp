@@ -29,6 +29,8 @@ class W:
     def create_line(self,*a,**k): pass
     def create_text(self,*a,**k): pass
     def delete(self,*a,**k): pass
+    def bind(self,*a,**k): pass
+    def after(self,*a,**k): return "job"
 tk.Tk=W; tk.Canvas=W; tk.Frame=W; tk.Label=W; tk.Button=W; tk.ALL='all'; tk.NW='nw'
 sys.modules['tkinter'] = tk
 sys.modules['tkinter.ttk'] = types.ModuleType('tkinter.ttk')
@@ -207,6 +209,8 @@ TESTS = [
     ("v2.0.20.1-canvas-sprites","tests/v2_0_20_1/test_canvas_sprites.ipp"),
     ("v2.0.20.2-tilemap","tests/v2_0_20_2/test_tilemap.ipp"),
     ("v2.0.20.3-assert-frame","tests/v2_0_20_3/test_assert_frame.ipp"),
+    ("v2.0.20.4-resource-annotations","tests/v2_0_20_4/test_resource_annotations.ipp"),
+    ("v2.0.21-ipp-ui","tests/v2_0_21/test_ui.ipp"),
 ]
 
 passed=failed=0

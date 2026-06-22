@@ -13,10 +13,28 @@ _canvas = None
 _update_job = None
 _image_cache = {}
 
+# Mouse tracking state
+_mouse_x = 0
+_mouse_y = 0
+_mouse_buttons = {1: False, 2: False, 3: False}
+
+
+def _on_mouse_move(event):
+    global _mouse_x, _mouse_y
+    _mouse_x = event.x
+    _mouse_y = event.y
+
+def _on_mouse_down(event):
+    global _mouse_buttons
+    _mouse_buttons[event.num] = True
+
+def _on_mouse_up(event):
+    global _mouse_buttons
+    _mouse_buttons[event.num] = False
 
 def ipp_canvas_open():
     """Open a canvas window for drawing."""
-    global _canvas_window, _canvas, _update_job
+    global _canvas_window, _canvas, _update_job, _mouse_x, _mouse_y
     
     # Destroy existing window if any
     if _canvas_window is not None:
@@ -33,6 +51,18 @@ def ipp_canvas_open():
     
     _canvas = Canvas(_canvas_window, bg="white", width=580, height=380)
     _canvas.pack(fill="both", expand=True, padx=10, pady=10)
+    
+    # Bind mouse events
+    _canvas.bind("<Motion>", _on_mouse_move)
+    _canvas.bind("<Button-1>", _on_mouse_down)
+    _canvas.bind("<Button-2>", _on_mouse_down)
+    _canvas.bind("<Button-3>", _on_mouse_down)
+    _canvas.bind("<ButtonRelease-1>", _on_mouse_up)
+    _canvas.bind("<ButtonRelease-2>", _on_mouse_up)
+    _canvas.bind("<ButtonRelease-3>", _on_mouse_up)
+    
+    _mouse_x = 0
+    _mouse_y = 0
     
     _canvas_window.update_idletasks()
     _canvas_window.update()
@@ -63,8 +93,6 @@ def ipp_canvas_rect(x, y, w, h, color="black"):
     global _canvas, _canvas_window, _update_job
     if _canvas and _canvas_window:
         _canvas.create_rectangle(x, y, x+w, y+h, fill=color, outline=color)
-        _canvas_window.update_idletasks()
-        _canvas_window.update()
     return "[rect drawn]"
 
 
@@ -73,8 +101,6 @@ def ipp_canvas_circle(x, y, r, color="black"):
     global _canvas, _canvas_window
     if _canvas and _canvas_window:
         _canvas.create_oval(x-r, y-r, x+r, y+r, fill=color, outline=color)
-        _canvas_window.update_idletasks()
-        _canvas_window.update()
     return "[circle drawn]"
 
 
@@ -83,8 +109,6 @@ def ipp_canvas_line(x1, y1, x2, y2, color="black"):
     global _canvas, _canvas_window
     if _canvas and _canvas_window:
         _canvas.create_line(x1, y1, x2, y2, fill=color, width=2)
-        _canvas_window.update_idletasks()
-        _canvas_window.update()
     return "[line drawn]"
 
 
@@ -93,8 +117,6 @@ def ipp_canvas_text(x, y, text, color="black"):
     global _canvas, _canvas_window
     if _canvas and _canvas_window:
         _canvas.create_text(x, y, text=str(text), fill=color, font=("Arial", 12))
-        _canvas_window.update_idletasks()
-        _canvas_window.update()
     return "[text drawn]"
 
 
@@ -104,8 +126,6 @@ def ipp_canvas_clear(color="white"):
     if _canvas and _canvas_window:
         _canvas.delete("all")
         _canvas.config(bg=color)
-        _canvas_window.update_idletasks()
-        _canvas_window.update()
     return "[canvas cleared]"
 
 
@@ -133,8 +153,6 @@ def ipp_canvas_pixel(x, y, color="black"):
     global _canvas, _canvas_window
     if _canvas and _canvas_window:
         _canvas.create_line(x, y, x+1, y, fill=color, width=1)
-        _canvas_window.update_idletasks()
-        _canvas_window.update()
     return "[pixel drawn]"
 
 
@@ -145,8 +163,6 @@ def ipp_canvas_fill(color="white"):
         w = int(_canvas.cget("width"))
         h = int(_canvas.cget("height"))
         _canvas.create_rectangle(0, 0, w, h, fill=color, outline=color)
-        _canvas_window.update_idletasks()
-        _canvas_window.update()
     return "[canvas filled]"
 
 
@@ -163,8 +179,6 @@ def ipp_canvas_bg(color="white"):
     global _canvas, _canvas_window
     if _canvas and _canvas_window:
         _canvas.config(bg=color)
-        _canvas_window.update_idletasks()
-        _canvas_window.update()
     return "[background set]"
 
 
@@ -193,8 +207,6 @@ def ipp_canvas_draw_image(x, y, image_name):
     global _canvas, _canvas_window, _image_cache
     if _canvas and _canvas_window and image_name in _image_cache:
         _canvas.create_image(x, y, image=_image_cache[image_name], anchor="nw")
-        _canvas_window.update_idletasks()
-        _canvas_window.update()
 
 
 def ipp_canvas_load_spritesheet(path, name, tile_w, tile_h):
@@ -226,6 +238,14 @@ def ipp_canvas_load_spritesheet(path, name, tile_w, tile_h):
         return []
 
 
+def ipp_canvas_mouse_pos():
+    """Return current mouse position as [x, y] (v2.0.22)."""
+    return [_mouse_x, _mouse_y]
+
+def ipp_canvas_mouse_down(button=1):
+    """Return True if the given mouse button is currently pressed (v2.0.22)."""
+    return _mouse_buttons.get(button, False)
+
 def ipp_canvas_color(r, g, b):
     """Convert r,g,b (0-255) to a hex color string (v2.2.0)."""
     return f"#{int(r):02x}{int(g):02x}{int(b):02x}"
@@ -239,8 +259,8 @@ def ipp_canvas_run(update_fn, fps=60):
     if _canvas_window is None:
         ipp_canvas_open()
     frame_ms = int(1000 / fps)
-    last_time = [time.perf_counter()]
     import time as _time
+    last_time = [_time.perf_counter()]
     def frame():
         now = _time.perf_counter()
         dt = now - last_time[0]
@@ -249,6 +269,12 @@ def ipp_canvas_run(update_fn, fps=60):
             update_fn(dt)
         except Exception as e:
             print(f"[canvas] Error in game loop: {e}")
+        if _canvas_window:
+            try:
+                _canvas_window.update_idletasks()
+                _canvas_window.update()
+            except:
+                pass
         if _canvas_window:
             _update_job = _canvas_window.after(frame_ms, frame)
     _canvas_window.after(frame_ms, frame)

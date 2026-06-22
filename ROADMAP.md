@@ -1,7 +1,7 @@
 # Ipp Language Roadmap v4
-> **Current version:** `2.0.19.2`
-> **Status:** 164 regression tests pass. v1.x bug-fix phase complete. v2.0.x through ipp-timer complete.
-> **Phase D3 in progress:** Network & Canvas packages.
+> **Current version:** `2.0.21`
+> **Status:** 171 regression tests pass. v1.x bug-fix phase complete. v2.0.x through ipp-ui complete.
+> **Phase D3 complete.** Next: v2.0.22 GPU Rendering.
 > **This roadmap:** Complete from v1.7.6 through v2.1.5. Some actual v2.0.x versions diverged from original plan — see VERSION STATUS.
 
 ---
@@ -73,7 +73,7 @@ print(f'{passed} pass / {failed} fail')
 
 ## VERSION STATUS ✅
 
-**Current: v2.0.19.2** — VERSION in `ipp/main.py` = `"2.0.19.2"`.
+**Current: v2.0.21** — VERSION in `ipp/main.py` = `"2.0.21"`.
 
 **v1.x phase fully complete.** All bugs BUG-001 through BUG-026 are fixed. All regression tests pass.
 
@@ -113,10 +113,16 @@ print(f'{passed} pass / {failed} fail')
 | v2.0.19 | `ipp-ai` stdlib — StateMachine, AStar, BehaviorTree, grid utils | Planned v2.0.17 (ipp-ai) |
 | v2.0.19.1 | `ipp-pool` stdlib — ObjectPool | Planned v2.0.18 (ipp-pool) |
 | v2.0.19.2 | `ipp-timer` stdlib — Timer, Stopwatch, Cooldown | Planned v2.0.18.2 (ipp-timer) |
+| v2.0.19.3 | `ipp-net` WebSocket client, tested end-to-end | v2.0.19.3 |
+| v2.0.20 | `ipp-canvas` — Canvas Drawing with Game Loop | v2.0.20 |
+| v2.0.20.1 | `ipp-canvas` Sprites + Image Loading | v2.0.20.1 |
+| v2.0.20.2 | `ipp-canvas` Tilemap Renderer + Camera | v2.0.20.2 |
+| v2.0.20.3 | `assert_frame()` visual regression testing | v2.0.20.3 |
+| v2.0.20.4 | `@texture/@sound/@tilemap` Resource Annotations | v2.0.20.4 |
+| v2.0.21 | `ipp-ui` — Widget System on Canvas (Label, Button, ProgressBar, Panel, UI) | v2.0.21 |
 
 **Remaining planned (not yet implemented):**
 - File watcher + hot reload
-- **v2.0.19.3** onwards (see Phase D3 below)
 - **v2.0.22** — GPU Rendering Backend (hardware-accelerated 3D via OpenGL/Vulkan)
 - **v2.0.23** — Physics Engine (2D/3D collision detection + rigidbody simulation)
 - **v2.0.24** — Proper Audio Backend (real playback replacing stubs, positional audio)

@@ -208,3 +208,21 @@ export class TilemapRenderer {
         return "TilemapRenderer(" + str(rows) + "x" + str(cols) + ")"
     }
 }
+
+# ── Module-level drawing convenience exports (v2.0.21) ──
+
+export func rect(x, y, w, h, color="black") {
+    canvas_rect(x, y, w, h, _resolve_color(color))
+}
+
+export func circle(x, y, r, color="black") {
+    canvas_circle(x, y, r, _resolve_color(color))
+}
+
+export func line(x1, y1, x2, y2, color="black") {
+    canvas_line(x1, y1, x2, y2, _resolve_color(color))
+}
+
+export func text(x, y, text_str, color="black") {
+    canvas_text(x, y, text_str, _resolve_color(color))
+}

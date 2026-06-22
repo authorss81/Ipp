@@ -1,0 +1,5 @@
+[package]
+name        = "ipp-ui"
+version     = "1.0.0"
+description = "Retained-mode UI widget system built on ipp-canvas"
+bundled     = true

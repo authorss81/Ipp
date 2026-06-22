@@ -2594,6 +2594,9 @@ class VM:
                                if k not in self.globals or child.globals[k] is not self.globals.get(k)}
                 self._module_cache[module_path] = {'globals': new_globals, 'exports': exports_set}
 
+            # Keep full globals before export filtering for dependency resolution
+            full_globals = dict(new_globals)
+
             # Apply export filtering: if the module has exports, only those names are visible
             if exports_set:
                 new_globals = {k: v for k, v in new_globals.items() if k in exports_set}
@@ -2612,12 +2615,20 @@ class VM:
                     if name in new_globals:
                         self.globals[name] = new_globals[name]
                 # Auto-import free variables referenced by imported closures
-                for name, val in new_globals.items():
+                # Uses full_globals (pre-filter) to resolve transitive deps
+                for name, val in list(new_globals.items()):
+                    candidates = []
                     if hasattr(val, 'chunk'):
-                        chunk = val.chunk
+                        candidates.append(val)
+                    if hasattr(val, 'methods'):
+                        for method_val in val.methods.values():
+                            if hasattr(method_val, 'chunk'):
+                                candidates.append(method_val)
+                    for c in candidates:
+                        chunk = c.chunk
                         for const in chunk.constants:
-                            if isinstance(const, str) and const in new_globals and const not in self.globals:
-                                self.globals[const] = new_globals[const]
+                            if isinstance(const, str) and const in full_globals and const not in self.globals:
+                                self.globals[const] = full_globals[const]
             else:
                 self.globals.update(new_globals)
 

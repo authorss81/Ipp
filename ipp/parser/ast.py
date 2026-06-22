@@ -460,6 +460,7 @@ class ClassDecl(ASTNode):
     invariants: List[ASTNode] = field(default_factory=list)
     exports: Dict[str, Tuple[Optional['ASTNode'], Dict[str, Any]]] = field(default_factory=dict)
     onchange_callbacks: Dict[str, str] = field(default_factory=dict)  # func_name -> field_name (v2.0.2.1)
+    resource_annotations: Dict[str, Tuple[str, str]] = field(default_factory=dict)  # field_name -> (type, path) (v2.0.20.4)
     def accept(self, visitor): return visitor.visit_class_decl(self)
 
 @dataclass
