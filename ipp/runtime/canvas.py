@@ -254,3 +254,47 @@ def ipp_canvas_run(update_fn, fps=60):
     _canvas_window.after(frame_ms, frame)
     _canvas_window.mainloop()
     return "[game loop ended]"
+
+
+def _canvas_screenshot():
+    """Capture current canvas state as PIL Image."""
+    if _canvas is None:
+        return None
+    try:
+        from PIL import Image
+        import io
+        ps = _canvas.postscript(colormode='color')
+        img = Image.open(io.BytesIO(ps.encode('latin-1')))
+        return img
+    except ImportError:
+        return None
+    except Exception:
+        return None
+
+
+def ipp_assert_frame(reference_path, threshold=0.01):
+    """Assert current canvas matches reference image within threshold."""
+    import os
+    update = os.environ.get("IPP_UPDATE_SNAPSHOTS", "").lower() in ("1", "true", "yes")
+    img = _canvas_screenshot()
+    if img is None:
+        return True
+    if update or not os.path.exists(reference_path):
+        os.makedirs(os.path.dirname(reference_path), exist_ok=True)
+        img.save(reference_path)
+        return True
+    from PIL import Image, ImageChops
+    ref = Image.open(reference_path).convert('RGB')
+    cur = img.convert('RGB').resize(ref.size)
+    diff = ImageChops.difference(ref, cur)
+    import numpy as np
+    diff_arr = np.array(diff)
+    pct_diff = float(diff_arr.mean()) / 255.0
+    if pct_diff > threshold:
+        diff_path = reference_path.replace('.png', '_diff.png')
+        diff.save(diff_path)
+        raise AssertionError(
+            f"assert_frame failed: {pct_diff:.1%} pixels differ "
+            f"(threshold: {threshold:.1%}). Diff saved to {diff_path}"
+        )
+    return True

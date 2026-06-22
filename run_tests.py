@@ -206,6 +206,7 @@ TESTS = [
     ("v2.0.20-canvas","tests/v2_0_20/test_canvas.ipp"),
     ("v2.0.20.1-canvas-sprites","tests/v2_0_20_1/test_canvas_sprites.ipp"),
     ("v2.0.20.2-tilemap","tests/v2_0_20_2/test_tilemap.ipp"),
+    ("v2.0.20.3-assert-frame","tests/v2_0_20_3/test_assert_frame.ipp"),
 ]
 
 passed=failed=0
