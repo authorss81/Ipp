@@ -205,6 +205,7 @@ TESTS = [
     ("v2.0.19.3-net","tests/v2_0_19_3/test_net.ipp"),
     ("v2.0.20-canvas","tests/v2_0_20/test_canvas.ipp"),
     ("v2.0.20.1-canvas-sprites","tests/v2_0_20_1/test_canvas_sprites.ipp"),
+    ("v2.0.20.2-tilemap","tests/v2_0_20_2/test_tilemap.ipp"),
 ]
 
 passed=failed=0

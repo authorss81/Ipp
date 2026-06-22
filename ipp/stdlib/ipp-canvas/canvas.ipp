@@ -148,3 +148,63 @@ export class Sprite {
         return "Sprite(" + self.image + ", " + str(self.x) + ", " + str(self.y) + ")"
     }
 }
+
+# ── Tilemap & Camera (v2.0.20.2) ──
+
+export class Camera {
+    func init(x=nil, y=nil) {
+        self.x = x ?? 0
+        self.y = y ?? 0
+    }
+    func move(dx, dy) {
+        self.x = self.x + dx
+        self.y = self.y + dy
+    }
+    func world_to_screen(wx, wy) {
+        return [wx - self.x, wy - self.y]
+    }
+    func screen_to_world(sx, sy) {
+        return [sx + self.x, sy + self.y]
+    }
+    func _str() {
+        return "Camera(" + str(self.x) + ", " + str(self.y) + ")"
+    }
+}
+
+export class TilemapRenderer {
+    func init(tilemap, tile_w, tile_h, palette) {
+        self.tilemap = tilemap
+        self.tw = tile_w
+        self.th = tile_h
+        self.palette = palette
+    }
+    func draw(camera=nil, canvas_w=nil, canvas_h=nil) {
+        var cw = canvas_w ?? 600
+        var ch = canvas_h ?? 400
+        var ox = 0
+        var oy = 0
+        if camera != nil {
+            ox = -camera.x
+            oy = -camera.y
+        }
+        var rows = len(self.tilemap)
+        var cols = len(self.tilemap[0])
+        for row in range(rows) {
+            for col in range(cols) {
+                var sx = col * self.tw + ox
+                var sy = row * self.th + oy
+                if sx + self.tw < 0 or sx > cw { continue }
+                if sy + self.th < 0 or sy > ch { continue }
+                var tile_id = str(self.tilemap[row][col])
+                var tile_gfx = self.palette[tile_id]
+                if tile_gfx == nil { tile_gfx = "grey" }
+                canvas_rect(sx, sy, self.tw, self.th, tile_gfx)
+            }
+        }
+    }
+    func _str() {
+        var rows = len(self.tilemap)
+        var cols = len(self.tilemap[0])
+        return "TilemapRenderer(" + str(rows) + "x" + str(cols) + ")"
+    }
+}
