@@ -1,0 +1,4 @@
+[package]
+name = "ipp-gpu"
+version = "2.0.22"
+description = "GPU Rendering — OpenGL shaders, buffers, and 3D drawing"

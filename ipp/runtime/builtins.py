@@ -12,6 +12,15 @@ from ipp.runtime.canvas import (
     ipp_assert_frame,
 )
 from ipp.runtime.resources import load_texture, load_sound, load_tilemap
+from ipp.runtime.gpu import (
+    ipp_gpu_init, ipp_gpu_close, ipp_gpu_is_open, ipp_gpu_size,
+    ipp_gpu_clear, ipp_gpu_swap, ipp_gpu_draw,
+    ipp_gpu_create_shader, ipp_gpu_create_program, ipp_gpu_use_program,
+    ipp_gpu_delete_shader, ipp_gpu_delete_program,
+    ipp_gpu_create_buffer, ipp_gpu_bind_buffer, ipp_gpu_delete_buffer,
+    ipp_gpu_vertex_attrib, ipp_gpu_enable_attrib, ipp_gpu_disable_attrib,
+    ipp_gpu_set_uniform, ipp_gpu_set_uniform_matrix,
+)
 
 
 class _IppSignal:
@@ -4772,4 +4781,25 @@ BUILTINS = {
     "World": World,
     "__entity_create": __ecs_entity_create,
     "__system_create": __ecs_system_create,
+    # v2.0.22 — GPU Rendering Backend
+    "gpu_init": ipp_gpu_init,
+    "gpu_close": ipp_gpu_close,
+    "gpu_is_open": ipp_gpu_is_open,
+    "gpu_size": ipp_gpu_size,
+    "gpu_clear": ipp_gpu_clear,
+    "gpu_swap": ipp_gpu_swap,
+    "gpu_draw": ipp_gpu_draw,
+    "gpu_create_shader": ipp_gpu_create_shader,
+    "gpu_create_program": ipp_gpu_create_program,
+    "gpu_use_program": ipp_gpu_use_program,
+    "gpu_delete_shader": ipp_gpu_delete_shader,
+    "gpu_delete_program": ipp_gpu_delete_program,
+    "gpu_create_buffer": ipp_gpu_create_buffer,
+    "gpu_bind_buffer": ipp_gpu_bind_buffer,
+    "gpu_delete_buffer": ipp_gpu_delete_buffer,
+    "gpu_vertex_attrib": ipp_gpu_vertex_attrib,
+    "gpu_enable_attrib": ipp_gpu_enable_attrib,
+    "gpu_disable_attrib": ipp_gpu_disable_attrib,
+    "gpu_set_uniform": ipp_gpu_set_uniform,
+    "gpu_set_uniform_matrix": ipp_gpu_set_uniform_matrix,
 }

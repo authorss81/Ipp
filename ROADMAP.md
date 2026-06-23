@@ -1,7 +1,7 @@
 # Ipp Language Roadmap v4
-> **Current version:** `2.0.21`
-> **Status:** 171 regression tests pass. v1.x bug-fix phase complete. v2.0.x through ipp-ui complete.
-> **Phase D3 complete.** Next: v2.0.22 GPU Rendering.
+> **Current version:** `2.0.22`
+> **Status:** 172 regression tests pass. v1.x bug-fix phase complete. v2.0.x through GPU Rendering complete.
+> **Phase D4 complete.** Next: v2.0.23 Physics Engine.
 > **This roadmap:** Complete from v1.7.6 through v2.1.5. Some actual v2.0.x versions diverged from original plan — see VERSION STATUS.
 
 ---
@@ -73,7 +73,7 @@ print(f'{passed} pass / {failed} fail')
 
 ## VERSION STATUS ✅
 
-**Current: v2.0.21** — VERSION in `ipp/main.py` = `"2.0.21"`.
+**Current: v2.0.22** — VERSION in `ipp/main.py` = `"2.0.22"`.
 
 **v1.x phase fully complete.** All bugs BUG-001 through BUG-026 are fixed. All regression tests pass.
 
@@ -120,10 +120,10 @@ print(f'{passed} pass / {failed} fail')
 | v2.0.20.3 | `assert_frame()` visual regression testing | v2.0.20.3 |
 | v2.0.20.4 | `@texture/@sound/@tilemap` Resource Annotations | v2.0.20.4 |
 | v2.0.21 | `ipp-ui` — Widget System on Canvas (Label, Button, ProgressBar, Panel, UI) | v2.0.21 |
+| v2.0.22 | GPU Rendering Backend — OpenGL shaders, buffers, uniforms, matrix, `ipp-gpu` stdlib | v2.0.22 |
 
 **Remaining planned (not yet implemented):**
 - File watcher + hot reload
-- **v2.0.22** — GPU Rendering Backend (hardware-accelerated 3D via OpenGL/Vulkan)
 - **v2.0.23** — Physics Engine (2D/3D collision detection + rigidbody simulation)
 - **v2.0.24** — Proper Audio Backend (real playback replacing stubs, positional audio)
 - **v2.0.25** — Debugger with Breakpoints (step-through, call stack inspection)
