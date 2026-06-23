@@ -212,6 +212,7 @@ TESTS = [
     ("v2.0.20.4-resource-annotations","tests/v2_0_20_4/test_resource_annotations.ipp"),
     ("v2.0.21-ipp-ui","tests/v2_0_21/test_ui.ipp"),
     ("v2.0.22-gpu","tests/v2_0_22/test_gpu.ipp"),
+    ("v2.0.23-physics","tests/v2_0_23/test_physics.ipp"),
 ]
 
 passed=failed=0

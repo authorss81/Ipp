@@ -30,6 +30,20 @@ from ipp.runtime.gpu import (
     ipp_gpu_bind_texture, ipp_gpu_delete_texture,
     ipp_gpu_create_vao, ipp_gpu_bind_vao, ipp_gpu_delete_vao,
 )
+from ipp.runtime.physics import (
+    ipp_physics_create_space, ipp_physics_create_body,
+    ipp_physics_body_set_position, ipp_physics_body_set_velocity,
+    ipp_physics_body_get_x, ipp_physics_body_get_y,
+    ipp_physics_body_get_vx, ipp_physics_body_get_vy,
+    ipp_physics_body_get_angle, ipp_physics_body_set_angle,
+    ipp_physics_body_add_force, ipp_physics_body_set_type,
+    ipp_physics_body_set_velocity_limit,
+    ipp_physics_body_set_collision_type,
+    ipp_physics_space_set_gravity,
+    ipp_physics_step, ipp_physics_space_poll_collisions,
+    ipp_physics_space_remove_body,
+    ipp_physics_draw_debug,
+)
 
 
 class _IppSignal:
@@ -4842,4 +4856,25 @@ BUILTINS = {
     "gpu_create_vao": ipp_gpu_create_vao,
     "gpu_bind_vao": ipp_gpu_bind_vao,
     "gpu_delete_vao": ipp_gpu_delete_vao,
+
+    # v2.0.23 Physics Engine
+    "physics_create_space": ipp_physics_create_space,
+    "physics_create_body": ipp_physics_create_body,
+    "physics_body_set_position": ipp_physics_body_set_position,
+    "physics_body_set_velocity": ipp_physics_body_set_velocity,
+    "physics_body_get_x": ipp_physics_body_get_x,
+    "physics_body_get_y": ipp_physics_body_get_y,
+    "physics_body_get_vx": ipp_physics_body_get_vx,
+    "physics_body_get_vy": ipp_physics_body_get_vy,
+    "physics_body_get_angle": ipp_physics_body_get_angle,
+    "physics_body_set_angle": ipp_physics_body_set_angle,
+    "physics_body_add_force": ipp_physics_body_add_force,
+    "physics_body_set_type": ipp_physics_body_set_type,
+    "physics_body_set_velocity_limit": ipp_physics_body_set_velocity_limit,
+    "physics_body_set_collision_type": ipp_physics_body_set_collision_type,
+    "physics_space_set_gravity": ipp_physics_space_set_gravity,
+    "physics_step": ipp_physics_step,
+    "physics_space_poll_collisions": ipp_physics_space_poll_collisions,
+    "physics_space_remove_body": ipp_physics_space_remove_body,
+    "physics_draw_debug": ipp_physics_draw_debug,
 }
