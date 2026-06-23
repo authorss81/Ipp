@@ -13,7 +13,7 @@ except ImportError:
 
 try:
     from OpenGL.GL import (
-        glClear, glClearColor, glCreateShader, glShaderSource,
+        glClear, glClearColor, glClearDepth, glCreateShader, glShaderSource,
         glCompileShader, glGetShaderiv, glGetShaderInfoLog,
         glCreateProgram, glAttachShader, glLinkProgram,
         glGetProgramiv, glGetProgramInfoLog, glUseProgram,
@@ -23,15 +23,16 @@ try:
         glDisableVertexAttribArray, glDrawArrays, glGetAttribLocation,
         glGetUniformLocation, glUniform1f, glUniform2f, glUniform3f,
         glUniform4f, glUniform1i, glUniform2i, glUniform3i, glUniform4i,
-        glUniformMatrix4fv, GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT,
+        glUniformMatrix4fv, glEnable, glDisable, glDepthFunc, glViewport,
+        GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT,
         GL_TRIANGLES, GL_LINES, GL_POINTS, GL_TRIANGLE_STRIP,
         GL_FLOAT, GL_ARRAY_BUFFER, GL_STATIC_DRAW, GL_COMPILE_STATUS,
         GL_LINK_STATUS, GL_VERTEX_SHADER, GL_FRAGMENT_SHADER,
+        GL_DEPTH_TEST, GL_LEQUAL, GL_TRUE, GL_FALSE,
     )
     HAS_OPENGL = True
 except ImportError:
     HAS_OPENGL = False
-    # Stub enums for test mode
     GL_COLOR_BUFFER_BIT = 1
     GL_DEPTH_BUFFER_BIT = 2
     GL_TRIANGLES = 4
@@ -44,11 +45,12 @@ except ImportError:
     GL_FRAGMENT_SHADER = 0x8B30
 
 
-_window = None
-_surface = None
+_window_surface = None
 _width = 800
 _height = 600
 _open = False
+_depth_enabled = False
+_clock = None
 _shader_type_map = {
     "vertex": GL_VERTEX_SHADER,
     "fragment": GL_FRAGMENT_SHADER,
@@ -68,8 +70,8 @@ _programs = set()
 
 def ipp_gpu_init(width=800, height=600, title="Ipp GPU"):
     """Initialize OpenGL window (v2.0.22)."""
-    global _window, _surface, _width, _height, _open
-    if _window is not None:
+    global _window_surface, _width, _height, _open, _clock
+    if _open:
         return "[gpu already initialized]"
     if not HAS_PYGAME or not HAS_OPENGL:
         _width, _height = width, height
@@ -79,11 +81,14 @@ def ipp_gpu_init(width=800, height=600, title="Ipp GPU"):
     try:
         pygame.init()
         pygame.display.set_mode((width, height), pygame.OPENGL | pygame.DOUBLEBUF)
-        _window = pygame.display.get_surface()
-        _surface = pygame.display.get_surface()
+        _window_surface = pygame.display.get_surface()
         _width, _height = width, height
         _open = True
+        _clock = pygame.time.Clock()
         glClearColor(0.0, 0.0, 0.0, 1.0)
+        glClearDepth(1.0)
+        glDepthFunc(GL_LEQUAL)
+        glViewport(0, 0, width, height)
         print(f"[gpu] OpenGL window initialized ({width}x{height})")
         return f"[gpu window {width}x{height}]"
     except Exception as e:
@@ -95,68 +100,136 @@ def ipp_gpu_init(width=800, height=600, title="Ipp GPU"):
 
 def ipp_gpu_close():
     """Close the OpenGL window (v2.0.22)."""
-    global _window, _surface, _open
+    global _window_surface, _open, _clock
+    _open = False
+    _window_surface = None
+    _clock = None
+    _depth_enabled = False
     for buf in list(_buffers):
-        try:
-            glDeleteBuffers(1, [buf])
-        except Exception:
-            pass
+        try: glDeleteBuffers(1, [buf])
+        except Exception: pass
     _buffers.clear()
     for shader in list(_shaders):
-        try:
-            glDeleteShader(shader)
-        except Exception:
-            pass
+        try: glDeleteShader(shader)
+        except Exception: pass
     _shaders.clear()
     for prog in list(_programs):
-        try:
-            glDeleteProgram(prog)
-        except Exception:
-            pass
+        try: glDeleteProgram(prog)
+        except Exception: pass
     _programs.clear()
-    _open = False
     if HAS_PYGAME and pygame.get_init():
+        pygame.display.quit()
         pygame.quit()
-    _window = None
-    _surface = None
     return "[gpu closed]"
 
 
 def ipp_gpu_is_open():
-    """Return True if GPU window is open (v2.0.22)."""
     return _open
 
 
 def ipp_gpu_size():
-    """Return [width, height] of GPU window (v2.0.22)."""
     return [_width, _height]
+
+
+def ipp_gpu_viewport(x, y, w, h):
+    if HAS_OPENGL:
+        glViewport(x, y, w, h)
+
+
+# ── Depth ─────────────────────────────────────────────────────────────────────
+
+def ipp_gpu_enable_depth():
+    global _depth_enabled
+    if HAS_OPENGL:
+        glEnable(GL_DEPTH_TEST)
+    _depth_enabled = True
+
+
+def ipp_gpu_disable_depth():
+    global _depth_enabled
+    if HAS_OPENGL:
+        glDisable(GL_DEPTH_TEST)
+    _depth_enabled = False
+
+
+# ── Event polling ─────────────────────────────────────────────────────────────
+# Returns a list of event dicts: {"type": "quit"|"key_down"|"mouse_move"|...}
+# The window auto-closes on QUIT event.
+
+def ipp_gpu_poll_events():
+    """Poll window events (v2.0.22). Returns list of event dicts."""
+    global _open
+    if not _open or not HAS_PYGAME:
+        return []
+    result = []
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            _open = False
+            result.append({"type": "quit"})
+        elif event.type == pygame.KEYDOWN:
+            result.append({
+                "type": "key_down",
+                "key": pygame.key.name(event.key),
+                "scancode": event.scancode,
+            })
+        elif event.type == pygame.KEYUP:
+            result.append({
+                "type": "key_up",
+                "key": pygame.key.name(event.key),
+            })
+        elif event.type == pygame.MOUSEMOTION:
+            result.append({
+                "type": "mouse_move",
+                "x": event.pos[0],
+                "y": event.pos[1],
+            })
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            result.append({
+                "type": "mouse_down",
+                "button": event.button,
+                "x": event.pos[0],
+                "y": event.pos[1],
+            })
+        elif event.type == pygame.MOUSEBUTTONUP:
+            result.append({
+                "type": "mouse_up",
+                "button": event.button,
+                "x": event.pos[0],
+                "y": event.pos[1],
+            })
+    return result
+
+
+# ── Delta time ────────────────────────────────────────────────────────────────
+
+def ipp_gpu_dt():
+    """Return seconds since last call (v2.0.22)."""
+    global _clock
+    if _clock is not None and HAS_PYGAME:
+        return _clock.tick() / 1000.0
+    return 0.016
 
 
 # ── Clearing / Drawing ────────────────────────────────────────────────────────
 
 def ipp_gpu_clear(r=0.0, g=0.0, b=0.0, a=1.0):
-    """Clear the color buffer (v2.0.22)."""
-    if not _open:
-        return
+    if not _open: return
     if HAS_OPENGL:
+        bits = GL_COLOR_BUFFER_BIT
+        if _depth_enabled:
+            bits |= GL_DEPTH_BUFFER_BIT
         glClearColor(r, g, b, a)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        glClear(bits)
 
 
 def ipp_gpu_swap():
-    """Swap buffers / present frame (v2.0.22)."""
-    if not _open or not HAS_PYGAME:
-        return
-    try:
-        pygame.display.flip()
-    except Exception:
-        pass
+    if not _open or not HAS_PYGAME: return
+    try: pygame.display.flip()
+    except Exception: pass
 
 
 def ipp_gpu_draw(mode="triangles", count=0):
-    """Draw arrays (v2.0.22). mode: triangles, lines, points."""
-    if not _open or not HAS_OPENGL:
-        return
+    if not _open or not HAS_OPENGL: return
     gl_mode = _draw_mode_map.get(mode, GL_TRIANGLES)
     glDrawArrays(gl_mode, 0, count)
 
@@ -164,7 +237,6 @@ def ipp_gpu_draw(mode="triangles", count=0):
 # ── Shaders ────────────────────────────────────────────────────────────────────
 
 def ipp_gpu_create_shader(shader_type, source):
-    """Compile a shader (v2.0.22). shader_type: 'vertex' or 'fragment'."""
     if not HAS_OPENGL:
         shader_id = len(_shaders) + 1
         _shaders.add(shader_id)
@@ -185,7 +257,6 @@ def ipp_gpu_create_shader(shader_type, source):
 
 
 def ipp_gpu_create_program(vertex_shader, fragment_shader):
-    """Link a shader program from vertex and fragment shader IDs (v2.0.22)."""
     if not HAS_OPENGL:
         prog_id = len(_programs) + 1
         _programs.add(prog_id)
@@ -204,29 +275,23 @@ def ipp_gpu_create_program(vertex_shader, fragment_shader):
 
 
 def ipp_gpu_use_program(program_id):
-    """Activate a shader program (v2.0.22)."""
     if HAS_OPENGL:
         glUseProgram(program_id)
 
 
 def ipp_gpu_delete_shader(shader_id):
-    """Delete a shader (v2.0.22)."""
     _shaders.discard(shader_id)
-    if HAS_OPENGL:
-        glDeleteShader(shader_id)
+    if HAS_OPENGL: glDeleteShader(shader_id)
 
 
 def ipp_gpu_delete_program(program_id):
-    """Delete a shader program (v2.0.22)."""
     _programs.discard(program_id)
-    if HAS_OPENGL:
-        glDeleteProgram(program_id)
+    if HAS_OPENGL: glDeleteProgram(program_id)
 
 
 # ── Buffers ────────────────────────────────────────────────────────────────────
 
 def ipp_gpu_create_buffer(data):
-    """Create a VBO with vertex data (list of floats) (v2.0.22)."""
     if not HAS_OPENGL:
         buf_id = len(_buffers) + 1
         _buffers.add(buf_id)
@@ -242,65 +307,47 @@ def ipp_gpu_create_buffer(data):
 
 
 def ipp_gpu_bind_buffer(buffer_id):
-    """Bind a VBO (v2.0.22)."""
-    if HAS_OPENGL:
-        glBindBuffer(GL_ARRAY_BUFFER, buffer_id)
+    if HAS_OPENGL: glBindBuffer(GL_ARRAY_BUFFER, buffer_id)
 
 
 def ipp_gpu_delete_buffer(buffer_id):
-    """Delete a VBO (v2.0.22)."""
     _buffers.discard(buffer_id)
-    if HAS_OPENGL:
-        glDeleteBuffers(1, [buffer_id])
+    if HAS_OPENGL: glDeleteBuffers(1, [buffer_id])
 
 
 # ── Vertex Attributes ─────────────────────────────────────────────────────────
 
 def ipp_gpu_vertex_attrib(program_id, name, size, stride=0, offset=0):
-    """Set up a vertex attribute pointer (v2.0.22). Returns attribute location."""
-    if not HAS_OPENGL:
-        return 0
+    if not HAS_OPENGL: return 0
     loc = glGetAttribLocation(program_id, name)
-    if loc < 0:
-        return -1
-    glVertexAttribPointer(loc, size, GL_FLOAT, False, stride, offset)
+    if loc < 0: return -1
+    glVertexAttribPointer(loc, size, GL_FLOAT, GL_FALSE, stride, offset)
     glEnableVertexAttribArray(loc)
     return loc
 
 
 def ipp_gpu_enable_attrib(location):
-    """Enable a vertex attribute array (v2.0.22)."""
-    if HAS_OPENGL:
-        glEnableVertexAttribArray(location)
+    if HAS_OPENGL: glEnableVertexAttribArray(location)
 
 
 def ipp_gpu_disable_attrib(location):
-    """Disable a vertex attribute array (v2.0.22)."""
-    if HAS_OPENGL:
-        glDisableVertexAttribArray(location)
+    if HAS_OPENGL: glDisableVertexAttribArray(location)
 
 
 # ── Uniforms ──────────────────────────────────────────────────────────────────
 
 def ipp_gpu_set_uniform(program_id, name, value):
-    """Set a uniform value (v2.0.22). Supports float, int, list of 2/3/4 values."""
-    if not HAS_OPENGL or not _open:
-        return
+    if not HAS_OPENGL or not _open: return
     loc = glGetUniformLocation(program_id, name)
-    if loc < 0:
-        return
+    if loc < 0: return
     if isinstance(value, (int, float)):
-        if isinstance(value, int):
-            glUniform1i(loc, value)
-        else:
-            glUniform1f(loc, value)
+        if isinstance(value, int): glUniform1i(loc, value)
+        else: glUniform1f(loc, value)
     elif isinstance(value, (list, tuple)):
         types = set(type(v) for v in value)
         if len(value) == 2:
-            if int in types:
-                glUniform2i(loc, int(value[0]), int(value[1]))
-            else:
-                glUniform2f(loc, float(value[0]), float(value[1]))
+            if int in types: glUniform2i(loc, int(value[0]), int(value[1]))
+            else: glUniform2f(loc, float(value[0]), float(value[1]))
         elif len(value) == 3:
             glUniform3f(loc, float(value[0]), float(value[1]), float(value[2]))
         elif len(value) == 4:
@@ -308,12 +355,9 @@ def ipp_gpu_set_uniform(program_id, name, value):
 
 
 def ipp_gpu_set_uniform_matrix(program_id, name, matrix):
-    """Set a 4x4 matrix uniform (list of 16 floats, column-major) (v2.0.22)."""
-    if not HAS_OPENGL or not _open:
-        return
+    if not HAS_OPENGL or not _open: return
     loc = glGetUniformLocation(program_id, name)
-    if loc < 0:
-        return
+    if loc < 0: return
     import array
     flat = array.array('f', matrix)
-    glUniformMatrix4fv(loc, 1, False, flat.tobytes())
+    glUniformMatrix4fv(loc, 1, GL_FALSE, flat.tobytes())

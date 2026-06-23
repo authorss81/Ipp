@@ -1,7 +1,11 @@
 # ipp-gpu — GPU Rendering wrapper (v2.0.22)
+# Practical usage:
+#   import { init_window, render_loop } from "ipp-gpu"
+#   var ctx = init_window(800, 600)
+#   render_loop(ctx, func(dt, events) { ... })
 
-# Default vertex shader (position + color)
-export var DEFAULT_VERTEX_SHADER = """
+# Default shaders with time + color uniforms
+export var VERTEX_SHADER_SRC = """
 #version 330 core
 layout(location = 0) in vec2 a_pos;
 layout(location = 1) in vec3 a_color;
@@ -12,8 +16,7 @@ void main() {
 }
 """
 
-# Default fragment shader
-export var DEFAULT_FRAGMENT_SHADER = """
+export var FRAGMENT_SHADER_SRC = """
 #version 330 core
 in vec3 v_color;
 out vec4 frag_color;
@@ -22,67 +25,47 @@ void main() {
 }
 """
 
-# Export low-level GPU builtins for convenience
-export var _gpu_init = gpu_init
-export var _gpu_close = gpu_close
-export var _gpu_clear = gpu_clear
-export var _gpu_swap = gpu_swap
-export var _gpu_draw = gpu_draw
-export var _gpu_create_shader = gpu_create_shader
-export var _gpu_create_program = gpu_create_program
-export var _gpu_use_program = gpu_use_program
-export var _gpu_delete_shader = gpu_delete_shader
-export var _gpu_delete_program = gpu_delete_program
-export var _gpu_create_buffer = gpu_create_buffer
-export var _gpu_bind_buffer = gpu_bind_buffer
-export var _gpu_delete_buffer = gpu_delete_buffer
-export var _gpu_vertex_attrib = gpu_vertex_attrib
-export var _gpu_enable_attrib = gpu_enable_attrib
-export var _gpu_disable_attrib = gpu_disable_attrib
-export var _gpu_set_uniform = gpu_set_uniform
-export var _gpu_set_uniform_matrix = gpu_set_uniform_matrix
-export var _gpu_is_open = gpu_is_open
-export var _gpu_size = gpu_size
+# ── Context object ──
+# Stores window, program, buffers for automatic cleanup
 
-# ── High-level wrappers ──
-
-# Wrapper: init window with default shaders
-export func init(width=800, height=600, title="Ipp GPU") {
+export func init_window(width=800, height=600, title="Ipp GPU") {
     var result = gpu_init(width, height, title)
-    var vs = gpu_create_shader("vertex", DEFAULT_VERTEX_SHADER)
-    var fs = gpu_create_shader("fragment", DEFAULT_FRAGMENT_SHADER)
+    var vs = gpu_create_shader("vertex", VERTEX_SHADER_SRC)
+    var fs = gpu_create_shader("fragment", FRAGMENT_SHADER_SRC)
     var prog = gpu_create_program(vs, fs)
     gpu_use_program(prog)
     gpu_delete_shader(vs)
     gpu_delete_shader(fs)
-    return {"window": result, "program": prog}
+    return {"window": result, "program": prog, "width": width, "height": height}
 }
 
-# Wrapper: draw a colored triangle (simplest GPU test)
-export func draw_triangle(x1, y1, r1, g1, b1,
-                          x2, y2, r2, g2, b2,
-                          x3, y3, r3, g3, b3) {
-    # Interleaved: pos.x, pos.y, color.r, color.g, color.b
-    var vertices = [
-        x1, y1, r1, g1, b1,
-        x2, y2, r2, g2, b2,
-        x3, y3, r3, g3, b3,
-    ]
+# ── Full render loop ──
+# Usage:
+#   render_loop(ctx, func(dt, events) {
+#       gpu_clear(0.1, 0.1, 0.2, 1.0)
+#       # ... draw calls ...
+#       # events is a list of event dicts from gpu_poll_events()
+#       # Return "quit" to exit the loop
+#   })
+export func render_loop(ctx, render_fn) {
+    while gpu_is_open() {
+        var events = gpu_poll_events()
+        var dt = gpu_dt()
+        var should_quit = render_fn(dt, events)
+        gpu_swap()
+        if should_quit == "quit" { break }
+    }
+    gpu_close()
+}
+
+# ── Quick triangle demo ──
+# Draws a colored triangle centered in NDC space.
+# vertices: list of [x, y, r, g, b]
+export func draw_colored_triangle(prog, vertices) {
     var buf = gpu_create_buffer(vertices)
     gpu_bind_buffer(buf)
-    # attrib 0 = position (2 floats, stride 20, offset 0)
-    gpu_vertex_attrib(0, "a_pos", 2, 20, 0)
-    # attrib 1 = color (3 floats, stride 20, offset 8)
-    gpu_vertex_attrib(0, "a_color", 3, 20, 8)
+    gpu_vertex_attrib(prog, "a_pos", 2, 20, 0)
+    gpu_vertex_attrib(prog, "a_color", 3, 20, 8)
     gpu_draw("triangles", 3)
     gpu_delete_buffer(buf)
-}
-
-# Wrapper: full render loop using canvas_run-style callback
-export func render_loop(render_fn, fps=60) {
-    while gpu_is_open() {
-        var dt = 1.0 / fps
-        render_fn(dt)
-        gpu_swap()
-    }
 }

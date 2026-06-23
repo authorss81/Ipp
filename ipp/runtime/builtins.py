@@ -20,6 +20,8 @@ from ipp.runtime.gpu import (
     ipp_gpu_create_buffer, ipp_gpu_bind_buffer, ipp_gpu_delete_buffer,
     ipp_gpu_vertex_attrib, ipp_gpu_enable_attrib, ipp_gpu_disable_attrib,
     ipp_gpu_set_uniform, ipp_gpu_set_uniform_matrix,
+    ipp_gpu_poll_events, ipp_gpu_dt,
+    ipp_gpu_enable_depth, ipp_gpu_disable_depth, ipp_gpu_viewport,
 )
 
 
@@ -4802,4 +4804,9 @@ BUILTINS = {
     "gpu_disable_attrib": ipp_gpu_disable_attrib,
     "gpu_set_uniform": ipp_gpu_set_uniform,
     "gpu_set_uniform_matrix": ipp_gpu_set_uniform_matrix,
+    "gpu_poll_events": ipp_gpu_poll_events,
+    "gpu_dt": ipp_gpu_dt,
+    "gpu_enable_depth": ipp_gpu_enable_depth,
+    "gpu_disable_depth": ipp_gpu_disable_depth,
+    "gpu_viewport": ipp_gpu_viewport,
 }
