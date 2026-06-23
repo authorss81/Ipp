@@ -22,6 +22,13 @@ from ipp.runtime.gpu import (
     ipp_gpu_set_uniform, ipp_gpu_set_uniform_matrix,
     ipp_gpu_poll_events, ipp_gpu_dt,
     ipp_gpu_enable_depth, ipp_gpu_disable_depth, ipp_gpu_viewport,
+    ipp_gpu_mat4_identity, ipp_gpu_mat4_perspective, ipp_gpu_mat4_ortho,
+    ipp_gpu_mat4_look_at, ipp_gpu_mat4_multiply,
+    ipp_gpu_mat4_translate, ipp_gpu_mat4_rotate, ipp_gpu_mat4_scale,
+    ipp_gpu_create_index_buffer, ipp_gpu_bind_index_buffer, ipp_gpu_draw_indexed,
+    ipp_gpu_create_texture, ipp_gpu_load_texture,
+    ipp_gpu_bind_texture, ipp_gpu_delete_texture,
+    ipp_gpu_create_vao, ipp_gpu_bind_vao, ipp_gpu_delete_vao,
 )
 
 
@@ -4809,4 +4816,30 @@ BUILTINS = {
     "gpu_enable_depth": ipp_gpu_enable_depth,
     "gpu_disable_depth": ipp_gpu_disable_depth,
     "gpu_viewport": ipp_gpu_viewport,
+
+    # v2.0.22 GPU Matrix Math
+    "gpu_mat4_identity": ipp_gpu_mat4_identity,
+    "gpu_mat4_perspective": ipp_gpu_mat4_perspective,
+    "gpu_mat4_ortho": ipp_gpu_mat4_ortho,
+    "gpu_mat4_look_at": ipp_gpu_mat4_look_at,
+    "gpu_mat4_multiply": ipp_gpu_mat4_multiply,
+    "gpu_mat4_translate": ipp_gpu_mat4_translate,
+    "gpu_mat4_rotate": ipp_gpu_mat4_rotate,
+    "gpu_mat4_scale": ipp_gpu_mat4_scale,
+
+    # v2.0.22 GPU Index Buffer
+    "gpu_create_index_buffer": ipp_gpu_create_index_buffer,
+    "gpu_bind_index_buffer": ipp_gpu_bind_index_buffer,
+    "gpu_draw_indexed": ipp_gpu_draw_indexed,
+
+    # v2.0.22 GPU Textures
+    "gpu_create_texture": ipp_gpu_create_texture,
+    "gpu_load_texture": ipp_gpu_load_texture,
+    "gpu_bind_texture": ipp_gpu_bind_texture,
+    "gpu_delete_texture": ipp_gpu_delete_texture,
+
+    # v2.0.22 GPU VAO
+    "gpu_create_vao": ipp_gpu_create_vao,
+    "gpu_bind_vao": ipp_gpu_bind_vao,
+    "gpu_delete_vao": ipp_gpu_delete_vao,
 }

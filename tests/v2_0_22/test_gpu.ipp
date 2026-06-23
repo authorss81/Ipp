@@ -138,4 +138,74 @@ assert sz2[0] == 320 and sz2[1] == 240
 gpu_close()
 print("  re-init: OK")
 
+# ── Matrix Math ──
+var ident = gpu_mat4_identity()
+assert len(ident) == 16
+assert ident[0] == 1.0 and ident[15] == 1.0
+print("  mat4_identity: OK")
+
+var proj = gpu_mat4_perspective(0.785, 1.333, 0.1, 100.0)
+assert len(proj) == 16
+assert proj[0] > 0.0  # f/aspect > 0
+print("  mat4_perspective: OK")
+
+var ortho = gpu_mat4_ortho(-1, 1, -1, 1, -1, 1)
+assert len(ortho) == 16
+assert ortho[0] == 1.0 and ortho[5] == 1.0
+print("  mat4_ortho: OK")
+
+var eye = [0, 0, 5]
+var center = [0, 0, 0]
+var up = [0, 1, 0]
+var view = gpu_mat4_look_at(eye, center, up)
+assert len(view) == 16
+assert view[15] == 1.0
+print("  mat4_look_at: OK")
+
+var doubled = gpu_mat4_multiply(ident, ident)
+assert doubled[0] == 1.0 and doubled[15] == 1.0
+print("  mat4_multiply: OK")
+
+var translated = gpu_mat4_translate(ident, 5, 10, 15)
+assert translated[12] == 5.0 and translated[13] == 10.0 and translated[14] == 15.0
+print("  mat4_translate: OK")
+
+# rotate 90 deg around X axis
+var rotated = gpu_mat4_rotate(ident, 1.5708, 1, 0, 0)
+assert abs(rotated[5]) < 0.001  # cos(90)≈0
+print("  mat4_rotate: OK")
+
+var scaled = gpu_mat4_scale(ident, 2, 3, 4)
+assert scaled[0] == 2.0 and scaled[5] == 3.0 and scaled[10] == 4.0
+print("  mat4_scale: OK")
+
+# ── Index Buffer (EBO) ──
+gpu_init(320, 240)
+var idx_buf = gpu_create_index_buffer([0, 1, 2])
+assert idx_buf != nil and idx_buf > 0
+gpu_draw_indexed("triangles", 3)
+gpu_swap()
+gpu_close()
+print("  create_index_buffer / draw_indexed: OK")
+
+# ── Texture ──
+gpu_init(320, 240)
+# Solid red 2x2 texture (r=1,g=0,b=0,a=1)
+var tex_data = [1.0,0,0,1, 1.0,0,0,1,  1.0,0,0,1, 1.0,0,0,1]
+var tex = gpu_create_texture(2, 2, tex_data)
+assert tex != nil and tex > 0
+gpu_bind_texture(0, tex)
+gpu_delete_texture(tex)
+gpu_close()
+print("  create_texture / bind / delete: OK")
+
+# ── VAO ──
+gpu_init(320, 240)
+var vao = gpu_create_vao()
+assert vao != nil and vao > 0
+gpu_bind_vao(vao)
+gpu_delete_vao(vao)
+gpu_close()
+print("  create/bind/delete VAO: OK")
+
 print("All v2.0.22 GPU tests passed!")

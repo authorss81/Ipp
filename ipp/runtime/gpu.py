@@ -26,9 +26,15 @@ try:
         glUniformMatrix4fv, glEnable, glDisable, glDepthFunc, glViewport,
         GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT,
         GL_TRIANGLES, GL_LINES, GL_POINTS, GL_TRIANGLE_STRIP,
-        GL_FLOAT, GL_ARRAY_BUFFER, GL_STATIC_DRAW, GL_COMPILE_STATUS,
-        GL_LINK_STATUS, GL_VERTEX_SHADER, GL_FRAGMENT_SHADER,
-        GL_DEPTH_TEST, GL_LEQUAL, GL_TRUE, GL_FALSE,
+        GL_FLOAT, GL_ARRAY_BUFFER, GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW,
+        GL_COMPILE_STATUS, GL_LINK_STATUS, GL_VERTEX_SHADER, GL_FRAGMENT_SHADER,
+        GL_DEPTH_TEST, GL_LEQUAL, GL_TRUE, GL_FALSE, GL_UNSIGNED_SHORT,
+        glDrawElements, glGenVertexArrays, glBindVertexArray,
+        glDeleteVertexArrays, glGenTextures, glBindTexture, glTexImage2D,
+        glTexParameteri, glDeleteTextures, glActiveTexture, GL_TEXTURE_2D,
+        GL_RGBA, GL_UNSIGNED_BYTE, GL_NEAREST, GL_LINEAR,
+        GL_TEXTURE_MIN_FILTER, GL_TEXTURE_MAG_FILTER, GL_TEXTURE_WRAP_S,
+        GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE, GL_TEXTURE0,
     )
     HAS_OPENGL = True
 except ImportError:
@@ -40,9 +46,32 @@ except ImportError:
     GL_POINTS = 0
     GL_FLOAT = 0x1406
     GL_ARRAY_BUFFER = 0x8892
+    GL_ELEMENT_ARRAY_BUFFER = 0x8893
     GL_STATIC_DRAW = 0x88E4
     GL_VERTEX_SHADER = 0x8B31
     GL_FRAGMENT_SHADER = 0x8B30
+    GL_UNSIGNED_SHORT = 0x1403
+    glDrawElements = lambda *a: None
+    glGenVertexArrays = lambda n: 0
+    glBindVertexArray = lambda v: None
+    glDeleteVertexArrays = lambda n, a: None
+    glGenTextures = lambda n: 0
+    glBindTexture = lambda t, i: None
+    glTexImage2D = lambda *a: None
+    glTexParameteri = lambda *a: None
+    glDeleteTextures = lambda t: None
+    glActiveTexture = lambda u: None
+    GL_TEXTURE_2D = 0x0DE1
+    GL_RGBA = 0x1908
+    GL_UNSIGNED_BYTE = 0x1401
+    GL_NEAREST = 0x2600
+    GL_LINEAR = 0x2601
+    GL_TEXTURE_MIN_FILTER = 0x2801
+    GL_TEXTURE_MAG_FILTER = 0x2800
+    GL_TEXTURE_WRAP_S = 0x2802
+    GL_TEXTURE_WRAP_T = 0x2803
+    GL_CLAMP_TO_EDGE = 0x812F
+    GL_TEXTURE0 = 0x84C0
 
 
 _window_surface = None
@@ -361,3 +390,166 @@ def ipp_gpu_set_uniform_matrix(program_id, name, matrix):
     import array
     flat = array.array('f', matrix)
     glUniformMatrix4fv(loc, 1, GL_FALSE, flat.tobytes())
+
+
+# ── Matrix Math Builtins ────────────────────────────────────────────────────
+# All return 16-element float lists in column-major order.
+
+import math as _math
+
+def ipp_gpu_mat4_identity():
+    return [1.0,0,0,0, 0,1.0,0,0, 0,0,1.0,0, 0,0,0,1.0]
+
+def ipp_gpu_mat4_perspective(fov_y, aspect, z_near, z_far):
+    f = 1.0 / _math.tan(fov_y / 2.0)
+    nf = 1.0 / (z_near - z_far)
+    return [f/aspect,0,0,0, 0,f,0,0, 0,0,(z_far+z_near)*nf,-1, 0,0,2*z_far*z_near*nf,0]
+
+def ipp_gpu_mat4_ortho(left, right, bottom, top, near, far):
+    return [2/(right-left),0,0,0, 0,2/(top-bottom),0,0, 0,0,-2/(far-near),0, -(right+left)/(right-left),-(top+bottom)/(top-bottom),-(far+near)/(far-near),1]
+
+def ipp_gpu_mat4_look_at(eye, center, up):
+    import math as _math2
+    ex, ey, ez = eye[0], eye[1], eye[2]
+    cx, cy, cz = center[0], center[1], center[2]
+    ux, uy, uz = up[0], up[1], up[2]
+    fwd = [cx-ex, cy-ey, cz-ez]
+    fl = _math2.sqrt(fwd[0]**2 + fwd[1]**2 + fwd[2]**2)
+    if fl: fwd = [fwd[0]/fl, fwd[1]/fl, fwd[2]/fl]
+    side = [fwd[1]*uz-fwd[2]*uy, fwd[2]*ux-fwd[0]*uz, fwd[0]*uy-fwd[1]*ux]
+    sl = _math2.sqrt(side[0]**2 + side[1]**2 + side[2]**2)
+    if sl: side = [side[0]/sl, side[1]/sl, side[2]/sl]
+    u = [side[1]*fwd[2]-side[2]*fwd[1], side[2]*fwd[0]-side[0]*fwd[2], side[0]*fwd[1]-side[1]*fwd[0]]
+    return [side[0],u[0],-fwd[0],0, side[1],u[1],-fwd[1],0, side[2],u[2],-fwd[2],0, -side[0]*ex-side[1]*ey-side[2]*ez, -u[0]*ex-u[1]*ey-u[2]*ez, fwd[0]*ex+fwd[1]*ey+fwd[2]*ez, 1]
+
+def _mat4_mul(a, b):
+    out = [0.0]*16
+    for i in range(4):
+        ai0, ai1, ai2, ai3 = a[i], a[i+4], a[i+8], a[i+12]
+        out[i]    = ai0*b[0] + ai1*b[1] + ai2*b[2]  + ai3*b[3]
+        out[i+4]  = ai0*b[4] + ai1*b[5] + ai2*b[6]  + ai3*b[7]
+        out[i+8]  = ai0*b[8] + ai1*b[9] + ai2*b[10] + ai3*b[11]
+        out[i+12] = ai0*b[12] + ai1*b[13] + ai2*b[14] + ai3*b[15]
+    return out
+
+def ipp_gpu_mat4_multiply(a, b):
+    return _mat4_mul(a, b)
+
+def ipp_gpu_mat4_translate(m, x, y, z):
+    tr = [1.0,0,0,0, 0,1.0,0,0, 0,0,1.0,0, x,y,z,1.0]
+    return _mat4_mul(m, tr)
+
+def ipp_gpu_mat4_rotate(m, angle, ax, ay, az):
+    c, s = _math.cos(angle), _math.sin(angle)
+    nc = 1.0 - c
+    x, y, z = ax, ay, az
+    l = _math.sqrt(x*x + y*y + z*z)
+    if l: x/=l; y/=l; z/=l
+    r = [c+x*x*nc, x*y*nc+z*s, x*z*nc-y*s, 0,
+         x*y*nc-z*s, c+y*y*nc, y*z*nc+x*s, 0,
+         x*z*nc+y*s, y*z*nc-x*s, c+z*z*nc, 0,
+         0, 0, 0, 1.0]
+    return _mat4_mul(m, r)
+
+def ipp_gpu_mat4_scale(m, x, y, z):
+    sc = [x,0,0,0, 0,y,0,0, 0,0,z,0, 0,0,0,1.0]
+    return _mat4_mul(m, sc)
+
+
+# ── Index Buffer (EBO) ─────────────────────────────────────────────────────
+
+def ipp_gpu_create_index_buffer(data):
+    if not HAS_OPENGL:
+        buf_id = len(_buffers) + 1000
+        _buffers.add(buf_id)
+        return buf_id
+    import array
+    buf = glGenBuffers(1)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buf)
+    flat = array.array('H', data)
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, flat.tobytes(), GL_STATIC_DRAW)
+    _buffers.add(buf)
+    return buf
+
+def ipp_gpu_bind_index_buffer(buffer_id):
+    if HAS_OPENGL: glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer_id)
+
+def ipp_gpu_draw_indexed(mode="triangles", count=0):
+    if not _open or not HAS_OPENGL: return
+    gl_mode = _draw_mode_map.get(mode, GL_TRIANGLES)
+    glDrawElements(gl_mode, count, GL_UNSIGNED_SHORT, None)
+
+
+# ── Textures ────────────────────────────────────────────────────────────────
+
+_textures = {}
+
+def ipp_gpu_create_texture(width, height, data):
+    if not HAS_OPENGL:
+        tid = len(_textures) + 1
+        _textures[tid] = None
+        return tid
+    import array
+    tex = glGenTextures(1)
+    glBindTexture(GL_TEXTURE_2D, tex)
+    pixels = array.array('B', (max(0, min(255, int(v * 255))) for v in data))
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels.tobytes())
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+    _textures[tex] = tex
+    return tex
+
+def ipp_gpu_load_texture(path):
+    if not HAS_OPENGL or not HAS_PYGAME:
+        return 0
+    try:
+        img = pygame.image.load(path)
+        img_data = pygame.image.tostring(img, 'RGBA', True)
+        w, h = img.get_width(), img.get_height()
+        tex = glGenTextures(1)
+        glBindTexture(GL_TEXTURE_2D, tex)
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, img_data)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        _textures[tex] = tex
+        return tex
+    except Exception as e:
+        print(f"[gpu] Failed to load texture '{path}': {e}")
+        return 0
+
+def ipp_gpu_bind_texture(unit, texture_id):
+    if not HAS_OPENGL: return
+    glActiveTexture(GL_TEXTURE0 + unit)
+    glBindTexture(GL_TEXTURE_2D, texture_id)
+
+def ipp_gpu_delete_texture(texture_id):
+    _textures.pop(texture_id, None)
+    if HAS_OPENGL:
+        glDeleteTextures([texture_id])
+
+
+# ── VAO (Vertex Array Object) ──────────────────────────────────────────────
+
+_vaos = set()
+
+def ipp_gpu_create_vao():
+    if not HAS_OPENGL:
+        vaoid = len(_vaos) + 1
+        _vaos.add(vaoid)
+        return vaoid
+    vao = glGenVertexArrays(1)
+    _vaos.add(vao)
+    return vao
+
+def ipp_gpu_bind_vao(vao_id):
+    if not HAS_OPENGL: return
+    glBindVertexArray(vao_id)
+
+def ipp_gpu_delete_vao(vao_id):
+    _vaos.discard(vao_id)
+    if HAS_OPENGL:
+        glDeleteVertexArrays(1, [vao_id])
