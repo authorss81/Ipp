@@ -1,104 +1,143 @@
 """
 ipp/runtime/audio.py
-v2.3.0 — Audio Playback Support
+v2.0.24 — Proper Audio Backend
 
 Provides:
-  play_sound(path)       - play a sound file
-  stop_sound()           - stop currently playing sound
-  set_volume(level)      - set volume 0.0-1.0
+  sound_load(path)       - load a sound file, returns Sound object
+  Sound.play(loops, volume, pan) - play the sound
+  Sound.stop()           - stop this sound
+  Sound.set_volume(lev)  - set this sound's volume
+  stop_all_sounds()      - stop all playing sounds
+  set_volume(level)      - set global master volume (0.0-1.0)
 
 Cross-platform:
-  Windows → winsound (built-in, .wav only)
-  Optional → pygame.mixer (if available, broader format support)
+  pygame.mixer (if available, WAV/OGG/MP3)
+  Windows winsound fallback (.wav only)
 """
 
 import sys
 import os
 
-# Try optional audio backends
 _HAS_PYGAME = False
 try:
     import pygame
-    pygame.mixer.init(frequency=22050, size=-16, channels=2, buffer=512)
+    pygame.mixer.init(frequency=22050, size=-16, channels=8, buffer=512)
     _HAS_PYGAME = True
 except Exception:
     pass
 
-# State
-_current_sound = None
-_volume = 0.5
-_pygame_channel = None
+_master_volume = 0.5
+_all_sounds = []
 
 
-def _play_winsound(path):
-    import winsound
-    flags = winsound.SND_FILENAME | winsound.SND_ASYNC
-    winsound.PlaySound(str(path), flags)
+class Sound:
+    """Represents a loaded sound that can be played, stopped, and adjusted."""
 
+    __slots__ = ('_path', '_buffer', '_channels', '_volume')
 
-def _play_pygame(path):
-    global _current_sound, _pygame_channel
-    _stop_pygame()
-    try:
-        snd = pygame.mixer.Sound(str(path))
-        snd.set_volume(_volume)
-        _pygame_channel = snd.play()
-        _current_sound = snd
-    except Exception:
-        pass
+    def __init__(self, path):
+        self._path = str(path)
+        self._buffer = None
+        self._channels = []
+        self._volume = 1.0
+        if _HAS_PYGAME:
+            try:
+                self._buffer = pygame.mixer.Sound(self._path)
+            except Exception:
+                pass
+        _all_sounds.append(self)
 
+    def play(self, loops=0, volume=None, pan=0.0):
+        """Play the sound.
+        loops=0: play once.
+        volume=None: use this sound's current volume.
+        pan: -1.0 (full left) to 1.0 (full right), 0.0 = center.
+        Returns True if playback started, False otherwise.
+        """
+        if _HAS_PYGAME and self._buffer is not None:
+            try:
+                vol = (volume if volume is not None else self._volume) * _master_volume
+                channel = self._buffer.play(loops=int(loops))
+                if channel:
+                    if vol != 1.0:
+                        channel.set_volume(vol)
+                    pan = max(-1.0, min(1.0, float(pan)))
+                    if abs(pan) > 0.01:
+                        left = vol * min(1.0, 1.0 - pan)
+                        right = vol * min(1.0, 1.0 + pan)
+                        channel.set_volume(left, right)
+                    self._channels.append(channel)
+                return True
+            except Exception:
+                return False
+        elif sys.platform == 'win32':
+            import winsound
+            try:
+                flags = winsound.SND_FILENAME | winsound.SND_ASYNC
+                winsound.PlaySound(self._path, flags)
+                return True
+            except Exception:
+                return False
+        return False
 
-def _stop_winsound():
-    import winsound
-    winsound.PlaySound(None, winsound.SND_PURGE)
+    def stop(self):
+        """Stop this sound."""
+        if _HAS_PYGAME:
+            for ch in self._channels:
+                try:
+                    ch.stop()
+                except Exception:
+                    pass
+            self._channels = []
+        elif sys.platform == 'win32':
+            import winsound
+            try:
+                winsound.PlaySound(None, winsound.SND_PURGE)
+            except Exception:
+                pass
 
+    def set_volume(self, level):
+        """Set volume for this sound (0.0-1.0)."""
+        self._volume = max(0.0, min(1.0, float(level)))
+        if _HAS_PYGAME and self._buffer is not None:
+            try:
+                self._buffer.set_volume(self._volume * _master_volume)
+            except Exception:
+                pass
 
-def _stop_pygame():
-    global _current_sound, _pygame_channel
-    if _pygame_channel is not None:
+    def __del__(self):
         try:
-            _pygame_channel.stop()
-        except Exception:
+            _all_sounds.remove(self)
+        except ValueError:
             pass
-        _pygame_channel = None
-    _current_sound = None
 
 
-def ipp_play_sound(path: str) -> str:
-    """Play a sound file. Supports .wav (built-in), more formats with pygame."""
+def ipp_sound_load(path):
+    """Load a sound file and return a Sound object."""
     if not os.path.isfile(str(path)):
-        return f"[sound error: file not found: {path}]"
+        return None
     try:
-        if _HAS_PYGAME:
-            _play_pygame(path)
-        elif sys.platform == 'win32':
-            _play_winsound(path)
-        else:
-            return "[sound error: no audio backend available]"
-        return "[sound playing]"
-    except Exception as e:
-        return f"[sound error: {e}]"
+        return Sound(path)
+    except Exception:
+        return None
 
 
-def ipp_stop_sound() -> str:
-    """Stop the currently playing sound."""
-    try:
-        if _HAS_PYGAME:
-            _stop_pygame()
-        elif sys.platform == 'win32':
-            _stop_winsound()
-        return "[sound stopped]"
-    except Exception as e:
-        return f"[sound error: {e}]"
-
-
-def ipp_set_volume(level: float) -> str:
-    """Set volume level (0.0 = silent, 1.0 = max)."""
-    global _volume
-    _volume = max(0.0, min(1.0, float(level)))
-    if _HAS_PYGAME and _current_sound is not None:
+def ipp_stop_all_sounds():
+    """Stop all currently playing sounds."""
+    for snd in list(_all_sounds):
         try:
-            _current_sound.set_volume(_volume)
+            snd.stop()
         except Exception:
             pass
-    return f"[volume set to {_volume}]"
+
+
+def ipp_set_volume(level):
+    """Set global master volume (0.0 = silent, 1.0 = max)."""
+    global _master_volume
+    _master_volume = max(0.0, min(1.0, float(level)))
+    if _HAS_PYGAME:
+        try:
+            pygame.mixer.music.set_volume(_master_volume)
+        except Exception:
+            pass
+    return _master_volume

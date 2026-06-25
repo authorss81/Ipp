@@ -213,6 +213,7 @@ TESTS = [
     ("v2.0.21-ipp-ui","tests/v2_0_21/test_ui.ipp"),
     ("v2.0.22-gpu","tests/v2_0_22/test_gpu.ipp"),
     ("v2.0.23-physics","tests/v2_0_23/test_physics.ipp"),
+    ("v2.0.24-audio","tests/v2_0_24/test_audio_real.ipp"),
 ]
 
 passed=failed=0

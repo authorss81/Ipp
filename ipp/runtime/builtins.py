@@ -4765,9 +4765,9 @@ BUILTINS = {
     "load_texture": load_texture,
     "load_sound": load_sound,
     "load_tilemap": load_tilemap,
-    # Audio Playback (v2.3.0)
-    "play_sound": __import__('ipp.runtime.audio', fromlist=['ipp_play_sound']).ipp_play_sound,
-    "stop_sound": __import__('ipp.runtime.audio', fromlist=['ipp_stop_sound']).ipp_stop_sound,
+    # Audio Playback (v2.0.24)
+    "sound_load": __import__('ipp.runtime.audio', fromlist=['ipp_sound_load']).ipp_sound_load,
+    "stop_all_sounds": __import__('ipp.runtime.audio', fromlist=['ipp_stop_all_sounds']).ipp_stop_all_sounds,
     "set_volume": __import__('ipp.runtime.audio', fromlist=['ipp_set_volume']).ipp_set_volume,
     # Network Multiplayer (v2.4.0)
     "network_connect": __import__('ipp.runtime.network_multi', fromlist=['ipp_network_connect']).ipp_network_connect,
