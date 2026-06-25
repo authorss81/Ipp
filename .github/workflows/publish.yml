@@ -29,6 +29,9 @@ jobs:
 
       - name: Install package (editable)
         run: pip install -e . --break-system-packages || pip install -e .
+        # Some tests need optional deps:
+      - name: Install optional test dependencies
+        run: pip install pyyaml --break-system-packages || pip install pyyaml
 
       - name: Run regression tests
         run: |
