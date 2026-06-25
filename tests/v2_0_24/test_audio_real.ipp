@@ -8,7 +8,7 @@ assert s == nil, "sound_load of missing file should return nil"
 # Test 2: sound_load of a real .wav file returns a Sound object
 var real = sound_load("tests/v2_0_24/beep.wav")
 if real == nil {
-    print("skip: no beep.wav test file available")
+    print("skip: no beep.wav — run gen_beep.ipp first")
 } else {
     # Test that the Sound object has play/stop/set_volume methods
     assert type(real.play) == "function", "Sound should have a play method"

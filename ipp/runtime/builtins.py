@@ -2349,6 +2349,16 @@ def ipp_write_file(path, content):
         raise RuntimeError(f"Cannot write file: {e}")
 
 
+def ipp_write_bytes(path, content):
+    """Write raw binary bytes to file. content is a string whose char codes (0-255) become bytes."""
+    try:
+        with open(path, 'wb') as f:
+            f.write(content.encode('latin-1'))
+        return True
+    except Exception as e:
+        raise RuntimeError(f"Cannot write bytes: {e}")
+
+
 def ipp_append_file(path, content):
     try:
         with open(path, 'a', encoding='utf-8') as f:
@@ -4489,6 +4499,7 @@ BUILTINS = {
     "write_file": ipp_write_file,
     "_builtin_write_file": ipp_write_file,
     "file_write": ipp_write_file,  # Alias FIX: Standard Library
+    "write_bytes": ipp_write_bytes,
     "append_file": ipp_append_file,
     "_builtin_append_file": ipp_append_file,
     "file_exists": ipp_file_exists,
