@@ -32,16 +32,13 @@ jobs:
 
       - name: Run regression tests
         run: |
-          python -B tests/regression.py 2>&1 | tee /tmp/regression_out.txt
-          # Exit non-zero only if tests other than known flaky ones failed
-          FAILED=$(grep "^FAILED:" /tmp/regression_out.txt | grep -v "v1.3.4-dataformats" || true)
+          python -B run_tests.py 2>&1 | tee /tmp/regression_out.txt
+          # Exit non-zero if any [FAIL] lines appear
+          FAILED=$(grep "^\[FAIL\]" /tmp/regression_out.txt || true)
           if [ -n "$FAILED" ]; then
-            echo "::error::Unexpected test failures: $FAILED"
+            echo "::error::Test failures detected:"
+            echo "$FAILED"
             exit 1
-          fi
-          # Report dataformats separately as a warning if it still fails
-          if grep -q "FAILED: v1.3.4-dataformats" /tmp/regression_out.txt; then
-            echo "::warning::v1.3.4-dataformats has non-deterministic output (YAML/hash/gzip) — known issue, not blocking"
           fi
 
   # ── Job 2: Extract version ────────────────────────────────────────────────────

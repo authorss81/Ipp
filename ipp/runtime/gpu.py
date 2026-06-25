@@ -25,7 +25,7 @@ try:
         glUniform4f, glUniform1i, glUniform2i, glUniform3i, glUniform4i,
         glUniformMatrix4fv, glEnable, glDisable, glDepthFunc, glViewport,
         GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT,
-        GL_TRIANGLES, GL_LINES, GL_POINTS, GL_TRIANGLE_STRIP,
+        GL_TRIANGLES, GL_LINES, GL_POINTS,
         GL_FLOAT, GL_ARRAY_BUFFER, GL_ELEMENT_ARRAY_BUFFER, GL_STATIC_DRAW,
         GL_COMPILE_STATUS, GL_LINK_STATUS, GL_VERTEX_SHADER, GL_FRAGMENT_SHADER,
         GL_DEPTH_TEST, GL_LEQUAL, GL_TRUE, GL_FALSE, GL_UNSIGNED_SHORT,
@@ -72,6 +72,15 @@ except ImportError:
     GL_TEXTURE_WRAP_T = 0x2803
     GL_CLAMP_TO_EDGE = 0x812F
     GL_TEXTURE0 = 0x84C0
+
+# Safe fallback: GL_TRIANGLE_STRIP may fail to resolve via lazy loading on headless CI
+if HAS_OPENGL:
+    try:
+        from OpenGL.GL import GL_TRIANGLE_STRIP
+    except Exception:
+        GL_TRIANGLE_STRIP = 0x0005
+else:
+    GL_TRIANGLE_STRIP = 0x0005
 
 
 _window_surface = None
