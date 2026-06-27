@@ -1,7 +1,7 @@
 # Ipp Language Roadmap v4
-> **Current version:** `2.0.22`
-> **Status:** 172 regression tests pass. v1.x bug-fix phase complete. v2.0.x through GPU Rendering complete.
-> **Phase D4 complete.** Next: v2.0.23 Physics Engine.
+> **Current version:** `2.0.24`
+> **Status:** 174 regression tests pass. v1.x bug-fix phase complete. v2.0.x through Audio Backend complete.
+> **Phase D4:** v2.0.22 GPU + v2.0.23 Physics + v2.0.24 Audio done. Next: v2.0.25 Debugger.
 > **This roadmap:** Complete from v1.7.6 through v2.1.5. Some actual v2.0.x versions diverged from original plan — see VERSION STATUS.
 
 ---
@@ -73,7 +73,7 @@ print(f'{passed} pass / {failed} fail')
 
 ## VERSION STATUS ✅
 
-**Current: v2.0.22** — VERSION in `ipp/main.py` = `"2.0.22"`.
+**Current: v2.0.24** — VERSION in `ipp/main.py` = `"2.0.24"`.
 
 **v1.x phase fully complete.** All bugs BUG-001 through BUG-026 are fixed. All regression tests pass.
 
@@ -121,11 +121,11 @@ print(f'{passed} pass / {failed} fail')
 | v2.0.20.4 | `@texture/@sound/@tilemap` Resource Annotations | v2.0.20.4 |
 | v2.0.21 | `ipp-ui` — Widget System on Canvas (Label, Button, ProgressBar, Panel, UI) | v2.0.21 |
 | v2.0.22 | GPU Rendering Backend — OpenGL shaders, buffers, uniforms, matrix, `ipp-gpu` stdlib | v2.0.22 |
+| v2.0.23 | 2D Physics Engine — from-scratch Euler-integration (PhysicsSpace, RigidBody, AABB/Circle collision, impulse resolution, friction, body types) | v2.0.23 |
+| v2.0.24 | Proper Audio Backend — `Sound` class (play/stop/volume/pan/loops), `sound_load`, `stop_all_sounds`, `set_volume`, `winsound` fallback | v2.0.24 |
 
 **Remaining planned (not yet implemented):**
 - File watcher + hot reload
-- **v2.0.23** — Physics Engine (2D/3D collision detection + rigidbody simulation)
-- **v2.0.24** — Proper Audio Backend (real playback replacing stubs, positional audio)
 - **v2.0.25** — Debugger with Breakpoints (step-through, call stack inspection)
 
 ---
@@ -8219,7 +8219,7 @@ skips if absent).
 
 ---
 
-## Phase D4: Core Engine Systems (v2.0.22 – v2.0.25)
+## Phase D4: Core Engine Systems (v2.0.22 – v2.0.25) ✅ (v2.0.22 – v2.0.24 done)
 
 ### v2.0.22 — Feature: GPU Rendering Backend
 
@@ -8245,7 +8245,7 @@ game_loop(fps=60) {
 
 ---
 
-### v2.0.23 — Feature: Physics Engine
+### v2.0.23 — Feature: Physics Engine ✅ DONE
 
 **What:** Add 2D/3D physics simulation with rigidbodies, collisions, and constraints. Wraps a mature physics library (e.g. `pymunk` for 2D, `pybullet` for 3D) with an Ipp-native API.
 
@@ -8270,7 +8270,7 @@ game_loop(fps=60) {
 
 ---
 
-### v2.0.24 — Feature: Proper Audio Backend
+### v2.0.24 — Feature: Proper Audio Backend ✅ DONE
 
 **What:** Replace the current audio stubs (`[volume set to 0.5]`) with real sound playback using `pygame.mixer` or `sounddevice`. Supports WAV/OGG/MP3, positional audio, sound pools, and volume/pan control.
 

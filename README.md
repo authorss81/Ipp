@@ -2,11 +2,11 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-2.0.14-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-2.0.24-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-180+-brightgreen.svg" alt="Builtins">
-<img src="https://img.shields.io/badge/tests-157%20total-brightgreen.svg" alt="Tests">
+<img src="https://img.shields.io/badge/tests-174%20total-brightgreen.svg" alt="Tests">
 <img src="https://img.shields.io/badge/status-stable-green.svg" alt="Status">
 
 **A beginner-friendly scripting language for game development.**  
