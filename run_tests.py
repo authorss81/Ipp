@@ -214,6 +214,12 @@ TESTS = [
     ("v2.0.22-gpu","tests/v2_0_22/test_gpu.ipp"),
     ("v2.0.23-physics","tests/v2_0_23/test_physics.ipp"),
     ("v2.0.24-audio","tests/v2_0_24/test_audio_real.ipp"),
+    ("v2.0.25-debugger","tests/v2_0_25/test_debugger.ipp"),
+    ("v2.0.25-debugger-loop","tests/v2_0_25/test_debugger_loop.ipp"),
+    ("v2.0.25-debugger-nested","tests/v2_0_25/test_debugger_nested.ipp"),
+    ("v2.0.25-debugger-class","tests/v2_0_25/test_debugger_class.ipp"),
+    ("v2.0.25-debugger-if","tests/v2_0_25/test_debugger_if.ipp"),
+    ("v2.0.25-debugger-multi","tests/v2_0_25/test_debugger_multi.ipp"),
 ]
 
 passed=failed=0
@@ -222,7 +228,12 @@ for name,path in TESTS:
     if not os.path.exists(path):
         print(f"[FAIL] {name}: FILE_NOT_FOUND"); failed+=1; failures.append((name,"FILE_NOT_FOUND")); continue
     try:
-        vm=VM(); vm._current_source_file=os.path.abspath(path); vm.run(compile_ast(parse(tokenize(open(path).read()))))
+        vm=VM(); vm._current_source_file=os.path.abspath(path)
+        # v2.0.25: supply canned "continue" input for debugger tests
+        if name.startswith("v2.0.25-debugger"):
+            responses = iter(["continue"] * 100)
+            vm._debug_input_fn = lambda prompt="", it=responses: next(it)
+        vm.run(compile_ast(parse(tokenize(open(path).read()))))
         print(f"[PASS] {name}"); passed+=1
     except Exception as e:
         msg=f"{type(e).__name__}: {str(e)[:80]}"

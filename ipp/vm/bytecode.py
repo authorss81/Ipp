@@ -199,6 +199,9 @@ class OpCode(IntEnum):
     # Length opcode (v2.0.5)
     LEN = 119  # pops value, pushes len(value)
 
+    # Debugger breakpoint (v2.0.25)
+    BREAKPOINT = 120  # suspends execution, enters debug REPL
+
 
 # ─── Operand size table (authoritative) ──────────────────────────────────────
 # Every opcode is exactly one of: 0-operand (size=1), 1-byte operand (size=2),
@@ -251,6 +254,8 @@ _SIZE1 = frozenset([
     OpCode.ENUM_DECL,
     # v2.0.5: LEN has no operands
     OpCode.LEN,
+    # v2.0.25: BREAKPOINT has no operands
+    OpCode.BREAKPOINT,
 ])
 
 _SIZE2 = frozenset([

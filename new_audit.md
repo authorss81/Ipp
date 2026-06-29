@@ -1,6 +1,6 @@
 # Ipp Language — Full Technical Audit v4 (Live Inspection Edition)
-> **Version audited:** `2.0.24` (verified from `ipp/main.py`)
-> **Audit method:** 174 `.ipp` test files run through the VM; v2.0.24 (Audio Backend) + v2.0.23 (Physics Engine) + v2.0.22 (GPU Rendering) + v2.0.21 (`ipp-ui`) + v2.0.20.x (Canvas, Sprites, Tilemap) + v2.0.19.x (AI, Pool, Timer, Net) + v2.0.18 (Signal) + v2.0.14 (`ipp-test`) + v2.0.13 (`ipp-log`) + v2.0.12 (`ipp-io`) + v2.0.11 (ECS core) + v2.0.10 (resource manager) + v2.0.9 (scene tree hierarchy) + v2.0.8.x (tween, parallel, sequence, story) + v2.0.7.x (pattern matching) + v2.0.5-6 (f-string format spec, template strings) tested exhaustively
+> **Version audited:** `2.0.25` (verified from `ipp/main.py`)
+> **Audit method:** 180 `.ipp` test files run through the VM; v2.0.25 (Debugger with Breakpoints) + v2.0.24 (Audio Backend) + v2.0.23 (Physics Engine) + v2.0.22 (GPU Rendering) + v2.0.21 (`ipp-ui`) + v2.0.20.x (Canvas, Sprites, Tilemap) + v2.0.19.x (AI, Pool, Timer, Net) + v2.0.18 (Signal) + v2.0.14 (`ipp-test`) + v2.0.13 (`ipp-log`) + v2.0.12 (`ipp-io`) + v2.0.11 (ECS core) + v2.0.10 (resource manager) + v2.0.9 (scene tree hierarchy) + v2.0.8.x (tween, parallel, sequence, story) + v2.0.7.x (pattern matching) + v2.0.5-6 (f-string format spec, template strings) tested exhaustively
 > **Previous audit:** `new_audit.md` v4 (v1.7.9.1.11) — all 26 BUGs now fixed; v2.x template strings, f-string format spec + pattern matching series complete
 > **Auditor stance:** Ruthless, specific. A test that passes the interpreter but not the VM is BROKEN.
 > **Comparison targets:** Lua 5.4, Python 3.12, GDScript 4.x

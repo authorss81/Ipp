@@ -2117,6 +2117,15 @@ class Compiler:
             self.chunk.write(OpCode.BIT_NOT, self.current_line)
 
     def compile_call(self, node: CallExpr):
+        # v2.0.25 — detect breakpoint() and emit BREAKPOINT opcode
+        if isinstance(node.callee, Identifier) and node.callee.name == "breakpoint":
+            if node.arguments:
+                self.error("breakpoint() takes no arguments")
+            if hasattr(node, 'named_arguments') and node.named_arguments:
+                self.error("breakpoint() takes no arguments")
+            self.chunk.write(OpCode.BREAKPOINT, self.current_line)
+            self.chunk.write(OpCode.NIL, self.current_line)
+            return
         self.compile_expr(node.callee)
         # Check if any argument is a spread expression
         has_spread_args = any(isinstance(arg, SpreadExpr) for arg in node.arguments)

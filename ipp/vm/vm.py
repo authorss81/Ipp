@@ -687,6 +687,12 @@ class VM:
         self.max_depth = 2000
         self._debug = debug
 
+        # v2.0.25 — Debugger state
+        self._single_step = False
+
+        # v2.0.25 — Custom input function for debug REPL (used by tests)
+        self._debug_input_fn = None
+
         # FIX: BUG-M5 — inline caches use _MISS sentinel
         self._global_cache = InlineCache(max_size=2048)
         self._string_cache: Dict[str, str] = {}
@@ -1555,6 +1561,11 @@ class VM:
                 # normal: advance ip by instruction size
                 frame.ip += opcode_size(opcode)
 
+            # v2.0.25 — Single-step: re-enter debug REPL after each instruction
+            if self._single_step and self.frames:
+                frame = self.frames[-1]
+                self._debug_repl(frame)
+
         return self._return_value
 
     # ── Upvalue helpers (FIX BUG-NEW-M5) ─────────────────────────────────────
@@ -1616,6 +1627,117 @@ class VM:
             return ""
         except Exception as e:
             return ""
+
+    # ── Debugger REPL (v2.0.25) ──────────────────────────────────────────────
+
+    _NOT_FOUND = object()
+
+    def _debug_repl(self, frame: VMFrame):
+        """Interactive debug REPL. Suspends execution for user inspection."""
+        src_file = getattr(self, '_current_source_file', '<unknown>')
+        input_fn = self._debug_input_fn if self._debug_input_fn else input
+
+        while True:
+            line = frame.chunk.lines[frame.ip] if frame.ip < len(frame.chunk.lines) else 0
+            try:
+                cmd = input_fn(f"[dbg] ({src_file}:{line}) ")
+            except (EOFError, KeyboardInterrupt):
+                print()
+                self._single_step = False
+                frame.ip += 1
+                return
+
+            cmd = cmd.strip()
+            if not cmd:
+                continue
+            elif cmd == "continue":
+                self._single_step = False
+                frame.ip += 1
+                return
+            elif cmd == "step":
+                self._single_step = True
+                frame.ip += 1
+                return
+            elif cmd == "locals":
+                self._debug_show_locals(frame)
+            elif cmd == "stack":
+                self._debug_show_stack()
+            elif cmd.startswith("print "):
+                var_name = cmd[6:].strip()
+                if var_name:
+                    val = self._debug_lookup_var(frame, var_name)
+                    if val is self._NOT_FOUND:
+                        print(f"  unknown variable: {var_name}")
+                    else:
+                        print(f"  {var_name} = {val!r}")
+                else:
+                    print("  usage: print <variable>")
+            elif cmd == "help":
+                print("  Debugger commands:")
+                print("    step       execute next instruction and pause")
+                print("    continue   resume normal execution")
+                print("    print <x>  show value of variable x")
+                print("    locals     show all local variables in current frame")
+                print("    stack      show call stack")
+                print("    help       show this help")
+            else:
+                print(f"  unknown command: {cmd}")
+
+    def _debug_show_locals(self, frame: VMFrame):
+        """Print all local variables in the current frame."""
+        base = frame.stack_base
+        proto = getattr(getattr(frame, 'function', None), '_proto', None)
+        param_names = getattr(proto, 'param_names', None) if proto else None
+        param_count = len(param_names) if param_names else 0
+
+        # Show named parameters first
+        if param_names:
+            for i, name in enumerate(param_names):
+                slot = base + (1 if frame._method_instance is not None else 0) + i
+                if slot < len(self.stack):
+                    print(f"  {name} = {self.stack[slot]!r}")
+
+        # Show other stack slots in the frame's range
+        count = len(self.stack) - base
+        shown = set(range(param_count))
+        for i in range(count):
+            if i not in shown:
+                slot = base + i
+                if slot < len(self.stack):
+                    print(f"  _slot{i} = {self.stack[slot]!r}")
+
+    def _debug_show_stack(self):
+        """Print the current call stack."""
+        for i, f in enumerate(self.frames):
+            fn_obj = getattr(f, 'function', None) or getattr(f, 'closure', None)
+            fn_name = '<anonymous>'
+            if fn_obj:
+                proto = getattr(fn_obj, '_proto', None)
+                fn_name = proto.name if proto else getattr(fn_obj, 'name', '<anonymous>')
+            ln = f.chunk.lines[f.ip] if f.ip < len(f.chunk.lines) else 0
+            src = getattr(self, '_current_source_file', '<unknown>')
+            print(f"  #{i} {fn_name} at {src}:{ln}")
+
+    def _debug_lookup_var(self, frame: VMFrame, name: str):
+        """Look up a variable by name in the current frame."""
+        # Check locals using param names
+        base = frame.stack_base
+        proto = getattr(getattr(frame, 'function', None), '_proto', None)
+        param_names = getattr(proto, 'param_names', None) if proto else None
+        if param_names:
+            method_offset = 1 if frame._method_instance is not None else 0
+            for i, pname in enumerate(param_names):
+                if pname == name:
+                    slot = base + method_offset + i
+                    if slot < len(self.stack):
+                        return self.stack[slot]
+                    return None
+
+        # Check globals
+        if name in self.globals:
+            return self.globals[name]
+
+        return self._NOT_FOUND
 
     def _execute(self, opcode: OpCode, frame: VMFrame) -> Any:
         code = frame.chunk.code
@@ -3047,6 +3169,12 @@ class VM:
 
         elif opcode in (OpCode.BREAK, OpCode.CONTINUE):
             pass  # resolved to JUMPs by compiler; these are fallback no-ops
+
+        # v2.0.25 — Debugger breakpoint
+        elif opcode == OpCode.BREAKPOINT:
+            self._debug_repl(frame)
+            # _debug_repl advances ip past BREAKPOINT for step/continue
+            return _SUSPEND
 
         else:
             pass  # unknown opcode — skip
