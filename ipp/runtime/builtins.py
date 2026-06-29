@@ -1165,7 +1165,7 @@ def ipp_wasm_run(wasm_code):
     """Run WASM bytecode or compile and run Ipp source"""
     if isinstance(wasm_code, str):
         if wasm_code.endswith('.ipp'):
-            with open(wasm_code, 'r') as f:
+            with open(wasm_code, 'r', encoding='utf-8') as f:
                 source = f.read()
         else:
             source = wasm_code
@@ -1230,7 +1230,7 @@ def ipp_template(template_str, **kwargs):
 
 def ipp_template_file(path, **kwargs):
     """Read and render template file"""
-    with open(path, 'r') as f:
+    with open(path, 'r', encoding='utf-8') as f:
         content = f.read()
     return ipp_template(content, **kwargs)
 
@@ -4888,4 +4888,6 @@ BUILTINS = {
     "physics_space_poll_collisions": ipp_physics_space_poll_collisions,
     "physics_space_remove_body": ipp_physics_space_remove_body,
     "physics_draw_debug": ipp_physics_draw_debug,
+    # v2.0.25 — debugger breakpoint (tree-walker compat: returns nil)
+    "breakpoint": lambda: None,
 }

@@ -14,7 +14,10 @@ import signal
 import threading
 
 # Set UTF-8 encoding for Windows compatibility
-# (PYTHONIOENCODING=utf-8 in the env handles this automatically)
+if sys.platform == "win32":
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
+    sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8', errors='replace')
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -29,6 +32,12 @@ _INTERRUPT_COUNT = 0
 def _handle_interrupt(signum, frame):
     global _INTERRUPT_COUNT
     _INTERRUPT_FLAG.set()
+    # Signal VM to stop (v2.0.25+)
+    try:
+        from ipp.vm.vm import _vm_interrupt
+        _vm_interrupt.set()
+    except ImportError:
+        pass
     _INTERRUPT_COUNT += 1
     if _INTERRUPT_COUNT >= 2:
         print(f"\n  {colour(C_ERROR, 'Exiting REPL...')}")
@@ -519,6 +528,27 @@ class IppCompleter:
         if state == 0:
             buf = readline.get_line_buffer() if HAS_RL else text
             
+            # File-path completion for .load / .save / .cd / .ls / .edit commands
+            path_cmds = ('.load ', '.save ', '.cd ', '.ls ', '.edit ')
+            if any(buf.startswith(c) for c in path_cmds):
+                prefix = buf.split(' ', 1)[1] if ' ' in buf else ''
+                dir_part = os.path.dirname(prefix) if prefix else '.'
+                file_part = os.path.basename(prefix) if prefix else ''
+                if not os.path.exists(dir_part):
+                    dir_part = '.'
+                    file_part = prefix
+                try:
+                    entries = os.listdir(dir_part)
+                    matches = []
+                    for e in entries:
+                        full = os.path.join(dir_part, e)
+                        if e.startswith(file_part) or not file_part:
+                            display = e + '/' if os.path.isdir(full) else e
+                            matches.append(display)
+                    self.matches = sorted(matches)
+                except Exception:
+                    self.matches = []
+            
             # REPL command completion (starts with .)
             if buf.startswith('.') or (buf and buf[-1] == '.'):
                 prefix = buf.lstrip('.')
@@ -866,7 +896,7 @@ def print_help():
         ("1 + \\",                       "multiline (end with \\)"),
     ]
     for code, note in snippets:
-        print(f"    {highlight(code.ljust(36))} {colour(DIM, note)}")
+        print(f"    {code.ljust(40)} {colour(DIM, note)}")
     print()
 
 def print_types():
@@ -1108,9 +1138,19 @@ class InterpreterManager:
     
     def switch_to(self, mode):
         if mode == 'vm':
+            if not self.use_vm:
+                # Transfer state from interpreter to VM
+                old_env = dict(self.interpreter.global_env.values)
+                self.vm_interpreter = VMInterpreter(debug=self.vm_interpreter.vm._debug)
+                self.vm_interpreter.global_env.values.update(old_env)
             self.use_vm = True
             return "Switched to VM interpreter"
         elif mode == 'interpreter':
+            if self.use_vm:
+                # Transfer state from VM to interpreter
+                old_env = dict(self.vm_interpreter.global_env.values)
+                self.interpreter = Interpreter()
+                self.interpreter.global_env.values.update(old_env)
             self.use_vm = False
             return "Switched to interpreter"
         else:
@@ -1379,6 +1419,13 @@ def run_repl(debug: bool = True):
     print_banner()
     _enable_interrupt_handling()
 
+    # v2.0.25 — Wire VM debug REPL through prompt_toolkit when available
+    def _debug_input(prompt_text):
+        if _hl_session and _hl_session.available:
+            return _hl_session.prompt(prompt_text)
+        return input(prompt_text)
+    interp_manager.vm_interpreter.vm._debug_input_fn = _debug_input
+
     buf = []
     line_num = 0
     _reset_fn_colors()
@@ -1625,18 +1672,30 @@ def run_repl(debug: bool = True):
                     print(f"  {colour(C_ERROR, f'Failed to save: {e}')}")
                 continue
 
-            # .doc <function> — Show docstring/help for builtin
+            # .doc <function> — Show builtin documentation
             m = re.match(r'\.doc\s+(\w+)$', stripped)
             if m:
                 fn_name = m.group(1)
                 try:
                     from ipp.runtime.builtins import BUILTINS
-                    if fn_name in BUILTINS:
-                        fn = BUILTINS[fn_name]
-                        doc = fn.__doc__ or "No documentation available."
-                        print(f"  {colour(C_CMD, fn_name)}: {doc}")
-                    else:
+                    if fn_name not in BUILTINS:
                         print(f"  {colour(C_WARN, f'{fn_name} is not a builtin function')}")
+                        continue
+                    from ipp.runtime.docs import BUILTIN_DOCS
+                    doc = BUILTIN_DOCS.get(fn_name)
+                    if doc:
+                        print(f"  {colour(C_CMD, fn_name)}")
+                        print(f"  {colour(DIM, 'Syntax:')}    {doc['syntax']}")
+                        print(f"  {colour(DIM, 'Description:')} {doc['desc']}")
+                        if doc['example']:
+                            print(f"  {colour(DIM, 'Examples:')}")
+                            for line in doc['example'].split('\n'):
+                                print(f"    {line}")
+                        print(f"  {colour(DIM, 'Returns:')}   {doc['returns']}")
+                    else:
+                        fn = BUILTINS[fn_name]
+                        raw = fn.__doc__ or "No documentation available."
+                        print(f"  {colour(C_CMD, fn_name)}: {raw}")
                 except Exception as e:
                     print(f"  {colour(C_ERROR, str(e))}")
                 continue
@@ -1812,7 +1871,7 @@ def run_repl(debug: bool = True):
                                         pass
                             env = getattr(env, 'parent', None)
                         
-                        with open(session_file, 'w') as f:
+                        with open(session_file, 'w', encoding='utf-8') as f:
                             json.dump(session_data, f, indent=2)
                         _sv = len(session_data["variables"]); _sh = len(session_data["history"])
                         _sv = len(session_data["variables"]); _sh = len(session_data["history"])
@@ -1824,7 +1883,7 @@ def run_repl(debug: bool = True):
                     try:
                         import json
                         if os.path.exists(session_file):
-                            with open(session_file, 'r') as f:
+                            with open(session_file, 'r', encoding='utf-8') as f:
                                 session_data = json.load(f)
                             
                             # Actually restore variables by re-executing history
@@ -1863,26 +1922,24 @@ def run_repl(debug: bool = True):
                         print(f"  {colour(DIM, '(no session to clear)')}")
                 continue
 
-            # ── v1.3.10 Debugging Features ──────────────────────────────
+            # ── v2.0.25 Debugging Features ─────────────────────────────────
 
-            # .debug start — Start step-through debugger
+            # .debug start — Start step-through debugger (VM mode only)
             if stripped == '.debug start':
-                print(f"  {colour(C_CMD, 'Debugger started')}")
-                print(f"  {colour(DIM, 'Commands: .step, .next, .continue, .stop, .break <line>, .watch <expr>, .locals')}")
-                _debug_mode = True
+                if not interp_manager.use_vm:
+                    print(f"  {colour(C_WARN, 'Debugger requires VM mode. Switch with: .vm vm')}")
+                else:
+                    vm = interp_manager.vm_interpreter.vm
+                    vm._single_step = True
+                    print(f"  {colour(C_CMD, 'Debugger: single-step mode ON')}")
+                    print(f"  {colour(DIM, 'Use breakpoint() in your code or type .debug stop to disable')}")
                 continue
 
             # .debug stop — Stop debugger
             if stripped == '.debug stop':
-                print(f"  {colour(C_CMD, 'Debugger stopped')}")
-                _debug_mode = False
-                continue
-
-            # .break <line> — Set breakpoint
-            m = re.match(r'\.break\s+(\d+)$', stripped)
-            if m:
-                line_num = int(m.group(1))
-                print(f"  {colour(C_OK, f'Breakpoint set at line {line_num}')}")
+                if interp_manager.use_vm:
+                    interp_manager.vm_interpreter.vm._single_step = False
+                print(f"  {colour(C_CMD, 'Debugger: single-step mode OFF')}")
                 continue
 
             # .watch <expr> — Watch expression (continuously evaluates)
@@ -1956,36 +2013,6 @@ def run_repl(debug: bool = True):
                     print(f"  {colour(C_ERROR, f'Table error: {e}')}")
                 continue
 
-            # .theme <name> — Set color theme (v1.7.9.1.4)
-            m = re.match(r'\.theme\s+(\w+)$', stripped)
-            if m:
-                theme = m.group(1).lower()
-                if _apply_theme(theme):
-                    print(f"  {colour(C_OK, f'✓ Theme: {theme}')}")
-                    print(f"    {colour(C_PROMPT, '●')} prompt   "
-                          f"{colour(C_RESULT, '●')} result   "
-                          f"{colour(C_ERROR,  '●')} error   "
-                          f"{colour(C_WARN,   '●')} warn")
-                else:
-                    _avail = ', '.join(_THEMES.keys())
-                    print(f"  {colour(C_WARN, f'Unknown theme: {theme}')}")
-                    print(f"  {colour(C_WARN, f'Available: {_avail}')}")
-                continue
-
-            # .themes — List all themes (v1.7.9.1.4)
-            if stripped == '.themes':
-                print(f"  {colour(C_HEADER, 'Available themes:')}")
-                for tname, tdata in _THEMES.items():
-                    mark = colour(C_OK, '✓') if tname == _current_theme_name else ' '
-                    p = lambda text, c=tdata['prompt']:  _rgb(*c, text)
-                    r = lambda text, c=tdata['result']:  _rgb(*c, text)
-                    e = lambda text, c=tdata['error']:   _rgb(*c, text)
-                    w = lambda text, c=tdata['warn']:    _rgb(*c, text)
-                    print(f"  {mark} {colour(C_CMD, tname.ljust(10))} "
-                          f"{p('●')} {r('●')} {e('●')} {w('●')}  "
-                          f"{DIM('.theme ' + tname)}")
-                continue
-
             # .tutorial commands - declare global first
             if stripped == '.tutorial' or stripped == '.tutorial next' or stripped == '.tutorial prev' or stripped == '.tutorial end':
                 global _tutorial_step, _tutorial_mode
@@ -2053,10 +2080,17 @@ def run_repl(debug: bool = True):
                 keyword = m.group(1).lower()
                 try:
                     from ipp.runtime.builtins import BUILTINS
+                    from ipp.runtime.docs import BUILTIN_DOCS as DOCS
                     matches = []
                     for name, fn in BUILTINS.items():
-                        if keyword in name.lower() or (fn.__doc__ and keyword in fn.__doc__.lower()):
-                            matches.append((name, fn.__doc__ or "No docs"))
+                        doc_text = ""
+                        if name in DOCS:
+                            d = DOCS[name]
+                            doc_text = f"{d['desc']} Syntax: {d['syntax']}"
+                        elif fn.__doc__:
+                            doc_text = fn.__doc__
+                        if keyword in name.lower() or (doc_text and keyword in doc_text.lower()):
+                            matches.append((name, doc_text or "No docs"))
                     if matches:
                         _kw_msg = "Found " + str(len(matches)) + ' matches for "' + keyword + '":'
                         print(f"  " + colour(C_CMD, _kw_msg))
@@ -2160,7 +2194,7 @@ def run_repl(debug: bool = True):
                             f.write(cmd + '\n')
                     
                     # Verify exported content
-                    with open(filepath, 'r') as f:
+                    with open(filepath, 'r', encoding='utf-8') as f:
                         lines = f.readlines()
                     code_lines = [l for l in lines if l.strip() and not l.startswith('//')]
                     print(f"  {colour(C_OK, f'Exported {len(code_lines)} commands to {filepath}')}")
@@ -2259,7 +2293,8 @@ def run_repl(debug: bool = True):
                     with open(export_file, 'w', encoding='utf-8') as f:
                         f.write('// Ipp session export\n')
                         for cmd in _cmd_history:
-                            f.write(cmd + '\n')
+                            if not cmd.startswith('.'):
+                                f.write(cmd + '\n')
                     print(f"  {colour(C_OK, f'Session exported to {export_file}')}")
                 except Exception as e:
                     print(f"  {colour(C_ERROR, f'Export failed: {e}')}")
@@ -2330,6 +2365,11 @@ def run_repl(debug: bool = True):
                 if alias_name in _aliases:
                     stripped = _aliases[alias_name] + alias_match.group(2)
 
+            # Process key bindings — expand bound keys to commands
+            if _key_bindings and stripped in _key_bindings:
+                stripped = _key_bindings[stripped]
+                buf = [stripped]
+
             # .edit — Open last command in editor
             if stripped == '.edit':
                 if not _cmd_history:
@@ -2343,7 +2383,7 @@ def run_repl(debug: bool = True):
                         tmpfile = f.name
                     import subprocess
                     subprocess.run([editor, tmpfile])
-                    with open(tmpfile, 'r') as f:
+                    with open(tmpfile, 'r', encoding='utf-8') as f:
                         edited = f.read()
                     os.unlink(tmpfile)
                     if edited.strip():
@@ -2695,7 +2735,8 @@ func __async_task__() {{
 
         # Force execute after too many continuation lines (prevent infinite multiline stuck)
         if len(buf) > 10:
-            pass  # Force execute
+            if _needs_more(source):
+                print(f"  {colour(C_WARN, '⚠ Force-executing after 10 lines (unbalanced braces may cause errors)')}")
 
         # Multi-line paste detection: if source has multiple complete statements
         # Auto-execute if it looks like a paste (multiple newlines, no continuation)
@@ -2711,7 +2752,13 @@ func __async_task__() {{
                 if stripped == name or stripped.startswith(name + ' '):
                     if stripped != name:
                         args = stripped[len(name):].strip()
-                        for i, arg in enumerate(args.split(), 1):
+                        # Parse args respecting quoted strings using shlex
+                        import shlex as _shlex
+                        try:
+                            arg_list = _shlex.split(args)
+                        except ValueError:
+                            arg_list = args.split()
+                        for i, arg in enumerate(arg_list, 1):
                             expansion = expansion.replace(f'${i}', arg)
                     print(f"  {colour(DIM, f'Expanded: {expansion}')}")
                     stripped = expansion
@@ -2751,6 +2798,11 @@ func __async_task__() {{
             _env_snapshots.pop(0)
         
         try:
+            if _check_interrupt():
+                print(f"  {colour(C_WARN, 'Interrupted — skipping execution')}")
+                buf.clear()
+                line_num += 1
+                continue
             tokens = tokenize(source)
             ast = parse(tokens)
             interp.run(ast)
@@ -2758,8 +2810,20 @@ func __async_task__() {{
             interp.return_value = None
             interp.last_value = None
             elapsed = time.perf_counter() - t0
-            
-            _cmd_history.append(source)
+
+            # Only append Ipp code to history (skip meta commands)
+            _meta_cmds = {'.help','.types','.vars','.fns','.builtins','.modules','.version',
+                          '.highlight','.colors','.vm','.clear','.history','.load','.save',
+                          '.doc','.time','.which','.last','.undo','.redo','.alias',
+                          '.pretty','.stack','.session','.debug','.break','.watch','.locals',
+                          '.table','.theme','.themes','.tutorial','.plugin','.search','.examples',
+                          '.export','.prompt','.json','.format','.cd','.ls','.pwd',
+                          '.pipe','.bind','.edit','.profile','.bench','.sighelp','.typehints',
+                          '.mem','.html','.plot','.bg','.jobs','.async','.serve','.compare',
+                          '.hist','.reload','.checkpoint','.restore','.macro','.sessions'}
+            first_line = source.strip().split('\n')[0].strip()
+            if not first_line in _meta_cmds and not first_line.startswith('.'):
+                _cmd_history.append(source)
             if result_val is not None:
                 fmted = format_output(result_val)
                 ms_str = colour(DIM, f"  {elapsed*1000:.1f}ms")
@@ -2770,11 +2834,27 @@ func __async_task__() {{
                 if len(_last_results) > 100:
                     _last_results.pop(0)
 
-            # Auto-advance tutorial after any successful code execution
+            # Auto-advance tutorial after successful code execution matching current lesson
             if _tutorial_mode:
-                print()
-                print(f"  {colour(C_OK, '✓ Good! Moving to next lesson...')}")
-                _advance_tutorial()
+                _tutorial_keywords = [
+                    ['var', 'let'],
+                    ['type('],
+                    ['[', 'append', 'len(', 'remove'],
+                    ['{', '"', 'keys(', 'items('],
+                    ['func'],
+                    ['if ', 'for ', 'while ', 'match'],
+                    ['class'],
+                    ['try'],
+                ]
+                _kw = _tutorial_keywords[_tutorial_step] if _tutorial_step < len(_tutorial_keywords) else []
+                if not _kw or any(k in source for k in _kw):
+                    print()
+                    print(f"  {colour(C_OK, '✓ Good! Moving to next lesson...')}")
+                    _advance_tutorial()
+                else:
+                    lesson = _tutorial_steps[_tutorial_step]
+                    print(f"  {colour(C_WARN, chr(10007)+' Try the suggested example for: '+lesson['title'])}")
+                    print(f"    {colour(DIM, lesson['hint'])}")
         except KeyboardInterrupt:
             # Ctrl+C during execution - exit immediately
             print(f"\n  {colour(C_OK, 'Goodbye!')}")
@@ -3085,7 +3165,7 @@ def get_package_db():
     db_file = os.path.join(os.path.expanduser("~"), ".ipp", "packages.json")
     if os.path.exists(db_file):
         import json
-        with open(db_file, 'r') as f:
+        with open(db_file, 'r', encoding='utf-8') as f:
             return json.load(f)
     return {"packages": {}}
 
@@ -3094,7 +3174,7 @@ def save_package_db(db):
     db_file = os.path.join(os.path.expanduser("~"), ".ipp", "packages.json")
     os.makedirs(os.path.dirname(db_file), exist_ok=True)
     import json
-    with open(db_file, 'w') as f:
+    with open(db_file, 'w', encoding='utf-8') as f:
         json.dump(db, f, indent=2)
 
 def pkg_install(package_name: str) -> int:
@@ -3111,7 +3191,7 @@ def pkg_install(package_name: str) -> int:
     pkg_path = os.path.join(pkg_dir, f"{package_name}.ipp")
 
     # Create a placeholder package file
-    with open(pkg_path, 'w') as f:
+    with open(pkg_path, 'w', encoding='utf-8') as f:
         f.write(f"# Ipp package: {package_name}\n")
         f.write(f"# Installed by Ipp v{VERSION}\n\n")
         f.write(f"# Package '{package_name}'\n")
@@ -3204,7 +3284,7 @@ def main():
         input_file = args[1]
         output_file = args[2] if len(args) > 2 else input_file.replace('.ipp', '.wat')
         try:
-            with open(input_file, 'r') as f:
+            with open(input_file, 'r', encoding='utf-8') as f:
                 source = f.read()
             wasm = compile_to_wasm(source, output_file)
             print(f"Compiled to {output_file}")

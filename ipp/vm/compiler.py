@@ -1292,6 +1292,21 @@ class Compiler:
             self.chunk.patch_jump(cont)
         self._pop_scope_no_emit()
 
+    def _compile_body_stmts(self, body, expr_mode=False):
+        """Compile body statements. In expr_mode, leaves last value on stack."""
+        if not expr_mode:
+            for stmt in body:
+                self.compile_stmt(stmt)
+            return
+        if not body:
+            self.chunk.write(OpCode.NIL, self.current_line)
+            return
+        for i, stmt in enumerate(body):
+            if i == len(body) - 1 and isinstance(stmt, ExprStmt):
+                self.compile_expr(stmt.expression)
+            else:
+                self.compile_stmt(stmt)
+
     def compile_match(self, node: MatchStmt):
         self.compile_expr(node.subject)
         end_jumps = []
@@ -1302,6 +1317,20 @@ class Compiler:
                 end_jumps.append(skip_to_next)
 
         self.chunk.write(OpCode.POP, self.current_line)
+        for ej in end_jumps:
+            self.chunk.patch_jump(ej)
+
+    def compile_match_expr(self, node: MatchExpr):
+        self.compile_expr(node.subject)
+        end_jumps = []
+
+        for case in node.cases:
+            skip_to_next = self._compile_match_case(case, expr_mode=True)
+            if skip_to_next is not None:
+                end_jumps.append(skip_to_next)
+
+        self.chunk.write(OpCode.POP, self.current_line)
+        self.chunk.write(OpCode.NIL, self.current_line)
         for ej in end_jumps:
             self.chunk.patch_jump(ej)
 
@@ -1355,7 +1384,7 @@ class Compiler:
 
         return end_j
 
-    def _compile_match_case(self, case) -> Optional[int]:
+    def _compile_match_case(self, case, expr_mode=False) -> Optional[int]:
         """Compile a single match case. Returns end_jump offset or None for default."""
         pattern = case.pattern
         body = case.body
@@ -1378,17 +1407,17 @@ class Compiler:
             if guard:
                 self.compile_expr(guard)
                 guard_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
-                for stmt in body:
-                    self.compile_stmt(stmt)
+                self._compile_body_stmts(body, expr_mode)
                 self.pop_scope()
                 end_j = self.chunk.emit_jump(OpCode.JUMP, self.current_line)
                 self.chunk.patch_jump(guard_fail)
                 self.pop_scope()
                 self.chunk.write(OpCode.POP, self.current_line)
                 return end_j
-            for stmt in body:
-                self.compile_stmt(stmt)
+            self._compile_body_stmts(body, expr_mode)
             self.pop_scope()
+            if expr_mode:
+                return self.chunk.emit_jump(OpCode.JUMP, self.current_line)
             return None
 
         # ── Bind pattern (case v => ...) ──────────────────────────────────
@@ -1402,8 +1431,7 @@ class Compiler:
             if guard:
                 self.compile_expr(guard)
                 guard_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
-            for stmt in body:
-                self.compile_stmt(stmt)
+            self._compile_body_stmts(body, expr_mode)
             self.pop_scope()
             if need_survival:
                 self.chunk.write(OpCode.POP, self.current_line)  # success cleanup
@@ -1428,8 +1456,7 @@ class Compiler:
             if guard:
                 self.compile_expr(guard)
                 guard_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
-            for stmt in body:
-                self.compile_stmt(stmt)
+            self._compile_body_stmts(body, expr_mode)
             self.pop_scope()
             if need_survival:
                 self.chunk.write(OpCode.POP, self.current_line)
@@ -1461,8 +1488,7 @@ class Compiler:
             if guard:
                 self.compile_expr(guard)
                 guard_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
-            for stmt in body:
-                self.compile_stmt(stmt)
+            self._compile_body_stmts(body, expr_mode)
             self.pop_scope()
             if need_survival:
                 self.chunk.write(OpCode.POP, self.current_line)
@@ -1475,16 +1501,16 @@ class Compiler:
 
         # ── List destructure pattern ──────────────────────────────────────
         if isinstance(pattern, MatchListPat):
-            return self._compile_match_list_pat(pattern, body, guard)
+            return self._compile_match_list_pat(pattern, body, guard, expr_mode)
 
         # ── Dict destructure pattern ──────────────────────────────────────
         if isinstance(pattern, MatchDictPat):
-            return self._compile_match_dict_pat(pattern, body, guard)
+            return self._compile_match_dict_pat(pattern, body, guard, expr_mode)
 
         self.error(f"Unsupported match pattern")
         return None
 
-    def _compile_match_dict_pat(self, pattern: MatchDictPat, body, guard) -> int:
+    def _compile_match_dict_pat(self, pattern: MatchDictPat, body, guard, expr_mode=False) -> int:
         """Compile dict destructure match case."""
         keys = pattern.keys
 
@@ -1538,8 +1564,7 @@ class Compiler:
             guard_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
 
         # Body
-        for stmt in body:
-            self.compile_stmt(stmt)
+        self._compile_body_stmts(body, expr_mode)
 
         saved_elem_count = len(self.locals) - base_local_count
         self.pop_scope()
@@ -1566,7 +1591,7 @@ class Compiler:
         slot = self.define_local("__match_list_subject__")
         return slot
 
-    def _compile_match_list_pat(self, pattern: MatchListPat, body, guard) -> int:
+    def _compile_match_list_pat(self, pattern: MatchListPat, body, guard, expr_mode=False) -> int:
         """Compile list destructure match case.
 
         The subject is stored in a temp local at depth 0 (outside the match scope)
@@ -1642,8 +1667,7 @@ class Compiler:
             guard_fail = self.chunk.emit_jump(OpCode.JUMP_IF_FALSE_POP, self.current_line)
 
         # Compile body
-        for stmt in body:
-            self.compile_stmt(stmt)
+        self._compile_body_stmts(body, expr_mode)
 
         # How many element locals were added?
         saved_elem_count = len(self.locals) - base_local_count
@@ -1927,6 +1951,8 @@ class Compiler:
             self.compile_nullish(node)
         elif isinstance(node, OptionalChainingExpr):
             self.compile_optional_chain(node)
+        elif isinstance(node, MatchExpr):
+            self.compile_match_expr(node)
         elif isinstance(node, LambdaExpr):
             # Treat lambda like anonymous function
             anon = FunctionDecl("__lambda__", node.parameters, node.body)

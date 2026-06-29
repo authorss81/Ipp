@@ -714,20 +714,36 @@ class Interpreter:
                 return _ipp_call_method(left, '__ge__', right)
             return left >= right
         elif node.operator == "**":
+            if _ipp_has_method(left, '__pow__'):
+                return _ipp_call_method(left, '__pow__', right)
             return left ** right
         elif node.operator == "%":
+            if _ipp_has_method(left, '__mod__'):
+                return _ipp_call_method(left, '__mod__', right)
             return left % right
         elif node.operator == "//":
+            if _ipp_has_method(left, '__floordiv__'):
+                return _ipp_call_method(left, '__floordiv__', right)
             return int(left) // int(right)
         elif node.operator == "<<":
+            if _ipp_has_method(left, '__lshift__'):
+                return _ipp_call_method(left, '__lshift__', right)
             return int(left) << int(right)
         elif node.operator == ">>":
+            if _ipp_has_method(left, '__rshift__'):
+                return _ipp_call_method(left, '__rshift__', right)
             return int(left) >> int(right)
         elif node.operator == "&":
+            if _ipp_has_method(left, '__and__'):
+                return _ipp_call_method(left, '__and__', right)
             return int(left) & int(right)
         elif node.operator == "|":
+            if _ipp_has_method(left, '__or__'):
+                return _ipp_call_method(left, '__or__', right)
             return int(left) | int(right)
         elif node.operator == "^":
+            if _ipp_has_method(left, '__xor__'):
+                return _ipp_call_method(left, '__xor__', right)
             return int(left) ^ int(right)
         elif node.operator == "and":
             return left if not bool(left) else right
@@ -770,10 +786,20 @@ class Interpreter:
     def visit_unary_expr(self, node: UnaryExpr):
         right = node.right.accept(self)
         if node.operator == "-":
+            if isinstance(right, IppInstance):
+                method = right.ipp_class.get_method('__neg__')
+                if method:
+                    bound = BoundMethod(right, method)
+                    return self.call_function(bound.method, [right])
             return -right
         elif node.operator in ("not", "!"):
             return not bool(right)
         elif node.operator == "~":
+            if isinstance(right, IppInstance):
+                method = right.ipp_class.get_method('__invert__')
+                if method:
+                    bound = BoundMethod(right, method)
+                    return self.call_function(bound.method, [right])
             return ~int(right)
         raise RuntimeError(f"Unknown unary operator: {node.operator}")
 

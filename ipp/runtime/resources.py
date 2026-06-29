@@ -63,7 +63,7 @@ def _parse_tiled_json(data):
 
 def load_tilemap(path, key):
     try:
-        with open(path) as f:
+        with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         val = _parse_tiled_json(data)
         _resources[key] = {'type': 'tilemap', 'path': path, 'value': val,

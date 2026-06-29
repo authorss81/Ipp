@@ -80,7 +80,7 @@ def generate_js_runtime(output_file=None):
     js = IPP_INTERPRETER_JS
     
     if output_file:
-        with open(output_file, 'w') as f:
+        with open(output_file, 'w', encoding='utf-8') as f:
             f.write(js)
     
     return js

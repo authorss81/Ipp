@@ -6,6 +6,10 @@ import time
 import sys
 import os
 import random
+import threading
+
+# Interrupt flag — set by REPL on Ctrl+C to stop long-running VM execution (v2.0.25+)
+_vm_interrupt = threading.Event()
 
 
 class _IppSignal:
@@ -712,7 +716,7 @@ class VM:
             import os as os_mod
             if isinstance(wasm_code, str):
                 if wasm_code.endswith('.ipp'):
-                    with open(wasm_code, 'r') as f:
+                    with open(wasm_code, 'r', encoding='utf-8') as f:
                         source = f.read()
                     from ipp.lexer.lexer import tokenize
                     from ipp.parser.parser import parse
@@ -1469,6 +1473,7 @@ class VM:
         # FIX VM-BUG-1/BUG-6: clear cache so stale entries don't cause "Cannot call int"
         self._global_cache.clear()
         self.call_depth = 0
+        self._single_step = False
 
     def run(self, chunk: Chunk = None) -> Any:
         # If chunk is provided, use it and don't create a new frame if one already exists
@@ -1507,6 +1512,12 @@ class VM:
             if self.profiler.enabled:
                 self.profiler.record_opcode(opcode)
             self.instruction_count += 1
+
+            # Check for interrupt every 1000 instructions (v2.0.25+)
+            if self.instruction_count % 1000 == 0 and _vm_interrupt.is_set():
+                self.running = False
+                _vm_interrupt.clear()
+                break
 
             try:
                 result = self._execute(opcode, frame)
@@ -1636,11 +1647,19 @@ class VM:
         """Interactive debug REPL. Suspends execution for user inspection."""
         src_file = getattr(self, '_current_source_file', '<unknown>')
         input_fn = self._debug_input_fn if self._debug_input_fn else input
+        _has_color = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
+        _DBG = lambda t: f"\033[36m{t}\033[0m" if _has_color else t
+        _LOC = lambda t: f"\033[33m{t}\033[0m" if _has_color else t
+        _VAL = lambda t: f"\033[92m{t}\033[0m" if _has_color else t
+        _DIM = lambda t: f"\033[2m{t}\033[0m" if _has_color else t
+
+        line = frame.chunk.lines[frame.ip] if frame.ip < len(frame.chunk.lines) else 0
+        print(f" {_DBG('>>')} breakpoint at {_LOC(f'{src_file}:{line}')}")
 
         while True:
             line = frame.chunk.lines[frame.ip] if frame.ip < len(frame.chunk.lines) else 0
             try:
-                cmd = input_fn(f"[dbg] ({src_file}:{line}) ")
+                cmd = input_fn(f" {_DBG('dbg')} {_DIM(f'({src_file}:{line})')} ")
             except (EOFError, KeyboardInterrupt):
                 print()
                 self._single_step = False
@@ -1659,64 +1678,71 @@ class VM:
                 frame.ip += 1
                 return
             elif cmd == "locals":
-                self._debug_show_locals(frame)
+                self._debug_show_locals(frame, _has_color)
             elif cmd == "stack":
-                self._debug_show_stack()
+                self._debug_show_stack(_has_color)
             elif cmd.startswith("print "):
                 var_name = cmd[6:].strip()
                 if var_name:
                     val = self._debug_lookup_var(frame, var_name)
                     if val is self._NOT_FOUND:
-                        print(f"  unknown variable: {var_name}")
+                        print(f"  {_DIM('unknown variable:')} {var_name}")
                     else:
-                        print(f"  {var_name} = {val!r}")
+                        print(f"  {var_name} = {_VAL(repr(val))}")
                 else:
-                    print("  usage: print <variable>")
+                    print(f"  {_DIM('usage: print <variable>')}")
             elif cmd == "help":
-                print("  Debugger commands:")
-                print("    step       execute next instruction and pause")
-                print("    continue   resume normal execution")
-                print("    print <x>  show value of variable x")
-                print("    locals     show all local variables in current frame")
-                print("    stack      show call stack")
-                print("    help       show this help")
+                print(f"  {_DBG('Debugger commands:')}")
+                print(f"    {_DIM('step')}       execute next instruction and pause")
+                print(f"    {_DIM('continue')}   resume normal execution")
+                print(f"    {_DIM('print <x>')}  show value of variable x")
+                print(f"    {_DIM('locals')}     show all local variables in current frame")
+                print(f"    {_DIM('stack')}      show call stack")
+                print(f"    {_DIM('help')}       show this help")
             else:
-                print(f"  unknown command: {cmd}")
+                print(f"  {_DIM('unknown command:')} {cmd}")
 
-    def _debug_show_locals(self, frame: VMFrame):
+    def _debug_show_locals(self, frame: VMFrame, has_color: bool = False):
         """Print all local variables in the current frame."""
+        _H = lambda t: f"\033[1m{t}\033[0m" if has_color else t
+        _V = lambda t: f"\033[92m{t}\033[0m" if has_color else t
+        _D = lambda t: f"\033[2m{t}\033[0m" if has_color else t
         base = frame.stack_base
         proto = getattr(getattr(frame, 'function', None), '_proto', None)
         param_names = getattr(proto, 'param_names', None) if proto else None
-        param_count = len(param_names) if param_names else 0
 
-        # Show named parameters first
         if param_names:
             for i, name in enumerate(param_names):
                 slot = base + (1 if frame._method_instance is not None else 0) + i
                 if slot < len(self.stack):
-                    print(f"  {name} = {self.stack[slot]!r}")
+                    print(f"  {_H(name)} = {_V(repr(self.stack[slot]))}")
 
-        # Show other stack slots in the frame's range
         count = len(self.stack) - base
-        shown = set(range(param_count))
+        shown = set(range(len(param_names) if param_names else 0))
         for i in range(count):
             if i not in shown:
                 slot = base + i
                 if slot < len(self.stack):
-                    print(f"  _slot{i} = {self.stack[slot]!r}")
+                    print(f"  {_D(f'_slot{i}')} = {_V(repr(self.stack[slot]))}")
 
-    def _debug_show_stack(self):
+    def _debug_show_stack(self, has_color: bool = False):
         """Print the current call stack."""
+        _H = lambda t: f"\033[1m{t}\033[0m" if has_color else t
+        _L = lambda t: f"\033[33m{t}\033[0m" if has_color else t
+        _D = lambda t: f"\033[2m{t}\033[0m" if has_color else t
         for i, f in enumerate(self.frames):
             fn_obj = getattr(f, 'function', None) or getattr(f, 'closure', None)
-            fn_name = '<anonymous>'
+            fn_name = _H('<anonymous>')
             if fn_obj:
                 proto = getattr(fn_obj, '_proto', None)
-                fn_name = proto.name if proto else getattr(fn_obj, 'name', '<anonymous>')
+                fn_name = _H(proto.name if proto else getattr(fn_obj, 'name', '<anonymous>'))
             ln = f.chunk.lines[f.ip] if f.ip < len(f.chunk.lines) else 0
             src = getattr(self, '_current_source_file', '<unknown>')
-            print(f"  #{i} {fn_name} at {src}:{ln}")
+            if i == len(self.frames) - 1:
+                arrow = f" {_L('->')}"
+            else:
+                arrow = _D(f"  ")
+            print(f"{arrow} #{i} {fn_name} {_D(f'at {src}:{ln}')}")
 
     def _debug_lookup_var(self, frame: VMFrame, name: str):
         """Look up a variable by name in the current frame."""
@@ -2700,7 +2726,7 @@ class VM:
                 if not found_path:
                     raise VMError(f"Module not found: '{module_path}'")
 
-                with open(found_path, 'r') as f:
+                with open(found_path, 'r', encoding='utf-8') as f:
                     src = f.read()
 
                 from ipp.lexer.lexer import tokenize
@@ -2846,6 +2872,18 @@ class VM:
                     bound = BoundMethod(a, method)
                     result = self._call_method(a, bound, [b], None)
                     self.stack.append(result)
+                elif isinstance(b, IppInstance):
+                    rev = b.cls.get_method('__radd__')
+                    if rev:
+                        self.stack.append(self._call_method(b, BoundMethod(b, rev), [a], None))
+                    else:
+                        self.stack.append(a + b)
+                else:
+                    self.stack.append(a + b)
+            elif isinstance(b, IppInstance):
+                rev = b.cls.get_method('__radd__')
+                if rev:
+                    self.stack.append(self._call_method(b, BoundMethod(b, rev), [a], None))
                 else:
                     self.stack.append(a + b)
             else:
@@ -2859,6 +2897,18 @@ class VM:
                     bound = BoundMethod(a, method)
                     result = self._call_method(a, bound, [b], None)
                     self.stack.append(result)
+                elif isinstance(b, IppInstance):
+                    rev = b.cls.get_method('__rsub__')
+                    if rev:
+                        self.stack.append(self._call_method(b, BoundMethod(b, rev), [a], None))
+                    else:
+                        self.stack.append(a - b)
+                else:
+                    self.stack.append(a - b)
+            elif isinstance(b, IppInstance):
+                rev = b.cls.get_method('__rsub__')
+                if rev:
+                    self.stack.append(self._call_method(b, BoundMethod(b, rev), [a], None))
                 else:
                     self.stack.append(a - b)
             else:
@@ -2872,6 +2922,18 @@ class VM:
                     bound = BoundMethod(a, method)
                     result = self._call_method(a, bound, [b], None)
                     self.stack.append(result)
+                elif isinstance(b, IppInstance):
+                    rev = b.cls.get_method('__rmul__')
+                    if rev:
+                        self.stack.append(self._call_method(b, BoundMethod(b, rev), [a], None))
+                    else:
+                        self.stack.append(a * b)
+                else:
+                    self.stack.append(a * b)
+            elif isinstance(b, IppInstance):
+                rev = b.cls.get_method('__rmul__')
+                if rev:
+                    self.stack.append(self._call_method(b, BoundMethod(b, rev), [a], None))
                 else:
                     self.stack.append(a * b)
             else:
@@ -2881,11 +2943,23 @@ class VM:
             b, a = self.stack.pop(), self.stack.pop()
             if b == 0: raise VMError(f"Division by zero{line_info}")
             if isinstance(a, IppInstance):
-                method = a.cls.get_method('__div__')
+                method = a.cls.get_method('__truediv__')
                 if method:
                     bound = BoundMethod(a, method)
                     result = self._call_method(a, bound, [b], None)
                     self.stack.append(result)
+                elif isinstance(b, IppInstance):
+                    rev = b.cls.get_method('__rtruediv__')
+                    if rev:
+                        self.stack.append(self._call_method(b, BoundMethod(b, rev), [a], None))
+                    else:
+                        self.stack.append(a / b)
+                else:
+                    self.stack.append(a / b)
+            elif isinstance(b, IppInstance):
+                rev = b.cls.get_method('__rtruediv__')
+                if rev:
+                    self.stack.append(self._call_method(b, BoundMethod(b, rev), [a], None))
                 else:
                     self.stack.append(a / b)
             else:
@@ -2893,40 +2967,111 @@ class VM:
 
         elif opcode == OpCode.MODULO:
             b, a = self.stack.pop(), self.stack.pop()
-            self.stack.append(a % b)
+            if isinstance(a, IppInstance):
+                method = a.cls.get_method('__mod__')
+                if method:
+                    self.stack.append(self._call_method(a, BoundMethod(a, method), [b], None))
+                else:
+                    self.stack.append(a % b)
+            else:
+                self.stack.append(a % b)
 
         elif opcode == OpCode.POWER:
             b, a = self.stack.pop(), self.stack.pop()
-            self.stack.append(a ** b)
+            if isinstance(a, IppInstance):
+                method = a.cls.get_method('__pow__')
+                if method:
+                    self.stack.append(self._call_method(a, BoundMethod(a, method), [b], None))
+                else:
+                    self.stack.append(a ** b)
+            else:
+                self.stack.append(a ** b)
 
         elif opcode == OpCode.FLOOR_DIV:
             b, a = self.stack.pop(), self.stack.pop()
             if b == 0: raise VMError(f"Division by zero{line_info}")
-            self.stack.append(int(a) // int(b))
+            if isinstance(a, IppInstance):
+                method = a.cls.get_method('__floordiv__')
+                if method:
+                    self.stack.append(self._call_method(a, BoundMethod(a, method), [b], None))
+                else:
+                    self.stack.append(int(a) // int(b))
+            else:
+                self.stack.append(int(a) // int(b))
 
         # ── Bitwise ──────────────────────────────────────────────────────
         elif opcode == OpCode.BIT_AND:
             b, a = self.stack.pop(), self.stack.pop()
-            self.stack.append(int(a) & int(b))
+            if isinstance(a, IppInstance):
+                method = a.cls.get_method('__and__')
+                if method:
+                    self.stack.append(self._call_method(a, BoundMethod(a, method), [b], None))
+                else:
+                    self.stack.append(int(a) & int(b))
+            else:
+                self.stack.append(int(a) & int(b))
         elif opcode == OpCode.BIT_OR:
             b, a = self.stack.pop(), self.stack.pop()
-            self.stack.append(int(a) | int(b))
+            if isinstance(a, IppInstance):
+                method = a.cls.get_method('__or__')
+                if method:
+                    self.stack.append(self._call_method(a, BoundMethod(a, method), [b], None))
+                else:
+                    self.stack.append(int(a) | int(b))
+            else:
+                self.stack.append(int(a) | int(b))
         elif opcode == OpCode.BIT_XOR:
             b, a = self.stack.pop(), self.stack.pop()
-            self.stack.append(int(a) ^ int(b))
+            if isinstance(a, IppInstance):
+                method = a.cls.get_method('__xor__')
+                if method:
+                    self.stack.append(self._call_method(a, BoundMethod(a, method), [b], None))
+                else:
+                    self.stack.append(int(a) ^ int(b))
+            else:
+                self.stack.append(int(a) ^ int(b))
         elif opcode == OpCode.BIT_NOT:
             a = self.stack.pop()
-            self.stack.append(~int(a))
+            if isinstance(a, IppInstance):
+                method = a.cls.get_method('__invert__')
+                if method:
+                    self.stack.append(self._call_method(a, BoundMethod(a, method), [], None))
+                else:
+                    self.stack.append(~int(a))
+            else:
+                self.stack.append(~int(a))
         elif opcode == OpCode.SHIFT_LEFT:
             b, a = self.stack.pop(), self.stack.pop()
-            self.stack.append(int(a) << int(b))
+            if isinstance(a, IppInstance):
+                method = a.cls.get_method('__lshift__')
+                if method:
+                    self.stack.append(self._call_method(a, BoundMethod(a, method), [b], None))
+                else:
+                    self.stack.append(int(a) << int(b))
+            else:
+                self.stack.append(int(a) << int(b))
         elif opcode == OpCode.SHIFT_RIGHT:
             b, a = self.stack.pop(), self.stack.pop()
-            self.stack.append(int(a) >> int(b))
+            if isinstance(a, IppInstance):
+                method = a.cls.get_method('__rshift__')
+                if method:
+                    self.stack.append(self._call_method(a, BoundMethod(a, method), [b], None))
+                else:
+                    self.stack.append(int(a) >> int(b))
+            else:
+                self.stack.append(int(a) >> int(b))
 
         # ── Unary ────────────────────────────────────────────────────────
         elif opcode == OpCode.NEGATE:
-            self.stack.append(-self.stack.pop())
+            a = self.stack.pop()
+            if isinstance(a, IppInstance):
+                method = a.cls.get_method('__neg__')
+                if method:
+                    self.stack.append(self._call_method(a, BoundMethod(a, method), [], None))
+                else:
+                    self.stack.append(-a)
+            else:
+                self.stack.append(-a)
         elif opcode == OpCode.NOT:
             self.stack.append(not self._is_truthy(self.stack.pop()))
         elif opcode == OpCode.INCREMENT:

@@ -39,6 +39,8 @@ from ipp.parser.parser import parse
 from ipp.vm.compiler import compile_ast
 from ipp.vm.vm import VM
 
+ipp_dir = os.path.dirname(os.path.abspath(__file__))
+
 TESTS = [
     ("v05","tests/v05/test_features.ipp"),
     ("v06","tests/v06/test_features.ipp"),
@@ -220,6 +222,7 @@ TESTS = [
     ("v2.0.25-debugger-class","tests/v2_0_25/test_debugger_class.ipp"),
     ("v2.0.25-debugger-if","tests/v2_0_25/test_debugger_if.ipp"),
     ("v2.0.25-debugger-multi","tests/v2_0_25/test_debugger_multi.ipp"),
+    ("v2.0.25-repl-improvements","tests/v2_0_25/test_repl_improvements.py"),
 ]
 
 passed=failed=0
@@ -228,13 +231,24 @@ for name,path in TESTS:
     if not os.path.exists(path):
         print(f"[FAIL] {name}: FILE_NOT_FOUND"); failed+=1; failures.append((name,"FILE_NOT_FOUND")); continue
     try:
-        vm=VM(); vm._current_source_file=os.path.abspath(path)
-        # v2.0.25: supply canned "continue" input for debugger tests
-        if name.startswith("v2.0.25-debugger"):
-            responses = iter(["continue"] * 100)
-            vm._debug_input_fn = lambda prompt="", it=responses: next(it)
-        vm.run(compile_ast(parse(tokenize(open(path).read()))))
-        print(f"[PASS] {name}"); passed+=1
+        if path.endswith('.py'):
+            import subprocess
+            r = subprocess.run([sys.executable, path], capture_output=True, text=True, cwd=ipp_dir)
+            if r.returncode == 0:
+                print(f"[PASS] {name}"); passed+=1
+            else:
+                err = r.stderr.strip()[:80] if r.stderr.strip() else r.stdout.strip()[:80]
+                print(f"[FAIL] {name}: {err}"); failed+=1; failures.append((name, err))
+            if r.stdout.strip():
+                print(r.stdout.strip())
+        else:
+            vm=VM(); vm._current_source_file=os.path.abspath(path)
+            # v2.0.25: supply canned "continue" input for debugger tests
+            if name.startswith("v2.0.25-debugger"):
+                responses = iter(["continue"] * 100)
+                vm._debug_input_fn = lambda prompt="", it=responses: next(it)
+            vm.run(compile_ast(parse(tokenize(open(path).read()))))
+            print(f"[PASS] {name}"); passed+=1
     except Exception as e:
         msg=f"{type(e).__name__}: {str(e)[:80]}"
         print(f"[FAIL] {name}: {msg}"); failed+=1; failures.append((name,msg))

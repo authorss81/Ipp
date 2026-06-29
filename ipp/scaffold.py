@@ -14,7 +14,7 @@ def new_project(name):
     os.makedirs(src_dir)
     os.makedirs(tests_dir)
 
-    with open(os.path.join(base, "ipp.toml"), "w") as f:
+    with open(os.path.join(base, "ipp.toml"), "w", encoding="utf-8") as f:
         f.write(f"""[package]
 name        = "{name}"
 version     = "0.1.0"
@@ -27,13 +27,13 @@ ipp_min     = "1.9.13"
 args        = []
 """)
 
-    with open(os.path.join(base, "main.ipp"), "w") as f:
+    with open(os.path.join(base, "main.ipp"), "w", encoding="utf-8") as f:
         f.write('print("Hello from Ipp!")\n')
 
-    with open(os.path.join(tests_dir, "test_main.ipp"), "w") as f:
+    with open(os.path.join(tests_dir, "test_main.ipp"), "w", encoding="utf-8") as f:
         f.write('# Tests for ' + name + '\nprint("All tests passed!")\n')
 
-    with open(os.path.join(src_dir, ".gitkeep"), "w") as f:
+    with open(os.path.join(src_dir, ".gitkeep"), "w", encoding="utf-8") as f:
         f.write("")
 
     return base

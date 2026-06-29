@@ -413,7 +413,7 @@ def compile_to_wasm(source, output_file=None):
     wasm_text = converter.emit_simple_function("add", test_ops)
     
     if output_file:
-        with open(output_file, 'w') as f:
+        with open(output_file, 'w', encoding='utf-8') as f:
             f.write(wasm_text)
     
     return wasm_text
@@ -427,7 +427,7 @@ def compile_ast_to_wasm(ast, output_file=None):
     wasm = converter.emit_simple_function("main", [])
     
     if output_file:
-        with open(output_file, 'w') as f:
+        with open(output_file, 'w', encoding='utf-8') as f:
             f.write(wasm)
     
     return wasm
@@ -466,7 +466,7 @@ def main():
         output_file = input_file.replace('.ipp', '.wat')
     
     try:
-        with open(input_file, 'r') as f:
+        with open(input_file, 'r', encoding='utf-8') as f:
             source = f.read()
         
         wasm = compile_to_wasm(source, output_file)
