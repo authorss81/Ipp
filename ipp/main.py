@@ -228,52 +228,164 @@ def pad_to(s, width):
 # ─── Interactive Tutorial ───────────────────────────────────────────────────────
 _tutorial_steps = [
     {
+        "title": "Hello World",
+        "desc": "Print output with the print() function",
+        "example": "print(\"Hello, Ipp!\")\nprint(42)\nprint(true)",
+        "exercise": "Print your name using print()",
+        "hint": "Type: print(\"YourName\")",
+        "keywords": ["print("]
+    },
+    {
         "title": "Variables",
         "desc": "Store values with var (mutable) and let (immutable)",
-        "example": "var x = 10\nlet name = \"Alice\"\nx = 20  # Change var\nprint(x)",
-        "hint": "Try creating a variable with var or let"
+        "example": "var x = 10\nlet name = \"Alice\"\nx = 20\nprint(x)",
+        "exercise": "Create a var named 'score' with value 100, then print it",
+        "hint": "Type: var score = 100\nprint(score)",
+        "keywords": ["var", "let"]
     },
     {
         "title": "Data Types",
         "desc": "Numbers, strings, booleans, and nil",
         "example": "var num = 42\nvar text = \"Hello\"\nvar flag = true\nvar empty = nil\nprint(type(num))",
-        "hint": "Try different data types"
+        "exercise": "Create a string variable and print its type with type()",
+        "hint": "Type: var msg = \"hi\"\nprint(type(msg))",
+        "keywords": ["type("]
+    },
+    {
+        "title": "String Operations",
+        "desc": "Concatenation, interpolation, and string methods",
+        "example": "var a = \"Hello\"\nvar b = \"World\"\nprint(a + \" \" + b)\nprint(len(a))",
+        "exercise": "Create two string variables, concatenate them with a space, and print the result",
+        "hint": "Type: var first = \"John\"\nvar last = \"Doe\"\nprint(first + \" \" + last)",
+        "keywords": ["+", "len("]
     },
     {
         "title": "Lists",
         "desc": "Ordered collections of values",
-        "example": "var nums = [1, 2, 3, 4, 5]\nprint(nums[0])  # First element\nprint(len(nums))  # Length\nnums.append(6)  # Add element",
-        "hint": "Create a list and access elements"
+        "example": "var nums = [1, 2, 3, 4, 5]\nprint(nums[0])\nprint(len(nums))\nnums.append(6)",
+        "exercise": "Create a list with 3 items, access the second item using [1]",
+        "hint": "Type: var items = [10, 20, 30]\nprint(items[1])",
+        "keywords": ["[", "append", "len("]
+    },
+    {
+        "title": "List Operations",
+        "desc": "Removing, sorting, and slicing lists",
+        "example": "var nums = [3, 1, 4, 1, 5]\nnums.remove(1)\nprint(nums)\nprint(nums[1:3])",
+        "exercise": "Create a list of numbers, remove one, and print the result",
+        "hint": "Type: var n = [5, 2, 8]\nn.remove(2)\nprint(n)",
+        "keywords": ["remove", "sort", ":"]
     },
     {
         "title": "Dictionaries",
-        "desc": "Key-value pairs",
+        "desc": "Key-value pairs for structured data",
         "example": "var person = {\"name\": \"Alice\", \"age\": 30}\nprint(person[\"name\"])\nperson[\"city\"] = \"NYC\"\nprint(keys(person))",
-        "hint": "Create a dictionary and access values"
+        "exercise": "Create a dict with 'title' and 'year' keys, print the title value",
+        "hint": "Type: var book = {\"title\": \"Ipp\", \"year\": 2024}\nprint(book[\"title\"])",
+        "keywords": ["{", "keys(", "items("]
     },
     {
         "title": "Functions",
-        "desc": "Reusable code blocks",
+        "desc": "Define reusable code blocks with func",
         "example": "func greet(name) {\n    return \"Hello, \" + name + \"!\"\n}\nprint(greet(\"World\"))",
-        "hint": "Define a function with func"
+        "exercise": "Define a function 'add' that takes two numbers and returns their sum, then call it",
+        "hint": "Type: func add(a, b) {\n    return a + b\n}\nprint(add(3, 4))",
+        "keywords": ["func"]
     },
     {
-        "title": "Control Flow",
-        "desc": "If/else, loops, and match",
-        "example": "var x = 5\nif x > 10 {\n    print(\"big\")\n} else {\n    print(\"small\")\n}\n\nfor i in 0..3 {\n    print(i)\n}",
-        "hint": "Try an if statement or for loop"
+        "title": "Parameters & Returns",
+        "desc": "Multiple parameters, default values, and return values",
+        "example": "func multiply(a, b) {\n    return a * b\n}\nfunc greet(name=\"Guest\") {\n    return \"Hello, \" + name\n}\nprint(multiply(3, 4))\nprint(greet())",
+        "exercise": "Write a function 'is_even' that returns true if a number is even",
+        "hint": "Type: func is_even(n) {\n    return n % 2 == 0\n}\nprint(is_even(4))",
+        "keywords": ["return"]
     },
     {
-        "title": "Classes",
-        "desc": "Object-oriented programming",
+        "title": "Conditionals: If/Else",
+        "desc": "Branching logic with if, elif, and else",
+        "example": "var x = 15\nif x > 20 {\n    print(\"big\")\n} elif x > 10 {\n    print(\"medium\")\n} else {\n    print(\"small\")\n}",
+        "exercise": "Write an if/else that prints 'even' or 'odd' based on a number",
+        "hint": "Type: var n = 7\nif n % 2 == 0 {\n    print(\"even\")\n} else {\n    print(\"odd\")\n}",
+        "keywords": ["if ", "elif ", "else"]
+    },
+    {
+        "title": "Loops: For & While",
+        "desc": "Iterate with for loops and while loops",
+        "example": "for i in 0..5 {\n    print(i)\n}\n\nvar x = 0\nwhile x < 3 {\n    print(x)\n    x = x + 1\n}",
+        "exercise": "Use a for loop to print numbers 1 through 5",
+        "hint": "Type: for i in 1..6 {\n    print(i)\n}",
+        "keywords": ["for ", "while ", ".."]
+    },
+    {
+        "title": "Match Expressions",
+        "desc": "Pattern matching with match/case",
+        "example": "var x = 3\nmatch x {\n    case 1 { print(\"one\") }\n    case 2 { print(\"two\") }\n    case 3 { print(\"three\") }\n    default { print(\"other\") }\n}",
+        "exercise": "Use match to print the day name for numbers 1-3, with a default case",
+        "hint": "Type: var day = 2\nmatch day {\n    case 1 { print(\"Mon\") }\n    case 2 { print(\"Tue\") }\n    case 3 { print(\"Wed\") }\n    default { print(\"?\") }\n}",
+        "keywords": ["match", "case"]
+    },
+    {
+        "title": "Classes & Objects",
+        "desc": "Object-oriented programming with class",
         "example": "class Dog {\n    func init(name) {\n        this.name = name\n    }\n    func bark() {\n        return this.name + \" says woof!\"\n    }\n}\nvar dog = Dog(\"Rex\")\nprint(dog.bark())",
-        "hint": "Create a class with methods"
+        "exercise": "Create a 'Person' class with name and age, and a greet method",
+        "hint": "Type: class Person {\n    func init(name, age) {\n        this.name = name\n        this.age = age\n    }\n    func greet() {\n        return \"Hi, I'm \" + this.name\n    }\n}\nvar p = Person(\"Bob\", 25)\nprint(p.greet())",
+        "keywords": ["class"]
+    },
+    {
+        "title": "Inheritance",
+        "desc": "Extending classes with super and method overriding",
+        "example": "class Animal {\n    func speak() { return \"...\" }\n}\nclass Cat : Animal {\n    func speak() { return \"Meow!\" }\n}\nvar c = Cat()\nprint(c.speak())",
+        "exercise": "Create a base 'Shape' class and a 'Circle' subclass that overrides area()",
+        "hint": "Type: class Shape {\n    func area() { return 0 }\n}\nclass Circle : Shape {\n    func init(r) { this.r = r }\n    func area() { return 3.14 * this.r * this.r }\n}\nvar c = Circle(5)\nprint(c.area())",
+        "keywords": [":"]
     },
     {
         "title": "Error Handling",
-        "desc": "Try/catch for handling errors",
+        "desc": "Catch and handle errors with try/catch",
         "example": "try {\n    var result = 10 / 0\n} catch e {\n    print(\"Error: \" + e)\n}\nprint(\"Program continues\")",
-        "hint": "Wrap code in try/catch"
+        "exercise": "Write a try/catch that catches a type error and prints a friendly message",
+        "hint": "Type: try {\n    var x = \"hi\" + 5\n} catch e {\n    print(\"Oops: \" + e)\n}",
+        "keywords": ["try", "catch"]
+    },
+    {
+        "title": "Modules & Imports",
+        "desc": "Import code from built-in modules",
+        "example": "import math\nimport json\nvar vals = [3.1, 2.7, 1.4]\nprint(json.stringify(vals))",
+        "exercise": "Import the 'math' module and use math.sqrt to compute square root of 16",
+        "hint": "Type: import math\nprint(math.sqrt(16))",
+        "keywords": ["import"]
+    },
+    {
+        "title": "Closures & Lambdas",
+        "desc": "Anonymous functions and closures",
+        "example": "var double = func(x) { return x * 2 }\nvar nums = [1, 2, 3]\nvar doubled = map(double, nums)\nprint(doubled)",
+        "exercise": "Use map with a lambda to square each number in a list",
+        "hint": "Type: var nums = [1, 2, 3, 4]\nvar squares = map(func(x) { return x * x }, nums)\nprint(squares)",
+        "keywords": ["func(", "map"]
+    },
+    {
+        "title": "Built-in Functions",
+        "desc": "Useful built-ins: map, filter, reduce, range, zip",
+        "example": "var nums = [1, 2, 3, 4, 5]\nvar evens = filter(func(n) { return n % 2 == 0 }, nums)\nvar total = reduce(func(a, b) { return a + b }, nums, 0)\nprint(evens)\nprint(total)",
+        "exercise": "Use filter to get only numbers > 2 from [1, 2, 3, 4, 5]",
+        "hint": "Type: var nums = [1, 2, 3, 4, 5]\nvar big = filter(func(n) { return n > 2 }, nums)\nprint(big)",
+        "keywords": ["filter", "reduce", "range", "zip"]
+    },
+    {
+        "title": "Working with Files",
+        "desc": "Read and write files with built-in file functions",
+        "example": "var f = open(\"test.txt\", \"w\")\nf.write(\"Hello, file!\")\nf.close()\nvar f2 = open(\"test.txt\", \"r\")\nprint(f2.read())\nf2.close()",
+        "exercise": "Write a file with your name, read it back, and print the content",
+        "hint": "Type: var f = open(\"myname.txt\", \"w\")\nf.write(\"Alice\")\nf.close()\nvar f2 = open(\"myname.txt\", \"r\")\nprint(f2.read())\nf2.close()",
+        "keywords": ["open(", "write", "read"]
+    },
+    {
+        "title": "Putting It All Together",
+        "desc": "Combine everything you've learned in a mini-program",
+        "example": "class Todo {\n    func init() {\n        this.items = []\n    }\n    func add(item) {\n        this.items.append(item)\n    }\n    func list() {\n        for i in this.items {\n            print(\"- \" + i)\n        }\n    }\n}\nvar t = Todo()\nt.add(\"Learn Ipp\")\nt.add(\"Build something\")\nt.list()",
+        "exercise": "Create a simple Counter class with increment, decrement, and getValue methods, then test it",
+        "hint": "Type: class Counter {\n    func init() { this.val = 0 }\n    func inc() { this.val = this.val + 1 }\n    func dec() { this.val = this.val - 1 }\n    func get() { return this.val }\n}\nvar c = Counter()\nc.inc()\nc.inc()\nprint(c.get())",
+        "keywords": ["class", "func init", "this."]
     }
 ]
 
@@ -287,26 +399,33 @@ def _advance_tutorial():
 
 def _run_tutorial_step():
     global _tutorial_step, _tutorial_mode
-    if _tutorial_step >= len(_tutorial_steps):
+    total = len(_tutorial_steps)
+    if _tutorial_step >= total:
         print()
-        print(f"  {colour(C_OK, '✓ Tutorial Complete!')}")
-        print(f"  {colour(DIM, 'You learned the basics of Ipp. Keep practicing!')}")
+        print(f"  {colour(C_OK, '═' * 50)}")
+        print(f"  {colour(C_OK, '🎉 Tutorial Complete!')}")
+        print(f"  {colour(C_OK, '═' * 50)}")
+        print()
+        print(f"  {colour(DIM, 'You finished all 20 lessons. You now know Ipp!')}")
         print()
         print(f"  {colour(C_CMD, 'Next steps:')}")
-        print(f"    - Try .examples for more code samples")
-        print(f"    - Try .help for all commands")
-        print(f"    - Explore built-in functions with .builtins")
+        print(f"    {colour(DIM, '→')} Try .examples for more code samples")
+        print(f"    {colour(DIM, '→')} Try .help for all REPL commands")
+        print(f"    {colour(DIM, '→')} Explore built-in functions with .builtins")
+        print(f"    {colour(DIM, '→')} Build your own project with .save to export")
+        print(f"    {colour(DIM, '→')} Benchmark code with .bench")
         global _tutorial_mode
         _tutorial_mode = False
         _tutorial_step = 0
         return
 
     step = _tutorial_steps[_tutorial_step]
+    progress = f"[{'█' * (_tutorial_step + 1)}{'░' * (total - _tutorial_step - 1)}]"
     print()
-    print(f"  {colour(C_CMD, '═' * 50)}")
+    print(f"  {colour(C_CMD, '═' * 52)}")
     _title = step['title']
-    print(f"  {colour(C_CMD, f'Lesson {_tutorial_step + 1}/8: {_title}')}")
-    print(f"  {colour(C_CMD, '═' * 50)}")
+    print(f"  {colour(C_CMD, f'Lesson {_tutorial_step + 1}/{total}: {_title}')}  {colour(DIM, progress)}")
+    print(f"  {colour(C_CMD, '═' * 52)}")
     print()
     print(f"  {colour(DIM, step['desc'])}")
     print()
@@ -314,24 +433,17 @@ def _run_tutorial_step():
     for line in step['example'].split('\n'):
         print(f"    {colour(C_KW, line)}")
     print()
+    ex = step.get('exercise')
+    if ex:
+        print(f"  {colour(C_OK, '✦ Your Challenge:')}")
+        print(f"    {colour(DIM, ex)}")
+        print()
     print(f"  {colour(C_WARN, '➤ ' + step['hint'])}")
     print()
-    print(f"  {colour(DIM, 'Commands: .tutorial next | .tutorial prev | .tutorial end')}")
+    print(f"  {colour(DIM, 'Commands: .tutorial next | .tutorial prev | .hint | .tutorial end')}")
 
 # ─── Syntax highlighter ───────────────────────────────────────────────────────
-_KEYWORDS = frozenset([
-    "var","let","func","class","if","else","elif","for","while",
-    "match","case","default","try","catch","finally","throw","return",
-    "break","continue","import","as","in","nil","true","false",
-    "self","this","enum","static","repeat","until","and","or","not","with","export",
-])
-_BUILTINS = frozenset([
-    "print","len","type","range","abs","min","max","sum","round",
-    "floor","ceil","sqrt","pow","sin","cos","tan","log","input",
-    "str","int","float","bool","randint","random","keys","values",
-    "items","contains","split","join","upper","lower","strip",
-    "replace","find","starts_with","ends_with","assert","exit",
-])
+from ipp.runtime.words import KEYWORDS as _KEYWORDS, BUILTIN_NAMES as _BUILTINS
 
 def highlight(code: str) -> str:
     if not _USE_ANSI:
@@ -518,8 +630,8 @@ class IppCompleter:
             '.html', '.plot', '.bg', '.jobs', '.async', '.serve', '.compare',
             '.checkpoint', '.restore', '.macro', '.export', '.prompt',
             '.pipe', '.bind', '.search', '.plugin', '.session', '.reload',
-            '.debug', '.break', '.watch', '.locals', '.stack', '.table',
-            '.cache', '.hist', '.tutorial', '.examples', '.sighelp',
+            '.debug', '.watch', '.locals', '.stack', '.table',
+            '.hist', '.hint', '.tutorial', '.examples', '.sighelp',
             '.typehints',
             'exit', 'quit',
         ])
@@ -856,14 +968,33 @@ def print_help():
         (".tutorial next",  "Next lesson"),
         (".tutorial prev",  "Previous lesson"),
         (".tutorial end",   "Exit tutorial"),
+        (".hint",           "Show tutorial hint"),
         (".plugin load f",  "Load plugin file"),
         (".debug start",    "Start step-through debugger"),
         (".debug stop",     "Stop debugger"),
-        (".break <line>",   "Set breakpoint"),
         (".watch <expr>",   "Watch expression value"),
         (".locals",         "Show local variables"),
         (".table <var>",    "Show list of dicts as table"),
         (".theme <name>",   "Set color theme (dark/light/solarized)"),
+        (".themes",         "List available color themes"),
+        (".highlight",      "Toggle syntax highlighting"),
+        (".mem",            "Show memory usage"),
+        (".sighelp",        "Show builtin signatures"),
+        (".typehints",      "Show variable types"),
+        (".hist",           "Show expression history"),
+        (".bench <n> e",    "Benchmark expression"),
+        (".macro",          "Define/list macros"),
+        (".checkpoint",     "Save environment checkpoint"),
+        (".restore",        "Restore environment checkpoint"),
+        (".sessions",       "List saved sessions"),
+        (".reload <mod>",   "Reload a module"),
+        (".compare a b",    "Compare two expressions"),
+        (".html <expr>",    "Render result in browser"),
+        (".plot <data>",    "Plot data with matplotlib"),
+        (".bg <expr>",      "Run expression in background"),
+        (".jobs",           "Show background jobs"),
+        (".async <expr>",   "Run async expression"),
+        (".serve [port]",   "Start TCP REPL server"),
         ("Tab",             "Auto-complete (builtins, vars, keys)"),
         ("(",               "Signature help when typing"),
     ]
@@ -1684,14 +1815,16 @@ def run_repl(debug: bool = True):
                     from ipp.runtime.docs import BUILTIN_DOCS
                     doc = BUILTIN_DOCS.get(fn_name)
                     if doc:
+                        print(f"  {colour(C_CMD, '─' * 40)}")
                         print(f"  {colour(C_CMD, fn_name)}")
-                        print(f"  {colour(DIM, 'Syntax:')}    {doc['syntax']}")
-                        print(f"  {colour(DIM, 'Description:')} {doc['desc']}")
-                        if doc['example']:
-                            print(f"  {colour(DIM, 'Examples:')}")
+                        print(f"  {colour(C_CMD, '─' * 40)}")
+                        print(f"  {colour(C_KW, 'Syntax:')}      {colour(C_TYPE, doc['syntax'])}")
+                        print(f"  {colour(C_KW, 'Description:')} {colour(DIM, doc['desc'])}")
+                        if doc.get('example'):
+                            print(f"  {colour(C_KW, 'Examples:')}")
                             for line in doc['example'].split('\n'):
-                                print(f"    {line}")
-                        print(f"  {colour(DIM, 'Returns:')}   {doc['returns']}")
+                                print(f"    {colour(C_STR, line)}")
+                        print(f"  {colour(C_KW, 'Returns:')}     {colour(C_TYPE, doc['returns'])}")
                     else:
                         fn = BUILTINS[fn_name]
                         raw = fn.__doc__ or "No documentation available."
@@ -2014,7 +2147,7 @@ def run_repl(debug: bool = True):
                 continue
 
             # .tutorial commands - declare global first
-            if stripped == '.tutorial' or stripped == '.tutorial next' or stripped == '.tutorial prev' or stripped == '.tutorial end':
+            if stripped == '.tutorial' or stripped == '.tutorial next' or stripped == '.tutorial prev' or stripped == '.tutorial end' or stripped == '.hint':
                 global _tutorial_step, _tutorial_mode
 
             # .tutorial — Start interactive tutorial
@@ -2049,10 +2182,22 @@ def run_repl(debug: bool = True):
                 print(f"  {colour(C_OK, 'Tutorial ended. Happy coding!')}")
                 continue
 
+            # .hint — Show hint for current lesson
+            if stripped == '.hint':
+                if _tutorial_mode and _tutorial_step < len(_tutorial_steps):
+                    lesson = _tutorial_steps[_tutorial_step]
+                    print(f"  {colour(C_WARN, '➤ Hint:')} {colour(DIM, lesson['hint'])}")
+                    ex = lesson.get('exercise')
+                    if ex:
+                        print(f"  {colour(C_WARN, '✦ Challenge:')} {colour(DIM, ex)}")
+                else:
+                    print(f"  {colour(C_WARN, 'No active tutorial. Start with .tutorial')}")
+                continue
+
             # Handle tutorial mode input
             if _tutorial_mode:
                 if stripped.startswith('.'):
-                    print(f"  {colour(C_WARN, 'In tutorial mode. Try the code or use .tutorial next/prev/end')}")
+                    print(f"  {colour(C_WARN, 'In tutorial mode. Try the code or use .tutorial next/prev/end/.hint')}")
                 else:
                     # Execute user code and continue
                     pass
@@ -2815,12 +2960,12 @@ func __async_task__() {{
             _meta_cmds = {'.help','.types','.vars','.fns','.builtins','.modules','.version',
                           '.highlight','.colors','.vm','.clear','.history','.load','.save',
                           '.doc','.time','.which','.last','.undo','.redo','.alias',
-                          '.pretty','.stack','.session','.debug','.break','.watch','.locals',
+                           '.pretty','.stack','.session','.debug','.watch','.locals',
                           '.table','.theme','.themes','.tutorial','.plugin','.search','.examples',
                           '.export','.prompt','.json','.format','.cd','.ls','.pwd',
                           '.pipe','.bind','.edit','.profile','.bench','.sighelp','.typehints',
                           '.mem','.html','.plot','.bg','.jobs','.async','.serve','.compare',
-                          '.hist','.reload','.checkpoint','.restore','.macro','.sessions'}
+                           '.hint','.hist','.reload','.checkpoint','.restore','.macro','.sessions'}
             first_line = source.strip().split('\n')[0].strip()
             if not first_line in _meta_cmds and not first_line.startswith('.'):
                 _cmd_history.append(source)
@@ -2835,25 +2980,22 @@ func __async_task__() {{
                     _last_results.pop(0)
 
             # Auto-advance tutorial after successful code execution matching current lesson
-            if _tutorial_mode:
-                _tutorial_keywords = [
-                    ['var', 'let'],
-                    ['type('],
-                    ['[', 'append', 'len(', 'remove'],
-                    ['{', '"', 'keys(', 'items('],
-                    ['func'],
-                    ['if ', 'for ', 'while ', 'match'],
-                    ['class'],
-                    ['try'],
-                ]
-                _kw = _tutorial_keywords[_tutorial_step] if _tutorial_step < len(_tutorial_keywords) else []
+            if _tutorial_mode and _tutorial_step < len(_tutorial_steps):
+                lesson = _tutorial_steps[_tutorial_step]
+                _kw = lesson.get('keywords', [])
                 if not _kw or any(k in source for k in _kw):
+                    total = len(_tutorial_steps)
+                    pct = int((_tutorial_step + 1) / total * 100)
                     print()
-                    print(f"  {colour(C_OK, '✓ Good! Moving to next lesson...')}")
-                    _advance_tutorial()
+                    print(f"  {colour(C_OK, f'✓ Great! Lesson {_tutorial_step + 1}/{total} complete ({pct}%)')}")
+                    print(f"  {colour(DIM, '→ Type .tutorial next to continue')}")
                 else:
-                    lesson = _tutorial_steps[_tutorial_step]
-                    print(f"  {colour(C_WARN, chr(10007)+' Try the suggested example for: '+lesson['title'])}")
+                    ex = lesson.get('exercise')
+                    if ex:
+                        print(f"  {colour(C_WARN, '✗ Not quite — try the challenge:')}")
+                        print(f"    {colour(DIM, ex)}")
+                    else:
+                        print(f"  {colour(C_WARN, '✗ Try the example for: ' + lesson['title'])}")
                     print(f"    {colour(DIM, lesson['hint'])}")
         except KeyboardInterrupt:
             # Ctrl+C during execution - exit immediately

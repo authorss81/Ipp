@@ -16,45 +16,8 @@ from __future__ import annotations
 import re
 from typing import Optional, Callable
 
-# ── Token categories ──────────────────────────────────────────────────────────
-_KW = frozenset({
-    'func', 'class', 'var', 'let', 'const', 'if', 'elif', 'else',
-    'for', 'while', 'do', 'until', 'return', 'break', 'continue',
-    'import', 'from', 'as', 'try', 'catch', 'throw', 'finally',
-    'match', 'case', 'default', 'async', 'await', 'yield',
-    'extends', 'super', 'self', 'this', 'new', 'in', 'not', 'and',
-    'or', 'is', 'enum', 'interface', 'implements', 'static',
-    'pub', 'priv', 'mut', 'ref', 'defer', 'with', 'pass', 'del',
-})
-_ATOM = frozenset({'nil', 'true', 'false'})
-_BUILTIN = frozenset({
-    'print', 'str', 'int', 'float', 'bool', 'len', 'abs', 'type',
-    'range', 'assert', 'list', 'dict', 'set', 'tuple', 'max', 'min',
-    'sum', 'sorted', 'reversed', 'enumerate', 'zip', 'map', 'filter',
-    'input', 'chr', 'ord', 'hex', 'bin', 'oct', 'repr', 'hash', 'id',
-    'dir', 'vars', 'callable', 'hasattr', 'getattr', 'setattr',
-    'isinstance', 'issubclass', 'iter', 'next', 'open', 'round',
-    'pow', 'divmod', 'all', 'any', 'slice', 'eval',
-    'ipp_type', 'ipp_version', 'strip_ansi', 'json_parse',
-    'json_stringify', 'base64_encode', 'base64_decode',
-    'key_pressed', 'get_key', 'get_key_async', 'on_keydown',
-    'on_keyup', 'advance_frame', 'simulate_key_press',
-    'simulate_key_release', 'KEY',
-    'vec2', 'vec3', 'vec4', 'mat4', 'quat', 'complex', 'Color',
-    'Rect', 'Vector2', 'Vector3', 'Signal', 'deque', 'datetime',
-    'sqrt', 'sin', 'cos', 'tan', 'atan2', 'floor', 'ceil', 'log',
-    'exp', 'pi', 'tau', 'inf', 'random', 'randint', 'choice',
-    'shuffle', 'seed', 'async_run', 'format', 'sprintf',
-    'canvas', 'scene', 'node', 'camera', 'mesh', 'light',
-    'http_get', 'http_post', 'logger',
-})
-_TYPE = frozenset({
-    'Number', 'String', 'Bool', 'List', 'Dict', 'Set', 'Func',
-    'Class', 'Object', 'Vector2', 'Vector3', 'Vector4', 'Matrix4',
-    'Quaternion', 'Color', 'Rect', 'Complex', 'Signal',
-    'Error', 'TypeError', 'ValueError', 'IndexError', 'KeyError',
-    'RuntimeError', 'ZeroDivisionError',
-})
+# ── Token categories (shared with main.py via ipp/runtime/words.py) ──────────
+from ipp.runtime.words import KEYWORDS as _KW, ATOMS as _ATOM, BUILTIN_NAMES as _BUILTIN, TYPENAMES as _TYPE
 
 # ── Token types (string tags) ─────────────────────────────────────────────────
 TK_KW       = 'keyword'

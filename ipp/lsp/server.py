@@ -322,6 +322,80 @@ class IppLanguageServer:
             return {"documentChanges": [{"changes": changes}]}
         return None
 
+    def get_signature_help(self, uri: str, position: Dict) -> Optional[Dict]:
+        """Get signature information for function call at position."""
+        doc = self.documents.get(uri)
+        if not doc:
+            return None
+
+        content = doc.get("content", "")
+        line_num = position.get("line", 0)
+        lines = content.split("\n")
+        if line_num >= len(lines):
+            return None
+        line = lines[line_num]
+        char = position.get("character", len(line))
+
+        # Find the function name before '(' before cursor
+        before = line[:char]
+        idx = before.rfind('(')
+        if idx < 0:
+            return None
+
+        # Extract the function name (word before '(')
+        func_part = before[:idx].rstrip()
+        words = func_part.split()
+        fn_name = words[-1] if words else ""
+        # Strip chained calls: obj.method -> method
+        if '.' in fn_name:
+            fn_name = fn_name.split('.')[-1]
+        if not fn_name or not fn_name.isidentifier():
+            return None
+
+        # Look up in BUILTIN_DOCS first, then BUILTINS docstrings
+        try:
+            from ipp.runtime.docs import BUILTIN_DOCS
+            if fn_name in BUILTIN_DOCS:
+                d = BUILTIN_DOCS[fn_name]
+                sig = d['syntax']
+                params = []
+                # Parse comma-separated params from syntax string
+                if '(' in sig and ')' in sig:
+                    param_str = sig[sig.index('(')+1:sig.index(')')].strip()
+                    if param_str:
+                        params = [p.strip().split('=')[0].strip() for p in param_str.split(',') if p.strip()]
+                return {
+                    "signatures": [{
+                        "label": sig,
+                        "documentation": d['desc'],
+                        "parameters": [{"label": p} for p in params]
+                    }],
+                    "activeSignature": 0,
+                    "activeParameter": 0
+                }
+        except ImportError:
+            pass
+
+        try:
+            from ipp.runtime.builtins import BUILTINS
+            if fn_name in BUILTINS:
+                fn = BUILTINS[fn_name]
+                doc_str = fn.__doc__ or f"Builtin function: {fn_name}"
+                sig_line = doc_str.split('\n')[0] if doc_str else f"{fn_name}(...)"
+                return {
+                    "signatures": [{
+                        "label": sig_line,
+                        "documentation": doc_str,
+                        "parameters": []
+                    }],
+                    "activeSignature": 0,
+                    "activeParameter": 0
+                }
+        except ImportError:
+            pass
+
+        return None
+
 
 def main():
     """Main LSP server loop."""
@@ -383,6 +457,12 @@ def main():
                 uri = params.get("textDocument", {}).get("uri")
                 pos = params.get("position", {})
                 result = server.get_hover(uri, pos)
+                response["result"] = result
+            
+            elif method == "textDocument/signatureHelp":
+                uri = params.get("textDocument", {}).get("uri")
+                pos = params.get("position", {})
+                result = server.get_signature_help(uri, pos)
                 response["result"] = result
             
             elif method == "textDocument/documentSymbol":
