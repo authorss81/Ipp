@@ -38,6 +38,7 @@ BUILTIN_NAMES = frozenset({
     'async_run', 'format', 'sprintf',
     'canvas', 'scene', 'node', 'camera', 'mesh', 'light',
     'http_get', 'http_post', 'logger',
+    'key_down', 'key_up', 'key_name',
     'file_read', 'file_write', 'file_append', 'file_delete', 'file_exists',
     'gpu_init', 'gpu_close', 'gpu_is_open', 'gpu_size',
     'audio_load', 'audio_play', 'audio_stop', 'audio_volume',

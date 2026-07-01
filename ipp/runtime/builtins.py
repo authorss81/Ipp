@@ -541,10 +541,25 @@ def ipp_items(d):
     raise RuntimeError("items requires a dict")
 
 
+def ipp_methods(obj):
+    """Return list of method names for an Ipp object."""
+    if hasattr(obj, 'cls') and hasattr(obj.cls, 'methods'):
+        return list(obj.cls.methods.keys())
+    return [m for m in dir(obj) if callable(getattr(obj, m, None)) and not m.startswith('_')]
+
+
+def ipp_fields(obj):
+    """Return dict of field name→value for an Ipp object."""
+    if hasattr(obj, 'data') and isinstance(obj.data, dict):
+        return dict(obj.data)
+    if hasattr(obj, 'fields'):
+        return dict(obj.fields)
+    if isinstance(obj, dict):
+        return dict(obj)
+    return {}
+
+
 def ipp_has_key(d, key):
-    # FIX: Handle IppDict objects
-    if hasattr(d, 'has'):
-        return d.has(key)
     if hasattr(d, 'data'):
         return key in d.data
     return key in d
@@ -4490,6 +4505,8 @@ BUILTINS = {
     "values": ipp_values,
     "items": ipp_items,
     "has_key": ipp_has_key,
+    "methods": ipp_methods,
+    "fields": ipp_fields,
     "map": ipp_map,          # v1.9.2 global map(fn, list)
     "filter": ipp_filter,    # v1.9.2 global filter(fn, list)
     "reduce": ipp_reduce,    # v1.9.2 global reduce(fn, list, init?)

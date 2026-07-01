@@ -79,7 +79,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "2.0.25"
+VERSION = "2.1.0"
 
 # ─── Windows ANSI enablement — v1.7.9.1.2 ────────────────────────────────────
 def _enable_windows_ansi() -> bool:
@@ -626,7 +626,7 @@ class IppCompleter:
             '.load', '.save', '.doc', '.time', '.which', '.last',
             '.undo', '.redo', '.edit', '.profile', '.alias',
             '.highlight', '.mem', '.theme', '.themes',
-            '.cd', '.ls', '.pwd', '.bench', '.pretty', '.json', '.format',
+            '.cd', '.dir', '.ls', '.pwd', '.bench', '.pretty', '.json', '.format',
             '.html', '.plot', '.bg', '.jobs', '.async', '.serve', '.compare',
             '.checkpoint', '.restore', '.macro', '.export', '.prompt',
             '.pipe', '.bind', '.search', '.plugin', '.session', '.reload',
@@ -960,6 +960,7 @@ def print_help():
         (".cd <dir>",       "Change directory"),
         (".ls [dir]",       "List directory contents"),
         (".pwd",            "Print working directory"),
+        (".dir <expr>",     "Inspect object attributes"),
         (".pipe <cmd>",     "Pipe output to shell command"),
         (".bind <key> cmd", "Set custom key binding"),
         (".search <kw>",    "Search builtin documentation"),
@@ -968,6 +969,7 @@ def print_help():
         (".tutorial next",  "Next lesson"),
         (".tutorial prev",  "Previous lesson"),
         (".tutorial end",   "Exit tutorial"),
+        (".tutorial reset", "Restart tutorial"),
         (".hint",           "Show tutorial hint"),
         (".plugin load f",  "Load plugin file"),
         (".debug start",    "Start step-through debugger"),
@@ -1976,6 +1978,46 @@ def run_repl(debug: bool = True):
                 print(f"  {colour(DIM, f'Expression history: {len(_last_results)} results')}")
                 continue
 
+            # .dir <expr> — Inspect object attributes
+            m = re.match(r'\.dir\s+(.+)$', stripped)
+            if m:
+                expr = m.group(1)
+                try:
+                    tokens = tokenize(expr)
+                    ast = parse(tokens)
+                    interp = interp_manager.get_interpreter()
+                    interp.run(ast)
+                    obj = interp.return_value if interp.return_value is not None else interp.last_value
+                    interp.return_value = None
+                    interp.last_value = None
+                    if obj is None:
+                        print(f"  {colour(DIM, '(no result)')}")
+                        continue
+                    attrs = []
+                    if hasattr(obj, 'cls') and hasattr(obj.cls, 'methods'):
+                        for name in obj.cls.methods:
+                            attrs.append((name, 'method'))
+                    if hasattr(obj, 'data') and isinstance(obj.data, dict):
+                        for k in obj.data:
+                            attrs.append((str(k), 'field'))
+                    if hasattr(obj, 'elements'):
+                        attrs.append(('length', f"len={len(obj.elements)}"))
+                    if hasattr(obj, '__dict__'):
+                        for k, v in obj.__dict__.items():
+                            if not k.startswith('_'):
+                                attrs.append((k, type(v).__name__))
+                    if not attrs:
+                        attrs.append(('(type)', type(obj).__name__))
+                    print(f"  {colour(C_CMD, '─' * 40)}")
+                    print(f"  {colour(C_CMD, f'.dir({expr})')}")
+                    print(f"  {colour(C_CMD, '─' * 40)}")
+                    for name, kind in sorted(attrs, key=lambda x: x[0]):
+                        c = C_FN if kind == 'method' else C_TYPE if kind == 'field' else DIM
+                        print(f"  {colour(DIM, '→')} {colour(c, name)} {colour(DIM, f'({kind})')}")
+                except Exception as e:
+                    print(f"  {colour(C_ERROR, str(e))}")
+                continue
+
             # .session save — Save session state
             m = re.match(r'\.session\s+(save|load|clear)$', stripped)
             if m:
@@ -2147,7 +2189,7 @@ def run_repl(debug: bool = True):
                 continue
 
             # .tutorial commands - declare global first
-            if stripped == '.tutorial' or stripped == '.tutorial next' or stripped == '.tutorial prev' or stripped == '.tutorial end' or stripped == '.hint':
+            if stripped == '.tutorial' or stripped == '.tutorial next' or stripped == '.tutorial prev' or stripped == '.tutorial end' or stripped == '.tutorial reset' or stripped == '.hint':
                 global _tutorial_step, _tutorial_mode
 
             # .tutorial — Start interactive tutorial
@@ -2180,6 +2222,14 @@ def run_repl(debug: bool = True):
                 _tutorial_mode = False
                 _tutorial_step = 0
                 print(f"  {colour(C_OK, 'Tutorial ended. Happy coding!')}")
+                continue
+
+            # .tutorial reset — Restart from lesson 1
+            if stripped == '.tutorial reset':
+                _tutorial_step = 0
+                if not _tutorial_mode:
+                    _tutorial_mode = True
+                _run_tutorial_step()
                 continue
 
             # .hint — Show hint for current lesson
@@ -2783,9 +2833,11 @@ func __async_task__() {{
                 if not _last_results:
                     print(f"  {colour(DIM, '(no results yet)')}")
                 else:
-                    print(f"  {colour(C_CMD, 'Last Results:')}")
-                    for idx, val in reversed(_last_results[-10:]):
+                    print(f"  {colour(C_CMD, f'Expression History ({len(_last_results)} total):')}")
+                    for idx, val in reversed(_last_results[-15:]):
                         print(f"  {colour(DIM, f'$_{idx}:')} {format_output(val)}")
+                    if len(_last_results) > 15:
+                        print(f"  {colour(DIM, f'... and {len(_last_results) - 15} more')}")
                 continue
 
             # .reload [module] — Reload imported module
@@ -2959,7 +3011,7 @@ func __async_task__() {{
             # Only append Ipp code to history (skip meta commands)
             _meta_cmds = {'.help','.types','.vars','.fns','.builtins','.modules','.version',
                           '.highlight','.colors','.vm','.clear','.history','.load','.save',
-                          '.doc','.time','.which','.last','.undo','.redo','.alias',
+                           '.dir','.doc','.time','.which','.last','.undo','.redo','.alias',
                            '.pretty','.stack','.session','.debug','.watch','.locals',
                           '.table','.theme','.themes','.tutorial','.plugin','.search','.examples',
                           '.export','.prompt','.json','.format','.cd','.ls','.pwd',

@@ -623,3 +623,219 @@ _doc("get_args",
     desc="Return a list of command-line arguments passed to the script.",
     example='get_args()  -> ["script.ipp", "arg1", "arg2"]',
     returns="list")
+
+_doc("methods",
+    syntax="methods(obj)",
+    desc="Return a list of method names available on an Ipp object.",
+    example='class Dog { func bark() {} }\nvar d = Dog()\nmethods(d)  -> ["bark", "init"]',
+    returns="list")
+
+_doc("fields",
+    syntax="fields(obj)",
+    desc="Return a dict of field name/value pairs for an Ipp object.",
+    example='class Dog { func init() { this.name = "Rex" } }\nvar d = Dog()\nfields(d)  -> {"name": "Rex"}',
+    returns="dict")
+
+_doc("write_file",
+    syntax="write_file(path, content)",
+    desc="Write string content to a file, overwriting if it exists.",
+    example='write_file("data.txt", "Hello World")  -> true',
+    returns="bool")
+
+_doc("read_file",
+    syntax="read_file(path)",
+    desc="Read the entire contents of a file as a string.",
+    example='var data = read_file("data.txt")',
+    returns="string or nil")
+
+_doc("delete_file",
+    syntax="delete_file(path)",
+    desc="Delete a file from the filesystem.",
+    example='delete_file("temp.txt")  -> true',
+    returns="bool")
+
+_doc("list_dir",
+    syntax="list_dir(path='.')",
+    desc="List the contents of a directory as a list of strings.",
+    example='list_dir()        -> ["file1.txt", "folder/"]\nlist_dir("/home") -> ["user1", "user2"]',
+    returns="list")
+
+_doc("sleep",
+    syntax="sleep(seconds)",
+    desc="Pause execution for the given number of seconds.",
+    example='sleep(1)    # pause 1 second\nsleep(0.5)  # pause 500ms',
+    returns="nil")
+
+_doc("now",
+    syntax="now()",
+    desc="Return the current date/time as an ISO 8601 string.",
+    example='now()  -> "2026-07-01T12:00:00.000000"',
+    returns="string")
+
+_doc("printf",
+    syntax="printf(format, ...)",
+    desc="Print formatted string with % placeholders (like C printf).",
+    example='printf("Value: %d, Name: %s", 42, "Alice")',
+    returns="nil")
+
+_doc("sprintf",
+    syntax="sprintf(format, ...)",
+    desc="Return a formatted string with % placeholders (like C sprintf).",
+    example='sprintf("Pi ≈ %.2f", 3.14159)  -> "Pi ≈ 3.14"',
+    returns="string")
+
+_doc("glob",
+    syntax="glob(pattern)",
+    desc="Return a list of file paths matching the given glob pattern.",
+    example='glob("*.ipp")  -> ["main.ipp", "test.ipp"]',
+    returns="list")
+
+_doc("insert",
+    syntax="insert(list, index, value)",
+    desc="Insert a value into a list at the given index, shifting elements right.",
+    example='var a = [1, 3, 4]\ninsert(a, 1, 2)\nprint(a)  -> [1, 2, 3, 4]',
+    returns="nil")
+
+_doc("pop",
+    syntax="pop(list, index=-1)",
+    desc="Remove and return the element at the given index (default last).",
+    example='var a = [1, 2, 3]\nvar v = pop(a)\nprint(v)  -> 3\nprint(a)  -> [1, 2]',
+    returns="any")
+
+_doc("clear",
+    syntax="clear(list_or_dict)",
+    desc="Remove all elements from a list or all keys from a dict.",
+    example='var a = [1, 2, 3]\nclear(a)\nprint(a)  -> []',
+    returns="nil")
+
+_doc("uuid",
+    syntax="uuid()",
+    desc="Generate a random UUID v4 string.",
+    example='uuid()  -> "70b5953b-10ce-4a8e-ab81-049758c6439d"',
+    returns="string")
+
+_doc("get_env",
+    syntax="get_env(name)",
+    desc="Get the value of an environment variable, or nil if not set.",
+    example='get_env("PATH")  -> "/usr/bin:/bin"',
+    returns="string or nil")
+
+_doc("get_args",
+    syntax="get_args()",
+    desc="Return a list of command-line arguments passed to the script.",
+    example='get_args()  -> ["script.ipp", "arg1", "arg2"]',
+    returns="list")
+
+_doc("inspect",
+    syntax="inspect(obj, label=nil)",
+    desc="Register an object for live overlay inspection in the canvas window.",
+    example='var player = {"x": 100, "y": 200}\ninspect(player, "Player")',
+    returns="nil")
+
+_doc("breakpoint",
+    syntax="breakpoint()",
+    desc="Pause execution and enter the debugger at this line.",
+    example='func test() {\n    breakpoint()\n    print("after debug")\n}',
+    returns="nil")
+
+_doc("key_name",
+    syntax="key_name(scancode)",
+    desc="Convert a scancode integer or key string to its normalized key name.",
+    example='key_name(65)     -> "a"\nkey_name("Enter") -> "enter"',
+    returns="string")
+
+_doc("key_down",
+    syntax="key_down(key)",
+    desc="Check if a key is currently held down.",
+    example='if key_down("space") { print("jumping!") }',
+    returns="bool")
+
+_doc("key_up",
+    syntax="key_up(key)",
+    desc="Check if a key was just released.",
+    example='if key_up("space") { print("landed!") }',
+    returns="bool")
+
+_doc("ascii",
+    syntax="ascii(char)",
+    desc="Return the ASCII code of a character.",
+    example='ascii("A") -> 65\nascii(" ") -> 32',
+    returns="number")
+
+_doc("chr",
+    syntax="chr(code)",
+    desc="Return the character for the given ASCII/Unicode code point.",
+    example='chr(65) -> "A"\nchr(32) -> " "',
+    returns="string")
+
+_doc("ord",
+    syntax="ord(char)",
+    desc="Alias for ascii — return the code point of a character.",
+    example='ord("A") -> 65',
+    returns="number")
+
+_doc("hex",
+    syntax="hex(number)",
+    desc="Return the hexadecimal string representation of a number.",
+    example='hex(255) -> "ff"',
+    returns="string")
+
+_doc("bin",
+    syntax="bin(number)",
+    desc="Return the binary string representation of a number.",
+    example='bin(10) -> "1010"',
+    returns="string")
+
+_doc("assert_eq",
+    syntax="assert_eq(a, b)",
+    desc="Assert that two values are equal; print error message if not.",
+    example='assert_eq(2+2, 4)  # passes silently\nassert_eq(1, 2)    # prints error',
+    returns="nil")
+
+_doc("isclose",
+    syntax="isclose(a, b, rel_tol=1e-9)",
+    desc="Check if two floats are approximately equal within a relative tolerance.",
+    example='isclose(0.1+0.2, 0.3) -> true',
+    returns="bool")
+
+_doc("sign",
+    syntax="sign(x)",
+    desc="Return 1 for positive numbers, -1 for negative, 0 for zero.",
+    example='sign(5)  -> 1\nsign(-3) -> -1\nsign(0)  -> 0',
+    returns="number")
+
+_doc("gcd",
+    syntax="gcd(a, b)",
+    desc="Return the greatest common divisor of two numbers.",
+    example='gcd(12, 8) -> 4\ngcd(100, 75) -> 25',
+    returns="number")
+
+_doc("lcm",
+    syntax="lcm(a, b)",
+    desc="Return the least common multiple of two numbers.",
+    example='lcm(4, 6)  -> 12\nlcm(12, 18) -> 36',
+    returns="number")
+
+_doc("hypot",
+    syntax="hypot(x, y)",
+    desc="Return sqrt(x^2 + y^2), the hypotenuse of a right triangle.",
+    example='hypot(3, 4) -> 5.0',
+    returns="number")
+
+_doc("factorial",
+    syntax="factorial(n)",
+    desc="Return n! (n factorial), the product of 1..n.",
+    example='factorial(5)  -> 120\nfactorial(10) -> 3628800',
+    returns="number")
+
+_doc("all",
+    syntax="all(list)",
+    desc="Return true if all elements in the list are truthy.",
+    example='all([true, true, false]) -> false\nall([1, 2, 3])       -> true',
+    returns="bool")
+
+_doc("any",
+    syntax="any(list)",
+    desc="Return true if any element in the list is truthy.",
+    example='any([false, false, true]) -> true\nany([0, nil, false])    -> false',
+    returns="bool")
