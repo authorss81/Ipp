@@ -79,7 +79,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "2.1.0.1"
+VERSION = "2.1.0.2.1"
 
 # ─── Windows ANSI enablement — v1.7.9.1.2 ────────────────────────────────────
 def _enable_windows_ansi() -> bool:
@@ -529,7 +529,7 @@ def _bar(ch=None, w=58):
         ch = '-' if not _UNI else '─'
     return colour(C_HEADER, ch * w)
 
-def print_banner():
+def print_banner(use_vm: bool = True):
     W = shutil.get_terminal_size((80, 24)).columns
     pad = max(0, (W - 62) // 2)
     sp = ' ' * pad
@@ -569,6 +569,9 @@ def print_banner():
                      if _HAS_HIGHLIGHT else
                      DIM("  syntax highlighting off  pip install prompt_toolkit"))
         print(sp + hl_status)
+    mode_text = colour(C_OK, "  >> VM mode") if use_vm else colour(C_HEADER, "  >> Interpreter mode")
+    switch_hint = DIM(" (.vm interpreter to switch)" if use_vm else " (.vm vm to switch)")
+    print(sp + mode_text + switch_hint)
     print()
 
 # ─── Readline / autocomplete ──────────────────────────────────────────────────
@@ -1549,7 +1552,7 @@ def run_repl(debug: bool = True):
     interp_manager = InterpreterManager(debug=debug)
     interp = interp_manager.get_interpreter()
     setup_readline(interp)
-    print_banner()
+    print_banner(use_vm=interp_manager.use_vm)
     _enable_interrupt_handling()
 
     # v2.0.25 — Wire VM debug REPL through prompt_toolkit when available

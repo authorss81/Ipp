@@ -82,6 +82,12 @@ print(f'{passed} pass / {failed} fail')
 |---------|------------------------------|
 | v2.1.0 | Object introspection (`methods()`, `fields()`), 10 new builtin docs (103→113), shared words module, LSP signatureHelp, `.dir`/`.hint`/`.tutorial reset` commands, all 14 critical REPL issues fixed, Windows UTF-8 encoding, operator overloading (10 new dunders both runtimes), MatchExpr VM fix, `.doc` colorized output. Version tagged but interpreter archiving deferred to micro-versions. |
 | v2.1.0.1 | **REPL defaults to VM** — `use_vm = True` in `InterpreterManager.__init__`. All execution (REPL, scripts) uses the VM by default. `.vm interpreter` still works for fallback. |
+| v2.1.0.2.1 | **REPL banner shows VM mode** — `print_banner()` now shows ">> VM mode" when VM is active. ROADMAP version table synced with all v2.1.0.x entries. |
+| v2.1.0.2.2 | (planned) **Clean stale .ippc cache files** — Remove 100+ stale bytecode cache artifacts from `tests/` directories. |
+| v2.1.0.2.3 | (planned) **Create `ipp/runtime/types.py` facade** — New module re-exporting `IppList`, `IppDict`, `IppSet`, `IppRange` from `interpreter.py`. Update VM's lazy imports to use canonical path. |
+| v2.1.0.2.4 | (planned) **Update builtins.py imports** — Redirect all lazy imports in `builtins.py` from `ipp.interpreter.interpreter` to `ipp.runtime.types`. |
+| v2.1.0.2.5 | (planned) **Update remaining import sites** — Fix imports in `main.py`, `lsp/server.py`, benchmarks. `interpreter.py` imports from `runtime.types`. |
+| v2.1.0.2.6 | (planned) **Move class definitions to `runtime/types.py`** — Transfer the actual class bodies from `interpreter.py` to `runtime/types.py`. `interpreter.py` imports from there. Breaks the circular-import pattern permanently. |
 
 **v2.0.x completed versions:**
 | Version | What was actually implemented | Planned equivalent |
@@ -8350,29 +8356,81 @@ The original Phase E goal ("Merge Interpreter Into VM") is broken into micro-ver
 
 ---
 
-### v2.1.0.2 — Move Shared Types to `ipp/runtime/types.py`
+### v2.1.0.2.x — Shared Type Refactoring (sub-micro breakdown)
 
-**What:** Extract `IppList`, `IppDict`, `IppSet`, `IppRange`, `IppFunction`, `IppClass`, `IppInstance` from `ipp/interpreter/interpreter.py` into a new `ipp/runtime/types.py` module. Update all imports in `builtins.py`, `vm.py`, `main.py`, and `interpreter.py` to import from the shared location.
-
-**Why:** Eliminates the circular-import pattern where `builtins.py` and `vm.py` lazily import types from the interpreter. Paves the way to archive the interpreter without breaking the type system.
-
-**Risk:** High — 69 import sites across 8 files must be updated without breaking type identity (IppInstance created in one path must be recognized in another).
+The goal of v2.1.0.2 is to establish `ipp/runtime/types.py` as the canonical import location for all Ipp runtime types, then eventually move class definitions there. This is broken into sub-micro versions to minimize risk.
 
 ---
 
-### v2.1.0.3 — Archive Interpreter
+#### v2.1.0.2.1 — REPL Banner Shows VM Mode + ROADMAP Sync
+
+**What:** `print_banner()` now displays the current execution mode (VM vs Interpreter) on startup. ROADMAP version table updated with all v2.1.0.x entries.
+
+**Files changed:** `ipp/main.py` (print_banner), ROADMAP.md (version table).
+
+**Risk:** Low — display-only change, no logic impact.
+
+**Test:** Full suite must pass. `.vm` command still shows correct mode.
+
+---
+
+#### v2.1.0.2.2 — Clean Stale `.ippc` Cache Files
+
+**What:** Remove all `.ippc` files from `tests/` directories (100+ stale bytecode cache artifacts from an earlier pipeline). The current `run_tests.py` always recompiles from source.
+
+**Files changed:** None (deletions only).
+
+**Risk:** Low — `.ippc` files are never read by current code. Deletion confirmed by test suite passing.
+
+---
+
+#### v2.1.0.2.3 — Create `ipp/runtime/types.py` Facade + Update VM
+
+**What:** Create `ipp/runtime/types.py` importing and re-exporting `IppList`, `IppDict`, `IppSet`, `IppRange` from `interpreter.py`. Update all lazy imports in `vm.py` (12 sites) to use the new canonical path.
+
+**Why:** Establishes the canonical import location. VM becomes the first consumer of the new module.
+
+**Risk:** Medium — all 12 import sites in `vm.py` must be updated without breaking type identity. Verified by full test suite.
+
+---
+
+#### v2.1.0.2.4 — Update `builtins.py` Imports
+
+**What:** Redirect all ~30 lazy imports in `builtins.py` from `ipp.interpreter.interpreter` to `ipp.runtime.types`.
+
+**Risk:** Medium — same approach as v2.1.0.2.3, larger scope. Builtins are exercised by nearly every test.
+
+---
+
+#### v2.1.0.2.5 — Update Remaining Import Sites
+
+**What:** Fix imports in `main.py`, `lsp/server.py`, benchmark scripts. After this step, `interpreter.py` can import from `runtime.types` without circularity.
+
+**Risk:** Low — all remaining sites follow the same pattern.
+
+---
+
+#### v2.1.0.2.6 — Move Class Definitions to `runtime/types.py`
+
+**What:** Transfer the actual class bodies (`IppList`, `IppDict`, `IppSet`, `IppRange`, `IppFunction`, `IppClass`, `IppInstance`) from `interpreter.py` to `runtime/types.py`. `interpreter.py` imports from `runtime.types` instead. The interpreter-specific methods (e.g. `_ipp_map`, `_ipp_filter`) remain in `interpreter.py` via subclassing or function-based dispatch.
+
+**Why:** This is the terminal goal of the refactoring — the type system lives in `ipp/runtime/`, not in the interpreter. Paves the way to archive the interpreter (v2.1.0.3).
+
+**Risk:** High — class identity and method dispatch must be preserved. Test suite must pass before and after.
+
+---
+
+#### v2.1.0.3 — Archive Interpreter
 
 **What:** Move `ipp/interpreter/interpreter.py` → `ipp/interpreter/legacy.py`. All execution goes through the VM. The legacy file is kept for reference but not imported by any production code.
 
 **Checklist before doing this:**
 - [x] All Phase A–D tests pass in VM mode
 - [x] v2.1.0.1 ensures VM is default, proving no REPL regression
-- [ ] v2.1.0.2 breaks circular imports, so archiving is clean
+- [ ] v2.1.0.2.x breaks circular imports, so archiving is clean
 - [ ] No feature exists only in the interpreter
 
 ---
-
-### v2.1.1 — Per-Opcode Unit Test Suite
 
 ### v2.1.1 — Per-Opcode Unit Test Suite
 
