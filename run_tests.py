@@ -224,6 +224,7 @@ TESTS = [
     ("v2.0.25-debugger-multi","tests/v2_0_25/test_debugger_multi.ipp"),
     ("v2.0.25-repl-improvements","tests/v2_0_25/test_repl_improvements.py"),
     ("v2.1.0-inspect","tests/v2_1_0/test_inspect.ipp"),
+    ("v2.1.0.2.1-banner","tests/v2_1_0_2_1/test_banner_mode.py"),
 ]
 
 passed=failed=0
