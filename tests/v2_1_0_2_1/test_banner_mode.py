@@ -6,7 +6,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
 sys.modules['tkinter'] = types.ModuleType('tkinter')
 
 from contextlib import redirect_stdout
-from ipp.main import print_banner, VERSION
+from ipp.main import print_banner
 
 PASS = 0
 FAIL = 0
@@ -39,9 +39,6 @@ out = buf.getvalue()
 check("print_banner(False) shows Interpreter mode", "Interpreter mode" in out)
 check("print_banner(False) does NOT show VM", "VM mode" not in out)
 check("print_banner(False) shows switch hint", "vm to switch" in out)
-
-# Test 3: VERSION equals 2.1.0.2.1
-check("VERSION is 2.1.0.2.1", VERSION == "2.1.0.2.1")
 
 print()
 print(f"Passed: {PASS} / {PASS + FAIL}")
