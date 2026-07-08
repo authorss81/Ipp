@@ -227,6 +227,8 @@ TESTS = [
     ("v2.1.0.1-default-vm","tests/v2_1_0_1/test_default_vm.py"),
     ("v2.1.0.2.1-banner","tests/v2_1_0_2_1/test_banner_mode.py"),
     ("v2.1.0.2.2-no-ippc","tests/v2_1_0_2_2/test_no_ippc.py"),
+    ("v2.1.0.2.3-types-import","tests/v2_1_0_2_3/test_types_import.py"),
+    ("v2.1.0.2.3-types-behavior","tests/v2_1_0_2_3/test_types_behavior.ipp"),
 ]
 
 passed=failed=0

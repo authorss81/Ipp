@@ -710,7 +710,7 @@ class VM:
     def _init_builtins(self):
         import random, json, datetime, base64, hashlib, re, os, time as time_mod
         from ipp.runtime.builtins import BUILTINS as _INTERP_BUILTINS
-        from ipp.interpreter.interpreter import IppDict, IppList
+        from ipp.runtime.types import IppDict, IppList
 
         def wasm_run(wasm_code):
             import os as os_mod
@@ -1186,7 +1186,7 @@ class VM:
         if hasattr(obj, 'chunk') and hasattr(obj, 'arity'):    return "func"   # IppFunction duck
         if hasattr(obj, 'methods') and hasattr(obj, 'superclass'): return "class"
         try:
-            from ipp.interpreter.interpreter import IppFunction as _IFn
+            from ipp.runtime.types import IppFunction as _IFn
             if isinstance(obj, _IFn): return "func"
         except Exception:
             pass
@@ -1199,7 +1199,7 @@ class VM:
         return sum(args)
 
     def _builtin_range(self, *args):
-        from ipp.interpreter.interpreter import IppRange
+        from ipp.runtime.types import IppRange
         if len(args) == 1:   return IppRange(int(args[0]))
         if len(args) == 2:   return IppRange(int(args[0]), int(args[1]))
         if len(args) == 3:   return IppRange(int(args[0]), int(args[1]), int(args[2]))
@@ -1445,7 +1445,7 @@ class VM:
 
     def _builtin_set(self, *args):
         """FIX BUG-NEW-M6 — set() / set(iterable) factory."""
-        from ipp.interpreter.interpreter import IppSet, IppList
+        from ipp.runtime.types import IppSet, IppList
         if not args:
             return IppSet()
         iterable = args[0]
@@ -2628,7 +2628,7 @@ class VM:
                     result = isinstance(value, list)
                     if not result:
                         try:
-                            from ipp.interpreter.interpreter import IppList as _IppList
+                            from ipp.runtime.types import IppList as _IppList
                             result = isinstance(value, _IppList)
                         except ImportError:
                             pass
@@ -2636,7 +2636,7 @@ class VM:
                     result = isinstance(value, dict)
                     if not result:
                         try:
-                            from ipp.interpreter.interpreter import IppDict as _IppDict
+                            from ipp.runtime.types import IppDict as _IppDict
                             result = isinstance(value, _IppDict)
                         except ImportError:
                             pass
@@ -2646,7 +2646,7 @@ class VM:
                     result = isinstance(value, (set, frozenset))
                     if not result:
                         try:
-                            from ipp.interpreter.interpreter import IppSet as _IppSet
+                            from ipp.runtime.types import IppSet as _IppSet
                             result = isinstance(value, _IppSet)
                         except ImportError:
                             pass
@@ -2752,7 +2752,7 @@ class VM:
             # Apply alias or selective import
             if alias and isinstance(alias, str):
                 # import "mod" as u  → create dict-like namespace
-                from ipp.interpreter.interpreter import IppDict
+                from ipp.runtime.types import IppDict
                 ns = IppDict(dict(new_globals))
                 self.globals[alias] = ns
             elif names and isinstance(names, (list, tuple)):
@@ -2855,7 +2855,7 @@ class VM:
         elif opcode == OpCode.RANGE:
             b = self.stack.pop()
             a = self.stack.pop()
-            from ipp.interpreter.interpreter import IppRange
+            from ipp.runtime.types import IppRange
             self.stack.append(IppRange(int(a), int(b)))
 
         # ── Arithmetic ───────────────────────────────────────────────────
@@ -3083,7 +3083,7 @@ class VM:
         elif opcode == OpCode.EQUAL:
             b, a = self.stack.pop(), self.stack.pop()
             # FIX: normalize IppList for comparison
-            from ipp.interpreter.interpreter import IppList as _IppList2
+            from ipp.runtime.types import IppList as _IppList2
             if isinstance(a, _IppList2): a = a.elements
             if isinstance(b, _IppList2): b = b.elements
             # FIX: dispatch to __eq__ on Ipp class instances
@@ -3515,7 +3515,7 @@ class VM:
         proto_param_count = len(getattr(proto, 'param_names', None) or []) if proto else 0
         expected_args = proto_param_count or (len(chunk.locals) if hasattr(chunk, 'locals') else 0)
 
-        from ipp.interpreter.interpreter import IppList as _IppList
+        from ipp.runtime.types import IppList as _IppList
         base = len(self.stack)
         if variadic_param:
             normal_count = max(0, expected_args - 1)
@@ -3585,7 +3585,7 @@ class VM:
         # expected_args = number of regular (non-variadic) params including self
         expected_args = proto_param_count + 1  # +1 for 'self'
 
-        from ipp.interpreter.interpreter import IppList as _IppList
+        from ipp.runtime.types import IppList as _IppList
         base = len(self.stack)
         self.stack.append(instance)   # slot 0 = self
         if variadic_param:
