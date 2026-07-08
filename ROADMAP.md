@@ -1,8 +1,8 @@
 # Ipp Language Roadmap v4
-> **Current version:** `2.0.25`
-> **Status:** 180 regression tests pass. v1.x bug-fix phase complete. v2.0.x through Debugger with Breakpoints complete.
-> **Phase D4:** v2.0.22 GPU + v2.0.23 Physics + v2.0.24 Audio + v2.0.25 Debugger done. Next: v2.1.0 Merge Interpreter.
-> **This roadmap:** Complete from v1.7.6 through v2.1.5. Some actual v2.0.x versions diverged from original plan — see VERSION STATUS.
+> **Current version:** `2.1.0.1`
+> **Status:** All 182 tests pass. v2.1.0 delivered (introspection, docs, REPL fixes). Phase E begun with VM-default rollout.
+> **Phase D4:** v2.0.22 GPU + v2.0.23 Physics + v2.0.24 Audio + v2.0.25 Debugger done.
+> **This roadmap:** Complete from v1.7.6 through v2.1.6. Some actual versions diverged from original plan — see VERSION STATUS.
 
 ---
 
@@ -73,9 +73,15 @@ print(f'{passed} pass / {failed} fail')
 
 ## VERSION STATUS ✅
 
-**Current: v2.0.25** — VERSION in `ipp/main.py` = `"2.0.25"`.
+**Current: v2.1.0.1** — VERSION in `ipp/main.py` = `"2.1.0.1"`.
 
 **v1.x phase fully complete.** All bugs BUG-001 through BUG-026 are fixed. All regression tests pass.
+
+**Phase E in progress — micro-versions under v2.1.0.x:**
+| Version | What was actually implemented |
+|---------|------------------------------|
+| v2.1.0 | Object introspection (`methods()`, `fields()`), 10 new builtin docs (103→113), shared words module, LSP signatureHelp, `.dir`/`.hint`/`.tutorial reset` commands, all 14 critical REPL issues fixed, Windows UTF-8 encoding, operator overloading (10 new dunders both runtimes), MatchExpr VM fix, `.doc` colorized output. Version tagged but interpreter archiving deferred to micro-versions. |
+| v2.1.0.1 | **REPL defaults to VM** — `use_vm = True` in `InterpreterManager.__init__`. All execution (REPL, scripts) uses the VM by default. `.vm interpreter` still works for fallback. |
 
 **v2.0.x completed versions:**
 | Version | What was actually implemented | Planned equivalent |
@@ -8320,20 +8326,53 @@ func update(enemy) {
 
 ---
 
-## Phase E: Architecture and Performance (v2.1.0+)
+## Phase E: Architecture and Performance (v2.1.0.x → v2.1.x)
 
 ---
 
-### v2.1.0 — Merge Interpreter Into VM (Archive Tree-Walker)
+### v2.1.0 — Scope Delivered ✅
 
-Move `ipp/interpreter/interpreter.py` to `ipp/interpreter/legacy.py`. All execution goes through the VM. This is required before any native rewrite because it makes the VM the single source of truth.
+The `2.1.0` tag covers the REPL overhaul, introspection builtins, documentation system, operator overloading, MatchExpr fix, Windows UTF-8, LSP signatureHelp, and the shared words module. See VERSION STATUS table above.
+
+The original Phase E goal ("Merge Interpreter Into VM") is broken into micro-versions below.
+
+---
+
+### v2.1.0.1 — REPL Defaults to VM ✅
+
+**What:** `InterpreterManager.__init__()` sets `self.use_vm = True` instead of `False`. The REPL, scripts, and all execution paths go through the VM by default. The interpreter is still available via `.vm interpreter` for debugging.
+
+**Why first:** Validates that the VM is production-ready as the default execution engine before any invasive refactoring.
+
+**Files changed:** `ipp/main.py` (line 1267: `use_vm = True`), VERSION bump.
+
+**Test:** Full 182-test suite must pass. All existing REPL behaviour preserved.
+
+---
+
+### v2.1.0.2 — Move Shared Types to `ipp/runtime/types.py`
+
+**What:** Extract `IppList`, `IppDict`, `IppSet`, `IppRange`, `IppFunction`, `IppClass`, `IppInstance` from `ipp/interpreter/interpreter.py` into a new `ipp/runtime/types.py` module. Update all imports in `builtins.py`, `vm.py`, `main.py`, and `interpreter.py` to import from the shared location.
+
+**Why:** Eliminates the circular-import pattern where `builtins.py` and `vm.py` lazily import types from the interpreter. Paves the way to archive the interpreter without breaking the type system.
+
+**Risk:** High — 69 import sites across 8 files must be updated without breaking type identity (IppInstance created in one path must be recognized in another).
+
+---
+
+### v2.1.0.3 — Archive Interpreter
+
+**What:** Move `ipp/interpreter/interpreter.py` → `ipp/interpreter/legacy.py`. All execution goes through the VM. The legacy file is kept for reference but not imported by any production code.
 
 **Checklist before doing this:**
-- All Phase A–D tests pass in VM mode
-
-- No feature exists only in the interpreter
+- [x] All Phase A–D tests pass in VM mode
+- [x] v2.1.0.1 ensures VM is default, proving no REPL regression
+- [ ] v2.1.0.2 breaks circular imports, so archiving is clean
+- [ ] No feature exists only in the interpreter
 
 ---
+
+### v2.1.1 — Per-Opcode Unit Test Suite
 
 ### v2.1.1 — Per-Opcode Unit Test Suite
 

@@ -79,7 +79,7 @@ def _disable_interrupt_handling():
     if sys.platform != "win32":
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
-VERSION = "2.1.0"
+VERSION = "2.1.0.1"
 
 # ─── Windows ANSI enablement — v1.7.9.1.2 ────────────────────────────────────
 def _enable_windows_ansi() -> bool:
@@ -1264,7 +1264,7 @@ class InterpreterManager:
     def __init__(self, debug: bool = True):
         self.interpreter = Interpreter()
         self.vm_interpreter = VMInterpreter(debug=debug)
-        self.use_vm = False
+        self.use_vm = True
     
     def get_interpreter(self):
         return self.vm_interpreter if self.use_vm else self.interpreter

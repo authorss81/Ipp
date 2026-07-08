@@ -111,6 +111,7 @@ class REPLTest:
         # ── 3. .vm STATE TRANSFER ──
         print("\n── .vm State Transfer ──")
         im2 = InterpreterManager()
+        im2.switch_to('interpreter')  # start in interpreter mode to test transfer
         im2.interpreter.global_env.values['test_var'] = 42
         im2.switch_to('vm')
         self.test("Interpreter→VM transfer", lambda: im2.vm_interpreter.global_env.values.get('test_var') == 42)
