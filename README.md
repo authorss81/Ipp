@@ -2,7 +2,7 @@
 
 # Ipp Language
 
-<img src="https://img.shields.io/badge/version-2.0.24-blue.svg" alt="Version">
+<img src="https://img.shields.io/badge/version-2.1.0.2.3,-blue.svg" alt="Version">
 <img src="https://img.shields.io/badge/python-3.8+-green.svg" alt="Python">
 <img src="https://img.shields.io/badge/license-MIT-orange.svg" alt="License">
 <img src="https://img.shields.io/badge/builtins-180+-brightgreen.svg" alt="Builtins">
